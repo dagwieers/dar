@@ -1,0 +1,36 @@
+#!/bin/bash
+
+### dar-exec  [ -d <dists> ]  <cmd> ...
+
+source "/usr/lib/dar/dar-functions"
+
+daropts "d:" $@
+CMD="$OPTS"
+
+if [ ! -d "$ROOT" ]; then
+	echo "ERROR: probably in chroot jail" >&2
+	exit 1
+fi
+
+set_dists
+set_su_user
+
+for distname in $DISTS; do
+	echo "Executing \"$CMD\" for $distname."
+
+	### Check for building as user
+	if [ "$USE_USER" != "no" -a "$SU_USER" -eq "1" ]; then
+		DO_SU="/bin/su -m $BUILD_USER -c"
+	else
+		DO_SU=""
+	fi
+
+	chroot "$CHROOTDIR/$distname" $DO_SU "$CMD"
+	RC=$?
+
+	if [ $RC -ne 0 ]; then
+		error "Failed executing \"$CMD\" (RC=$RC)"
+	fi
+done
+
+exit 0

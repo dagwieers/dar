@@ -1,0 +1,8 @@
+### RED HAT ENTERPRISE LINUX 2.1
+
+### Distcc compilers
+DISTCC_CC="i386-redhat-linux-gcc-2.96"
+DISTCC_CXX="i386-redhat-linux-g++-2.96"
+
+DISTTAG="rhel2.1"
+DISTPATH="redhat/el2.1"

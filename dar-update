@@ -1,0 +1,37 @@
+#!/bin/bash
+
+### dar-update  [ -a <archs> ]  [ -d <dists> ]  [ -s <sdists> ]  <app> ...
+
+source "/usr/lib/dar/dar-functions"
+
+daropts ":a:d:s:" $@
+PKGS="$OPTS"
+
+DISTS="$DEFAULT_DISTS"
+
+### Update build environment
+for distname in $DISTS; do
+        if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
+                source "$CONFIGDIR/dists/$distname/config"
+        else
+                warning "Configfile $CONFIGDIR/dists/$distname/config missing. Aborting."
+                continue
+        fi
+
+	echo "Building $distname repository in $DISTPATH."
+	build_repo_apt "$DISTTAG" "$DISTPATH"
+#	build_repo_yum "$DISTTAG" "$DISTPATH"
+
+	echo "Updating $distname."
+	chroot $CHROOTDIR/$distname /usr/bin/apt-get -qq update
+
+	echo "Upgrading $dist."
+	chroot $CHROOTDIR/$distname /usr/bin/apt-get -qq -f -y upgrade
+
+	for pkg in $PKGS; do
+		echo "Installing $pkg in $distname."
+		chroot $CHROOTDIR/$distname /usr/bin/apt-get -qq -y -m install $pkg
+	done
+	echo
+done
+echo "Finished."

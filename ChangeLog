@@ -1,0 +1,108 @@
+Version 0.6.0 # Probably the last version using bash
+- dar.conf: Removed DISTSMAP, added it to dists specific section
+- dar-build: Changed LD_ASSUME_KERNEL to 2.2.5
+- dar-build: Added DISTCC_LOG to make sure configure isn't behaving different
+- dar-*: Made clear distinction between darname, dartag and darpath
+- dar-sync: Added beep when password is due
+- dar-build: Changes to move to freshrpms design (per package source directory)
+- dar-functions: Get rid of the trailing 'Dar' for commented meta-headers
+- dar-functions: Fixed 'argument line too long' problems with rm and ln
+- dar-build: Allow spec-files to be absolute paths, relative paths or package-name
+- dar-build: Removed LOGDIR and move logfiles to rpms/app/_buildlogs/
+- dar-*: Added CHROOTDIR and moved all build environments into it
+- dar-build: Replaced Imprison by Compartment
+- dar-build: Define _builddir macro as $ROOT/build
+- dar-build: Added default chroot + su (and replaced compartment)
+
+Version 0.5.2
+- dar-sync: Added package count to state-lists
+- dar-sync: Added --delete-after fix to rsync options
+- dar-build: If --force, don't overwrite source package (even with nothing was build)
+- dar-functions: Added LD_ASSUME_KERNEL="2.4.9" as a potential fix for rpmdb corruption
+- dar-build: bzip2 all the logs-files and make it backward compatible to clean up old logfiles
+
+Version 0.5.1
+- dar-build: Moved CCACHE_DIR from /var/tmp/$dist/.ccache to /var/tmp/ccache-$dist/
+- dar-build: Added support for distcc-compilers-redhat (gcc versions per distro)
+- dar-exec: Added this new tool
+- dar-build: Backup PATH before changing and restore it afterwards (solves strange distcc problems)
+- dar-build: Remove buildroot prior to building (if %setup or %build fails, it doesn't exist)
+- dar-functions: added i586 and athlon to i386
+- dar-build: First evaluate "darconf Archs" and then "rpmconf BuildArch" (Alfredo Milani-Comparetti)
+- dar-sync: Added Yum-support (disabled because of inefficiencies)
+- dar-build: -f ($FORCE_OVERWRITE) forces SRPM build too
+- dar-build: Recreate $NEWSPECFILE and $LOGFILE instead of overwriting
+- dar-build: Added build command to log
+- dar-build: Added -v ($FORCE_VERBOSE)
+- dar-build: Add ~/.distcc to soapboxpath for distcc >= 2.10
+- dar-sync: Added $GPG_NAME and $GPG_PATH variables
+- dar-sync: Added possibility to sync packages
+
+Version 0.5.0
+- dar-build: Integrated Imprison in DAR (not working currently, disabled)
+- dar-build: Integrated Ccache in DAR
+- dar-build: Integrated Distcc in DAR
+
+Version 0.4.7
+- dar-build: Soapbox violation detection smarter about succesful builds
+- dar-build: Don't write a source-package when each single build has failed
+- dar-functions: Improved the regular expressions in darconf() and rpmconf()
+- dar-sync: Improved speed of dar-sync drastically
+- dar-sync: Creates a source-list and total-list of packages
+- dar-sync: Creates a list of packages in the build environment
+
+Version 0.4.6
+- dar-*: Using rpm macros for paths where possible.
+- dar-build: Added warning instead of error for already existing packages
+- dar-build: Minimal output, easier to see failures
+
+Version 0.4.5
+- dar-functions: Added daropts functions
+- dar-build: Accept options for changing archs, dists, tag and force-overwrite
+- dar-functions: Allow to add more archs and dists by using commas, eg. -d rh80,rh73
+- dar-build: Integrated Soapbox in DAR
+- dar-build: Added LD_PRELOAD and SOAPBOXPATH to take advantage of Soapbox
+- dar-build: Added SOAPBOXLOG as now possible in Soapbox v0.0.8
+- dar-sync: Added package-list generation
+- dar-build: Cleaned up buildlog output
+- dar-functions: Added generate_contents and set_soapbox functions
+
+Version 0.4.4
+- dar-build: Only copy SPEC file if newer
+- dar-build: Directory created before building
+
+Version 0.4.3
+- dar-build: Chown sources so rpm won't complain in build-environment
+- dar-install: Renamed to dar-update
+- dar-contrib: New script to upload updates to contrib.redhat.com
+- dar-sync: Now use the algorithm of dar-contrib to update apt repositories
+- dar-update: Ignore missing packages
+- dar-update: Install packages individually (an unknown package will otherwise fail)
+- dar-prepare: Added $ROOT to mounted partitions (in build environment)
+- dar-update: Use local repository for updates
+- dar-build: Retain logfiles in $PACKAGEDIR/$app/_buildlogs/
+- dar-build: Provide %{_rpmdir} to rpm-build so files are created where they belong
+
+Version 0.4.2
+- darbuild: Build doesn't stop when it fails, log problem and keep build-logfile
+- dar.conf: Added LOGDIR variable
+- README: Explained the different tools and locations
+- dar-sync: Remove files on target (--remove)
+- dar-kickoff: Added skel-directory for build-environment
+- dar-build: Print out log-file while building and other output changes
+- dar-install: Added -y and -q to apt-get (Answer yes but be quiet ;-))
+- dar-build: If build fails save the content of the buildroot into the log
+- dar-build: And if build fails save the content of the source tree into the log too
+- dar-build: Added $RETAIN_LOGS variable
+- dar-functions: Added darconf and rpmconf functions
+- dar-build: Make use of Dar-embedded config (using dar-functions)
+- dar-build: Check if an rpmfile exists before building
+
+Version 0.4.1
+- dar-build: Build only one source-package
+- dar.conf: Seperate list of source-distributions (important for dependencies)
+- dar-sync: Preserves times
+- dar-build: Clear important environment variables
+
+Version 0.4
+- Initial release

@@ -1,0 +1,67 @@
+#!/bin/bash
+
+source "/usr/lib/dar/dar-functions"
+
+daropts ":a:d:s:" $@
+
+DISTS="$DEFAULT_DISTS"
+TAG="$DEFAULT_TAG"
+
+#build_htaccess
+
+### Sign first as we're starting the script.
+if [ "$GPG_NAME" -a "$GPG_PATH" ]; then
+	echo "Signing (new) packages."
+	find $PACKAGEDIR -newer $FTPDIR/extra/state/rpmsign -name "*.rpm" -type f | xargs rpm --resign  \
+		--define "_signature gpg" \
+		--define "_gpg_path $GPG_PATH" \
+		--define "_gpg_name $GPG_NAME"
+	if [ $? -eq 0 ]; then
+		touch $FTPDIR/extra/state/rpmsign
+	elif [ $? -gt 1 ]; then
+		echo $?
+		exit $?
+	fi
+fi
+
+for distname in $DISTS; do
+	if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
+		source "$CONFIGDIR/dists/$distname/config"
+	else
+		warning "Configfile $CONFIGDIR/dists/$distname/config missing. Aborting."
+		continue
+	fi
+
+	echo "Building $distname repository in $DISTPATH."
+	build_env "$DISTTAG" "$distname"
+	build_content "$DISTTAG"
+	build_repo_apt "$DISTTAG" "$DISTPATH"
+	build_repo_yum "$DISTTAG" "$DISTPATH"
+done
+
+echo -n "Building source package list."
+find $PACKAGEDIR/ -name "*.$TAG.src.rpm" | sed -e "s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$TAG\.src\.rpm|\1|" | sort | uniq >$FTPDIR/extra/state/packages-src.list
+echo -e "\t($(wc -l $FTPDIR/extra/state/packages-src.list))"
+
+echo -n "Building package list."
+cat $FTPDIR/extra/state/packages-*.list | sort | uniq > $FTPDIR/extra/state/packages.list
+echo -e "\t($(wc -l $FTPDIR/extra/state/packages.list))"
+
+echo -n "Building summary list."
+rm -f $FTPDIR/extra/state/summaries.list
+for app in $PACKAGEDIR/*/; do
+	app="$(basename $app)"
+	SPECFILE="$PACKAGEDIR/$app/$app.spec"
+	if [ -r "$SPECFILE" ]; then
+		echo -e "$app\t$(rpmconf Summary)" >> $FTPDIR/extra/state/summaries.list
+	fi
+done
+echo -e "\t($(wc -l $FTPDIR/extra/state/summaries.list))"
+
+echo -n "Building all package list."
+find $PACKAGEDIR/ -name "*.rpm" | sort > $FTPDIR/extra/state/all-packages.list
+echo -e "\t($(wc -l $FTPDIR/extra/state/all-packages.list))"
+
+echo "Starting remote synchronisation."
+#rsync -anvzHL --progress --delete-after --bwlimit="$RSYNC_LIMIT" -e /usr/bin/ssh $PACKAGEDIR $FTPDIR $RSYNC_TARGET
+rsync -avHL --progress --delete-after --bwlimit="$RSYNC_LIMIT" -e "/usr/bin/ssh -oCompression=no" $PACKAGEDIR $FTPDIR $RSYNC_TARGET

@@ -1,0 +1,58 @@
+#!/bin/bash
+
+DIST="$1"
+
+echo "Not finished, see source for some instructions."
+exit 1
+
+source "/usr/lib/dar/dar-functions"
+
+if [ -d "$ROOT/$DIST" ]; then
+	echo "ERROR: Dir $ROOT/$DIST already exists." >&2
+	exit 1
+fi
+
+mkdir -p "$ROOT/logs" "$ROOT/home-made" "$ROOT/$DIST"
+rpm --initdb --root "$ROOT/$DIST"
+
+: -<<EOF
+adduser dag
+
+chown dag.dag -R /usr/src/redhat/BUILD /mnt/dar/packages/ /mnt/dar/logs/
+
+rpm --root -ihvU %
+Install 
+	util-linux (start)
+	
+	basesystem-7.0-2.noarch.rpm
+	bash-2.05a-13.i386.rpm
+	filesystem-2.1.6-2.noarch.rpm
+	glibc-2.2.5-42.i686.rpm
+	glibc-common-2.2.5-42.i386.rpm
+	libtermcap-2.0.8-28.i386.rpm
+	mktemp-1.5-14.i386.rpm
+	termcap-11.0.1-10.noarch.rpm
+EOF
+
+: -<<EOF #$ROOT$DIST/etc/apt/sources.list
+### Dag Apt Repository for Red Hat 8.0
+rpm file:///mnt/dar/apt redhat/8.0/en/i386 dag
+
+### Red Hat Linux 8.0
+rpm http://apt.ccl.kuleuven.ac.be redhat/8.0/en/i386 os updates
+EOF
+
+### Disable symbols in builds (for rh90) -g
+# perl -pi.orig -e 's|-O2 -g|-O2|' /mnt/dar/rh90/usr/lib/rpm/macros /mnt/dar/rh90/usr/lib/rpm/*/macros /mnt/dar/rh90/usr/lib/rpm/rpmrc
+
+
+cp -auvx /usr/share/dar/skel/* $ROOT/$DIST
+
+### Customizing build-environment
+echo "PS1=\"[\u@$DIST \W]# \"" >> $ROOT/$DIST/root/.bashrc
+
+cp -auvx /etc/{group,hosts,passwd,resolv.conf,modules.conf} $ROOT/$DIST/etc/
+
+#chroot $ROOT/$DIST /bin/nice /usr/bin/apt install
+
+exit 0

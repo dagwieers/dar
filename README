@@ -1,0 +1,37 @@
+Placeholder for README ;)
+
+  Overview of tools
+  """""""""""""""""
+    dar-kickoff		kick-off a new build-environment (not working!)
+    dar-prepare		prepare a build-environment (mount necessary dirs)
+    dar-build		build package serialized
+    dar-update		update, upgrade or install packages
+    dar-exec		execute a command in every build-environment
+    dar-sync		sync packages with a remote site
+    dar-dotty		create graphs from your build-environment (defunct pdf)
+
+
+  Overview of paths
+  """""""""""""""""
+    /etc/dar/dar.conf		General DAR configuration
+    /etc/dar/config		Location for extra package information
+    /etc/dar/dists		Location for extra distribution information
+
+    /mnt/dar			Default location for build-environments
+    /mnt/dar/packages		Default location for packages
+    /mnt/dar/logs		Default location for error logging
+    /mnt/dar/SPECS		Location for SPEC files
+
+    /usr/share/dar		Location for extra files
+    /usr/lib/dar		Location of library
+
+
+  Tool arguments
+  """"""""""""""
+    dar-kickoff
+    dar-prepare
+    dar-build -a arch -d dist -s sdist -t tag -f <package/spec> ...
+    dar-update <package> ...
+    dar-exec <cmd>
+    dar-sync
+    dar-dotty

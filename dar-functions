@@ -1,0 +1,301 @@
+#!echo "This is a Bash library, not an executable"
+
+### Set shell options
+set -p #-u -f
+
+### general variables
+DARCONFIG="/etc/dar/dar.conf"
+
+### Cleans environment
+function clean_env {
+	:
+}
+
+### Give a timestamp
+function timestamp {
+	echo $(date +'%h %d %H:%M:%S')
+}
+
+### Just log and fill error-buffer
+function log {
+	local MSG="$(timestamp) $*"
+	echo "$MSG" >&2
+	ERRORBUFFER="$ERRORBUFFER\n$MSG"
+}
+
+### Log only if debugging is on
+function debug {
+	if [ "$DEBUG" == "yes" ]; then
+		log "DEBUG: $*"
+	else
+		local MSG="$(timestamp) $*"
+		ERRORBUFFER="$ERRORBUFFER\n$MSG"
+	fi
+}
+
+### Log and put error-boolean on (so die will escalate the problem)
+function error {
+	ERROR="yes"
+	echo "ERROR: $*" >&2
+#	log "ERROR: $*"
+}
+
+### Log and put warning-boolean on (so die will escalate the problem)
+function warning {
+	ERROR="yes"
+	echo "WARNING: $*" >&2
+#	log "WARNING: $*"
+}
+
+### Stop running and escalate if problems
+function die {
+	if [ "$*" -o "$ERROR" == "yes" ]; then
+		log "$* Exiting."
+		exit 1
+	else
+		debug "Exiting successfully."
+		exit 0
+	fi
+}
+
+function rpmconf {
+	CONFIG="$1"
+
+	if [ -z "$SPECFILE" ]; then
+		return 1
+	fi
+
+	if ! grep -i "^ *$CONFIG *:" $SPECFILE | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
+		debug "Config $CONFIG not found in $SPECFILE"
+	fi
+}
+
+function metaconf {
+	CONFIG="$1"
+
+	if [ -z "$SPECFILE" ]; then
+		return 1
+	fi
+
+#	if ! grep -i "^# *Dar$CONFIG *:" $SPECFILE | sed -e "s/^# *Dar$CONFIG *: *//i" | head -1; then
+#		debug "Config Dar$CONFIG not found in $SPECFILE"
+#	fi
+	if ! grep -i "^# *$CONFIG *:" $SPECFILE | sed -e "s/^# *$CONFIG *: *//i" | head -1; then
+		debug "MetaConfig $CONFIG not found in $SPECFILE"
+	fi
+}
+
+function daropts {
+	OPTIONS="$1"; shift
+	OPTIND=1
+	while getopts "$OPTIONS" c; do
+		case "$c" in
+			(a)	FORCE_ARCHS="$OPTARG";;
+			(d)	FORCE_DISTS="$OPTARG";;
+			(f)	FORCE_OVERWRITE="true";;
+			(s)	FORCE_SOURCE_DISTS="$OPTARG";;
+			(t)	FORCE_TAG="$OPTARG";;
+			(v)	FORCE_VERBOSE="true";;
+#			(-)	c=${OPTARG/#-/}; OPTARG="$(echo $* | cut -d' ' -f$OPTIND)"
+#			case "$c" in
+#				(port) port="$OPTARG"; OPTIND=$((OPTIND+1));;
+#				(*) options="$options --$c $OPTARG"; OPTIND=$((OPTIND+1));;
+#			esac;;
+#			('?')	error "allow: Option \"-$c\" not allowed" >&2;; 
+			(*)	error "Option \"-$OPTARG\" unknown."
+		esac
+	done
+	shift $((OPTIND-1))
+	OPTS=$@
+}
+
+function set_archs {
+	if [ "$FORCE_ARCHS" ]; then
+		ARCHS="${FORCE_ARCHS//[,:;]/ }"
+	else
+		ARCHS="$(metaconf Archs)"
+	fi
+	if [ -z "$ARCHS" ]; then ARCHS="$(rpmconf BuildArch)"; fi
+	if [ -z "$ARCHS" ]; then ARCHS="$DEFAULT_ARCHS"; fi
+}
+
+function set_dists {
+	if [ "$FORCE_DISTS" ]; then
+		DISTS="${FORCE_DISTS//[,:;]/ }"
+	else
+		DISTS="$(metaconf Dists)"
+	fi
+	if [ -z "$DISTS" ]; then DISTS="$DEFAULT_DISTS"; fi
+}
+
+function set_source_dists {
+	if [ "$FORCE_SOURCE_DISTS" ]; then
+		SOURCE_DISTS="${FORCE_SOURCE_DISTS//[,:;]/ }"
+	else
+		SOURCE_DISTS="$(metaconf SourceDists)"
+	fi
+	if [ -z "$SOURCE_DISTS" ]; then SOURCE_DISTS="$DEFAULT_SOURCE_DISTS"; fi
+}
+
+function set_tag {
+	if [ -n "$FORCE_TAG" ]; then
+		TAG="$FORCE_TAG"
+	else
+		TAG="$(metaconf Tag)"
+	fi
+	if [ -z "$TAG" ]; then TAG="$DEFAULT_TAG"; fi
+}
+
+function set_soapbox {
+	if [ -n "$FORCE_SOAPBOX" ]; then
+		SOAPBOX="$FORCE_SOAPBOX"
+	else
+		SOAPBOX="$(metaconf Soapbox)"
+	fi
+	if [ -z "$SOAPBOX" ]; then SOAPBOX="$USE_SOAPBOX"; fi
+}
+
+function set_su_user {
+	if [ -n "$FORCE_SU_USER" ]; then
+		SU_USER="$FORCE_USE_USER"
+	else
+		SU_USER="$(metaconf BuildAsUser)"
+	fi
+	if [ -z "$SU_USER" ]; then SU_USER="$USE_USER"; fi
+}
+
+function set_distcc {
+	if [ -n "$FORCE_DISTCC" ]; then
+		DISTCC="$FORCE_DISTCC"
+	else
+		DISTCC="$(metaconf Distcc)"
+	fi
+	if [ -z "$DISTCC" ]; then DISTCC="$USE_DISTCC"; fi
+}
+
+function set_ccache {
+	if [ -n "$FORCE_CCACHE" ]; then
+		CCACHE="$FORCE_CCACHE"
+	else
+		CCACHE="$(metaconf Ccache)"
+	fi
+	if [ -z "$CCACHE" ]; then CCACHE="$USE_CCACHE"; fi
+}
+
+function build_env {
+	DISTTAG="$1"
+	DISTNAME="$2"
+	OPTIONS=""
+	RPMVER="$(chroot $CHROOTDIR/$DISTNAME rpm --version | cut -d' ' -f3)"
+
+	if [ "$RPMVER" \> "4.0.2" ]; then
+		OPTIONS="$OPTIONS --nodigest"
+	fi
+	if [ "$RPMVER" \> "4.0.99" ]; then
+		OPTIONS="$OPTIONS --nosignature"
+	fi
+
+	chroot $CHROOTDIR/$DISTNAME rpm -qa $OPTIONS --qf "%{name}\n"| sort >$FTPDIR/extra/state/rpmqa-$DISTTAG.list 2>/dev/null
+}
+
+function build_htaccess {
+	cat <<EOF >"$PACKAGEDIR/.htaccess"
+Options +Indexes
+DirectoryIndex .
+#IndexOrderDefault Descending Date
+#IndexOptions +TrackModified +SuppressDescription
+IndexOptions +TrackModified
+
+EOF
+	for dir in $(ls $PACKAGEDIR); do
+		if [ -d "$PACKAGEDIR/$dir" ]; then
+			SPECFILE="$(ls $PACKAGEDIR/$dir/*.spec | cut -d' ' -f1)"
+			if [ -f "$SPECFILE" ]; then
+				echo "AddDescription \"$(rpmconf Summary)\" $dir" >>"$PACKAGEDIR/.htaccess"
+			fi
+		fi
+	done
+}
+
+function build_content {
+	DIST="$1"
+	REPO="$DEFAULT_TAG"
+
+	find "$PACKAGEDIR/" -name "*.$REPO.$DIST.*.rpm" \
+			-o -name "*.$DIST.$REPO.*.rpm" | \
+		sed -e "
+			s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$REPO\.$DIST\..\+\.rpm|\1|;
+			s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$DIST\.$REPO\..\+\.rpm|\1|;
+		" | sort | uniq >$FTPDIR/extra/state/packages-$DIST.list
+#	find "$PACKAGEDIR/" -name "*.$DIST.$REPO.*.rpm" | perl -e -n "s|.+/(.+?)-[0-9].+\.$DIST\.$REPO\..+\.rpm|\$1|" | sort | uniq >$FTPDIR/extra/state/$NAME.list
+}
+
+function build_repo_apt {
+	DISTTAG="$1"
+	DISTPATH="$2"
+	REPO="$DEFAULT_TAG"
+
+	### Creating directories
+	mkdir -p $FTPDIR/$DISTPATH/en/i386/{base,RPMS.$REPO,SRPMS.$REPO}/
+
+	### Make SPEC files readable
+	echo $PACKAGEDIR/*/*.spec | xargs chmod +r
+
+	### Removing old packages
+	echo $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/*.rpm | xargs rm -f
+	echo $FTPDIR/$DISTPATH/en/i386/SRPMS.$REPO/*.rpm | xargs rm -f
+
+	### Hardlink files
+#	for list in $(ls $PACKAGEDIR); do
+#		if [ -f "$PACKAGEDIR/$list/DEPRECATED" ]; then continue; fi
+#		SPECFILE="$(ls $PACKAGEDIR/$list/$list.spec | tail -1)"
+#		version="$(rpmconf Version)"
+#		release="$(rpmconf Release)"
+#		ln -f $PACKAGEDIR/$list/*-$version-$release.$DISTTAG.*.rpm $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/
+#		ln -f $PACKAGEDIR/$list/$list-$version-${release//.*/}.$REPO.src.rpm $FTPDIR/$DISTPATH/en/i386/SRPMS.$REPO/
+#	done
+	echo $PACKAGEDIR/*/*.$REPO.$DISTTAG.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/ &>/dev/null # Backward compatibility
+	echo $PACKAGEDIR/*/*.$DISTTAG.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/ &>/dev/null
+	echo $PACKAGEDIR/*/*.$REPO.src.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/SRPMS.$REPO/ &>/dev/null
+
+	### Build Apt repository
+	genbasedir --flat --bloat --bz2only $FTPDIR/$DISTPATH/en/i386 $REPO
+#	genbasedir --progress --flat --bloat $FTPDIR/$DISTPATH/en/i386 $REPO
+#	genbasedir --progress --hashonly $FTPDIR/$DISTPATH/en/i386 $REPO
+}
+
+function build_repo_yum {
+	DISTTAG="$1"
+	DISTPATH="$2"
+	REPO="$DEFAULT_TAG"
+
+	### Creating directories
+	mkdir -p $FTPDIR/$DISTPATH/en/i386/$REPO/{RPMS,headers}/
+
+	### Removing old packages
+	echo $FTPDIR/$DISTPATH/en/i386/$REPO/RPMS/*.rpm | xargs rm -f
+	echo $FTPDIR/$DISTPATH/en/i386/$REPO/headers/*.hdr | xargs rm -f
+
+	### Hardlink files
+	echo $PACKAGEDIR/*/*.$REPO.$DISTTAG.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/$REPO/RPMS/ &>/dev/null # Backward compatibility
+	echo $PACKAGEDIR/*/*.$DISTTAG.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/$REPO/RPMS/ &>/dev/null
+#	ln -f $PACKAGEDIR/*/*.$REPO.src.rpm $FTPDIR/$DISTPATH/en/i386/$REPO/SRPMS/ &>/dev/null
+
+	### Build Yum repository
+#	yum-arch -q -z -d -c $FTPDIR/$DISTPATH/en/i386/$REPO/
+	yum-arch -q -z $FTPDIR/$DISTPATH/en/i386/$REPO/ &>/dev/null
+}
+
+export LD_ASSUME_KERNEL="2.2.5"
+
+### Main
+if [ -r "$DARCONFIG" ]; then
+	clean_env
+	source "$DARCONFIG"
+else
+	die "Cannot access configfile ($DARCONFIG)."
+fi
+
+if [ -r ~/".dar.conf" ]; then
+	source ~/".dar.conf"
+fi

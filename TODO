@@ -1,0 +1,42 @@
+TODO for dar
+
+ + dar-build: Print useful information before building
+    - md5sum of sources and patches
+
+ + dar-build: If possible check the source-files against an online MD5-checksum
+
+ + dar-kickoff: Improvements
+    - Create package-lists for minimal installs
+    - Make it modular using /etc/dar/dist/{rh62,rh73,rh80}.conf
+
+ + dar-build: Improvements (version-management)
+    - Rewrite app.spec
+       - Increase release
+    - If SPEC file changed since last package, repackage.
+
+ + Modular distribution design
+    - Using /etc/dar/dist/{rh62,rh73,rh80}.conf
+    - Maybe add infrastructure to dist-name (SuSE ?)
+    - Contains:
+       - package management system (rpmbuild, dpkg, ...)
+       - package management options
+
+ + dar-build: Automatically install BuildRequires before building (neat!)
+    - use $(rpmconf BuildRequires)
+    - If possible (return-code) try to distinct a Build-dependency-problem or a build-problem
+    - If automatic BuildRequires installation works and dar-kickoff works, 
+      keep counter and after X builds advice to reinstall build environment.
+    - Maybe uninstall BuildRequires after a succesful build
+
+ + Dar should contact author(s) when new packages are available
+    - If a Contact exists (see: $(metaconf Contact))
+    - Probably functionality for dar-sync ?
+
+ + Dar should be able to (if asked) check if new software is available
+    - Download new software and compile a new package on demand.
+    - Version could be incremented automatically (or given on commandline)
+
+ + Run rpmlint on the resulting RPM package (rpmlint doesn't work ATM)
+
+ + Install (test-install) packages in the build-environment to verify they work.
+    - But I don't want to polute my build-environment with unreleased packages.

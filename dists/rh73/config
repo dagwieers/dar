@@ -1,0 +1,8 @@
+### RED HAT 7.3
+
+### Distcc compilers
+DISTCC_CC="i386-redhat-linux-gcc-2.96"
+DISTCC_CXX="i386-redhat-linux-g++-2.96"
+
+DISTTAG="rh73"
+DISTPATH="redhat/7.3"

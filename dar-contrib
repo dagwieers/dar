@@ -1,0 +1,21 @@
+#!/bin/bash
+
+source "/usr/lib/dar/dar-functions"
+
+upload="";
+
+(
+echo "cd /libc6"
+for list in $(ls $PACKAGEDIR); do
+	if [ -f "$PACKAGEDIR/$list/DEPRECATED" ]; then continue; fi
+	echo "Sending package $list." >&2
+	for name in $(rpm -qp $PACKAGEDIR/$list/*.{noarch,i386,i686}.rpm --queryformat "%{name}\n" | sort | uniq); do
+		version="$(rpm -qp $PACKAGEDIR/$list/$name-*.{noarch,i386,i686}.rpm --queryformat "%{version}\n" | sort | uniq | tail -1)"
+		release="$(rpm -qp $PACKAGEDIR/$list/$name-$version-*.{noarch,i386,i686}.rpm --queryformat "%{release}\n" | sort | uniq | tail -1)"
+		echo "mput $(ls $PACKAGEDIR/$list/$name-$version-$release.*.rpm)" | grep -v ".src.rpm"
+	done
+	echo "mput $(ls $PACKAGEDIR/$list/$list-$version-${release//.*/}*.src.rpm)"
+done
+) | lftp incoming.redhat.com >>$LOGDIR/dar-contrib.log
+
+exit 0

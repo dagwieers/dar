@@ -1,0 +1,10 @@
+#!/bin/bash
+
+source "/usr/lib/dar/dar-functions"
+
+echo "Warning: this may take quite some time to finish." >&2
+for distname in $DEFAULT_DISTS; do
+        chroot $CHROOTDIR/$distname /usr/bin/apt-cache dotty | dot -Tps > $PACKAGEDIR/apt-deps-$distname.ps
+	ps2pdf14 $PACKAGEDIR/apt-deps-$distname.ps $PACKAGEDIR/apt-deps-$distname.pdf
+done
+

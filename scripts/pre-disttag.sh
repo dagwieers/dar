@@ -8,10 +8,10 @@
 
 case "$buildarch" in
 	(src)
-		perl -pi.orig -e 's|^(Release)\s*:\s+(.+)\s*$|$1: $2.'$repotag'\n|' "$specfile"
+		perl -pi.orig -e 's|^(Release)\s*:\s+([^\s]+)\s*$|$1: $2.'$repotag'\n|' "$specfile"
 		;;
 	(*)
-		perl -pi.orig -e 's|^(Release)\s*:\s+(.+)\s*$|$1: $2.'${disttag// *}'.'$repotag'\n|' "$specfile"
+		perl -pi.orig -e 's|^(Release)\s*:\s+([^\s]+)\s*$|$1: $2.'${disttag// *}'.'$repotag'\n|' "$specfile"
 		;;
 esac
 

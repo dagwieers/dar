@@ -1,0 +1,17 @@
+### RED HAT ENTERPRISE LINUX 2.1
+
+### Distcc compilers
+DISTCC_CC="i386-redhat-linux-gcc-2.96"
+DISTCC_CXX="i386-redhat-linux-g++-2.96"
+
+UPDATECMD="up2date -u"
+#UPDATECMD="apt-get -qq update"
+#UPGRADECMD="apt-get -qq -f -y upgrade"
+INSTALLCMD="up2date -i %p"
+#INSTALLCMD="apt-get -qq -y -m install %p"
+
+DISTNAME="el2"
+DISTNICK="el2i"
+DISTTAG="0.el2 rhel2.1"
+DISTPATH="redhat/el2.1/en/i386"
+DISTARCH="i386"

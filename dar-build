@@ -169,7 +169,8 @@ for app in $PKGS; do
 
 			cp -af "$SPECFILE" "$NEWSPECFILE"
 
-			export buildarch="$arch" distarch="$DISTARCH" disttag="${DISTTAG// *}" specfile="$NEWSPECFILE" repotag="$TAG"
+			export origspecfile="$SPECFILE" specfile="$NEWSPECFILE"
+			export buildarch="$arch" distarch="$DISTARCH" disttag="${DISTTAG// *}" repotag="$TAG"
 			for script in $CONFIGDIR/scripts/pre-*.sh; do
 				source "$script"
 			done
@@ -402,6 +403,13 @@ for app in $PKGS; do
 		if [ -z "$SOURCE_DISTS" ]; then SOURCE_DISTS="$DEFAULT_SOURCE_DISTS"; fi
 
 		for dist in $SOURCE_DISTS; do
+			if [ -r "$CONFIGDIR/dists/$dist/config" ]; then
+				source "$CONFIGDIR/dists/$dist/config"
+			else
+				warning "Configfile $CONFIGDIR/dists/$dist/config missing. Aborting."
+				continue
+			fi
+
 			RPMFILE="$app-$VERSION-$RELEASE.$TAG.src.rpm"
 
 			NEWSPECFILE="$TEMPDIR/$app.spec"
@@ -417,6 +425,9 @@ for app in $PKGS; do
 				--define "_srcrpmdir $PACKAGEDIR/$app" \
 				--define "_sourcedir $SPECDIR" \
 				--define "$dist 1" \
+				--define "dist $DISTNAME" \
+				--define "disttag ${DISTTAG// *}" \
+				--define "$DISTNAME 1" \
 				"$NEWSPECFILE"
 
 			cp -au "$NEWSPECFILE" "$PACKAGEDIR/$app/"

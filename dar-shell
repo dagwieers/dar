@@ -20,6 +20,7 @@ echo "Entering shells."
 for distname in $DISTS; do
 	if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
 		source "$CONFIGDIR/dists/$distname/config"
+		export arch="$DISTARCH" dist="${DISTNAME// *}" nick="$DISTNICK" path="$DISTPATH" repo="$REPO" tag="$TAG"
 	fi
 
 	chroot $CHROOTDIR/$distname

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+### This script adds proper Packager and Vendor tags to the SPEC file
+### so that the Source packages contains a branded SPEC file.
+
 #echo "** pre-brand: Specfile: $specfile"
 #set -x
 
@@ -20,10 +23,10 @@ esac
 vendor="Dag Apt Repository, http://dag.wieers.com/apt/"
 
 ### Removing existing branding
-perl -pi.orig -e 's/^(Packager|Vendor|Distribution):.+\n$//m' "$specfile"
+perl -pi.orig -e 's/^(Packager|Vendor|Distribution):.+\n$//is' "$specfile"
 
 ### Add own branding
-perl -pi.orig -e 's|^(Source:.+)$|Packager: '"$packager"'\nVendor: '"$vendor"'\n\n$1|' "$specfile"
+perl -pi.orig -e 's|^(Source0?:.+)$|Packager: '"$packager"'\nVendor: '"$vendor"'\n\n$1|i' "$specfile"
 
 #set +x
 #diff -u "$specfile.orig" "$specfile"

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+### This script add a disttag to the SPEC file so packages can be
+### identified easier, are unique and don't have the macro clutter.
+
 #echo "** pre-disttag: BuildArch: $buildarch, Disttag: $disttag, Repotag: $repotag, Specfile: $specfile"
 #set -x
 

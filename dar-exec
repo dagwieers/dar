@@ -13,16 +13,17 @@ if [ ! -d "$ROOT" ]; then
 fi
 
 set_dists
-set_su_user
+set_as_root
+AS_ROOT=1
 
 for distname in $DISTS; do
 	echo "Executing \"$CMD\" for $distname."
 
 	### Check for building as user
-	if [ "$USE_USER" != "no" -a "$SU_USER" -eq "1" ]; then
-		DO_SU="/bin/su -m $BUILD_USER -c"
+	if [ $AS_ROOT -eq 1 ]; then
+		DO_SU="/bin/su - -c"
 	else
-		DO_SU=""
+		DO_SU="/bin/su - -m $BUILD_USER -c"
 	fi
 
 	chroot "$CHROOTDIR/$distname" $DO_SU "$CMD"
@@ -31,6 +32,7 @@ for distname in $DISTS; do
 	if [ $RC -ne 0 ]; then
 		error "Failed executing \"$CMD\" (RC=$RC)"
 	fi
+	echo
 done
 
 exit 0

@@ -15,55 +15,79 @@ fi
 ### Clear important build variables
 export -n CC_FLAGS CXX_FLAGS LD_PRELOAD LINGUAS
 
-chown -R dag.dag "$SPECSDIR"
-chmod -R a+r "$SPECSDIR"
-
 for app in $PKGS; do
 	DARBUILDRC=1
 
-	SPECFILE="$PWD/$app"
+	SPECFILE="$app"
 	app="$(basename $app .spec)"
 
-	if [ ! -r "$SPECFILE" -o ! -f "$SPECFILE" ]; then
-		SPECFILE="$PWD/$app.spec"
+	SPECDIR="$(dirname $SPECFILE)"
+
+	if [ "$SPECDIR" == "." ]; then
+		SPECDIR="$PWD"
 	fi
-	if [ ! -r "$SPECFILE" -o ! -f "$SPECFILE" ]; then
+
+	if [ "${SPECDIR:0:1}" != "/" ]; then
+		SPECDIR="$PWD/$SPECDIR"
+	fi
+
+	if [ ! -f "$SPECFILE" ]; then
+		SPECFILE="$app.spec"
+	fi
+	if [ ! -f "$SPECFILE" ]; then
 		SPECFILE="$SPECSDIR/$app/$app.spec"
+		SPECDIR="$SPECSDIR/$app"
 	fi
-	if [ ! -r "$SPECFILE" -o ! -f "$SPECFILE" ]; then 
+	if [ ! -f "$SPECFILE" ]; then 
 		echo "ERROR: specfile \"$SPECFILE\" is not found."
 		continue
 	fi
 
 	app="$(rpmconf Name)"
-	VERSION="$(rpmconf Version)"
-	SPECSDIR="$(dirname $(dirname $SPECFILE))"
+
+	RVERSION="$(rpmmacro real_version)"
+	RRELEASE="$(rpmmacro real_release)"
+
+	VERSION="$(rpmconf Version | perl -p -e "
+			s|\%{real_version}|$RVERSION|;
+			s|\%{.*}||g;
+		")"
+	RELEASE="$(rpmconf Release | perl -p -e "
+			s|\%{real_release}|$RRELEASE|;
+			s|\%{kversion}|kv|;
+			s|\%{krelease}|kr|;
+			s|\%{.*}||g;
+		")"
 
 	if [ -z "$app" ]; then
 		die "Problem with specfile \"$SPECFILE\". (Name is empty)"
 	fi
 
 	if [ -z "$VERSION" ]; then
-		die "Problem with specfile \"$SPECFILE\". (Version is empty)"
+		VERSION="vs"
+#		die "Problem with specfile \"$SPECFILE\". (Version is empty)"
 	fi
 
-	mkdir -p "$PACKAGEDIR/$app/_buildlogs/" "$SPECSDIR/$app/"
-	ln -sf "$PACKAGEDIR/$app/_buildlogs/" "$SPECSDIR/$app/"
+	mkdir -p "$PACKAGEDIR/$app/_buildlogs/" "$SPECDIR/"
+	ln -sf "$PACKAGEDIR/$app/_buildlogs/" "$SPECDIR/"
 	chown -R $BUILD_USER.$BUILD_USER "$PACKAGEDIR/$app/"
+	chown -R $BUILD_USER.$BUILD_USER "$SPECDIR/"
+	chmod -R a+r "$SPECDIR/"
 
 	set_tag
 	NEWSPECFILE="$TEMPDIR/$app-$VERSION-$TAG.spec"
-	RELEASE="$(rpmconf Release)"
 
 	set_archs
 	set_dists
 	set_source_dists
 	set_soapbox
-	set_su_user
+	set_as_root
 	set_ccache
 	set_distcc
 
-	download_sources
+	if ! download_sources; then
+		continue
+	fi
 
 #	echo "Building $app package for dists: '$DISTS' and archs: '$ARCHS', tagged: '$TAG'"
 	for distname in $DISTS; do
@@ -77,8 +101,8 @@ for app in $PKGS; do
 		### Check if etc/rpm/macros exists with proper content
 
 		for arch in $ARCHS; do
-			RPMFILE="$app-$VERSION-$RELEASE.$DISTTAG.$TAG.$arch.rpm"
-			LOGFILE="$app-$VERSION-$RELEASE.$DISTTAG.$TAG.$arch.log"
+			RPMFILE="$app-$VERSION-$RELEASE.${DISTTAG// *}.$TAG.$arch.rpm"
+			LOGFILE="$app-$VERSION-$RELEASE.${DISTTAG// *}.$TAG.$arch.log"
 			export MAKEFLAGS="%nil"
 
 			### Build binary package
@@ -95,16 +119,16 @@ for app in $PKGS; do
 			fi
 
 			rm -f "$NEWSPECFILE"
-			cat "$SPECFILE" | sed -e "s|\(Release: *.\+\)|\1.$DISTTAG.$TAG|" >"$NEWSPECFILE"
+			cat "$SPECFILE" | sed -e "s|\(Release: *.\+\)|\1.${DISTTAG// *}.$TAG|" >"$NEWSPECFILE"
 
 			### Start logging
 			rm -f "$PACKAGEDIR/$app/$LOGFILE"
 			(	echo "----- Build information -----"
 				echo "Package name: $app"
 				echo "Package version: $VERSION"
-				echo "Package release: $RELEASE.$DISTTAG.$TAG"
+				echo "Package release: $RELEASE.${DISTTAG// *}.$TAG"
 				echo "Packager: $(logname)"
-				echo "Distribution: $DISTTAG"
+				echo "Distribution: $distname"
 				echo "Package arch: $arch"
 				echo "Build host: $(uname -n)"
 				echo "Build date: $(date)"
@@ -115,14 +139,14 @@ for app in $PKGS; do
 					echo "Soapbox: disabled"
 				fi
 
-				if [ $USE_USER -ne 0 -a $SU_USER -eq 1 ]; then
-					echo "BuildAsUser: enabled ($BUILD_USER)"
-					export HOME="/home/$BUILD_USER"
-					export USER="$BUILD_USER"
-				else
-					echo "BuildAsUser: disabled (root)"
+				if [ $AS_ROOT -eq 1 ]; then
+					echo "BuildAsRoot: enabled (root)"
 					export HOME="/root"
 					export USER="root"
+				else
+					echo "BuildAsRoot: disabled ($BUILD_USER)"
+					export HOME="/home/$BUILD_USER"
+					export USER="$BUILD_USER"
 				fi
 
 				if [ $USE_DISTCC -ne 0 -a $DISTCC -eq 1 -a -n "$DISTCC_HOSTS" -a -x "$CHROOTDIR/$distname/usr/bin/distcc" -a -d "$CHROOTDIR/$distname/usr/lib/distcc/bin" ]; then
@@ -154,7 +178,7 @@ for app in $PKGS; do
 				if [ -d /root/.distcc/state/ ]; then
 					rmdir /root/.distcc/state/ &>/dev/null
 				fi
-				if [ $USE_USER -ne 0 -a $SU_USER -eq 1 ]; then
+				if [ $USE_ROOT -ne 1 -o $AS_ROOT -ne 1 ]; then
 					chown $BUILD_USER.$BUILD_USER $CHROOTDIR/$distname/root/.distcc/
 #					ln -sf $CHROOTDIR/$distname/home/$BUILD_USER/.distcc/state /root/.distcc/
 #				else
@@ -191,7 +215,7 @@ for app in $PKGS; do
 				RPMOPTS="--target $arch"
 			fi
 
-			echo "Building $distname/$arch, see \"$SPECSDIR/$app/_buildlogs/$LOGFILE\"."
+			echo "Building $distname/$arch [$SPECDIR/_buildlogs/$LOGFILE]."
 
 			### Check for Soapbox
 			if [ "$SOAPBOX" == "1" -a -f "/lib/libsoapbox.so" -a -f "$CHROOTDIR/$distname/lib/libsoapbox.so" ]; then
@@ -206,10 +230,10 @@ for app in $PKGS; do
 					--define \"_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm\" \
 					--define \"_initrddir %{_sysconfdir}/rc.d/init.d\" \
 					--define \"_rpmdir $PACKAGEDIR/$app\" \
-					--define \"_sourcedir $SPECSDIR/$app\" \
+					--define \"_sourcedir $SPECDIR\" \
 					--define \"_builddir $BUILDDIR\" \
 					--define \"_tmppath $TEMPDIR\" \
-					--define \"$distname 1\" \"$NEWSPECFILE\""
+					--define \"dist $DISTNICK\" \"$NEWSPECFILE\""
 
 			(
 				echo "Build command: $BUILDCMD" | xargs
@@ -217,27 +241,29 @@ for app in $PKGS; do
 				echo -e "\n----- Build log -----"
 
 				### Check for building as user
-				if [ $USE_USER -ne 0 -a $SU_USER -eq 1 ]; then
-					chroot "$CHROOTDIR/$distname" /bin/su -m $BUILD_USER -c "/usr/bin/rpmbuild -bb $RPMOPTS \
-						--define '_smp_mflags $MAKEFLAGS' \
-						--define '_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm' \
-						--define '_initrddir %{_sysconfdir}/rc.d/init.d' \
-						--define '_rpmdir $PACKAGEDIR/$app' \
-						--define '_sourcedir $SPECSDIR/$app' \
-						--define '_builddir $ROOT/build' \
-						--define '_tmppath $TEMPDIR' \
-						--define '$distname 1' \
-						$NEWSPECFILE"
-				else
+				if [ $AS_ROOT -eq 1 ]; then
 					chroot "$CHROOTDIR/$distname" /usr/bin/rpmbuild -bb $RPMOPTS \
 						--define "_smp_mflags $MAKEFLAGS" \
 						--define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
 						--define "_initrddir %{_sysconfdir}/rc.d/init.d" \
 						--define "_rpmdir $PACKAGEDIR/$app" \
-						--define "_sourcedir $SPECSDIR/$app" \
+						--define "_sourcedir $SPECDIR" \
 						--define "_builddir $ROOT/build" \
-						--define "$distname 1" \
+						--define "_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root" \
+						--define "dist $DISTNICK" \
 						"$NEWSPECFILE"
+				else
+					chroot "$CHROOTDIR/$distname" /bin/su - -m $BUILD_USER -c "/usr/bin/rpmbuild -bb $RPMOPTS \
+						--define '_smp_mflags $MAKEFLAGS' \
+						--define '_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm' \
+						--define '_initrddir %{_sysconfdir}/rc.d/init.d' \
+						--define '_rpmdir $PACKAGEDIR/$app' \
+						--define '_sourcedir $SPECDIR' \
+						--define '_builddir $ROOT/build' \
+						--define '_tmppath $TEMPDIR' \
+						--define '_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root' \
+						--define 'dist $DISTNICK' \
+						$NEWSPECFILE"
 				fi
 			) >>"$PACKAGEDIR/$app/_buildlogs/$LOGFILE" 2>&1
 #			CHROOT="/usr/bin/compartment --chroot $CHROOTDIR/$distname --user $BUILD_USER --group $BUILD_USER --init /usr/lib/dar/compartment.sh --quiet"
@@ -253,9 +279,9 @@ for app in $PKGS; do
 				echo "$RC"
 				echo -e "\n----- Spec file -----"
 				cat "$NEWSPECFILE"
-				if [ -d "$TEMPDIR/root-$app-$VERSION" ]; then
-					echo -e "\n----- Buildroot contents -----"
-					find "$TEMPDIR/root-$app-$VERSION" 2>/dev/null
+				if [ -d "$TEMPDIR/$app-$VERSION-$RELEASE-root" ]; then
+					echo -e "\n----- Buildroot content -----"
+					find "$TEMPDIR/$app-$VERSION-$RELEASE-root" 2>/dev/null
 				fi
 				if [ -s "$SOAPBOXLOG" ]; then
 					if [ $RC -eq 0 ]; then
@@ -302,7 +328,7 @@ for app in $PKGS; do
 			chroot "$CHROOTDIR/$distname" /usr/bin/rpmbuild -bs \
 				--define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
 				--define "_srcrpmdir $PACKAGEDIR/$app" \
-				--define "_sourcedir $SPECSDIR/$app" \
+				--define "_sourcedir $SPECDIR" \
 				--define "$distname 1" \
 				"$NEWSPECFILE"
 		done

@@ -45,7 +45,7 @@ EOF
 ### Disable symbols in builds (for rh90) -g
 # perl -pi.orig -e 's|-O2 -g|-O2|' /mnt/dar/rh90/usr/lib/rpm/macros /mnt/dar/rh90/usr/lib/rpm/*/macros /mnt/dar/rh90/usr/lib/rpm/rpmrc
 
-
+cp -auvx /etc/sysconfig/network $ROOT/$DIST/etc/sysconfig/network
 cp -auvx /usr/share/dar/skel/* $ROOT/$DIST
 
 ### Customizing build-environment

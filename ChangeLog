@@ -6,6 +6,10 @@ Version 0.6.1 # Probably the last version using bash
 - dar-sync: Add version and release to rpmqa lists
 - dar-functions: Die when failing to download sources
 - dar-build: Die when 'Name:' or 'Version:' is empty
+- dar-build: Now works for SPEC files not in rpms/<name>/
+- dar-build: Changed su parameters to '- -m $USER'
+- dar-exec: Changed su parameters to '- -m $USER'
+- dar-build: BuildAsUser-tag is now BuildAsRoot
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

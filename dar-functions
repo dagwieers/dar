@@ -61,6 +61,10 @@ function die {
 function rpmconf {
 	CONFIG="$1"
 
+	if [ "$2" ]; then
+		SPECFILE="$2"
+	fi
+
 	if [ -z "$SPECFILE" ]; then
 		return 1
 	fi
@@ -70,8 +74,28 @@ function rpmconf {
 	fi
 }
 
+function rpmmacro {
+	CONFIG="$1"
+
+	if [ "$2" ]; then
+		SPECFILE="$2"
+	fi
+
+	if [ -z "$SPECFILE" ]; then
+		return 1
+	fi
+
+	if ! grep -i "^%define $CONFIG " $SPECFILE | sed -e "s/^%define $CONFIG *//i" | head -1; then
+		debug "Macro $CONFIG not found in $SPECFILE"
+	fi
+}
+
 function metaconf {
 	CONFIG="$1"
+
+	if [ "$2" ]; then
+		SPECFILE="$2"
+	fi
 
 	if [ -z "$SPECFILE" ]; then
 		return 1
@@ -155,13 +179,13 @@ function set_soapbox {
 	if [ -z "$SOAPBOX" ]; then SOAPBOX="$USE_SOAPBOX"; fi
 }
 
-function set_su_user {
-	if [ -n "$FORCE_SU_USER" ]; then
-		SU_USER="$FORCE_USE_USER"
+function set_as_root {
+	if [ -n "$FORCE_AS_ROOT" ]; then
+		AS_ROOT="$FORCE_AS_ROOT"
 	else
-		SU_USER="$(metaconf BuildAsUser)"
+		AS_ROOT="$(metaconf BuildAsRoot)"
 	fi
-	if [ -z "$SU_USER" ]; then SU_USER="$USE_USER"; fi
+	if [ -z "$AS_ROOT" ]; then AS_ROOT="$USE_ROOT"; fi
 }
 
 function set_distcc {
@@ -184,6 +208,7 @@ function set_ccache {
 
 function download_sources {
 	local RC=1
+	local ERC=0
 	local i=1
 #	while [ $RC -ne 0 -a $i -lt 4 ]; do
 #		spectool -g "$SPECFILE" &>/dev/null
@@ -193,22 +218,24 @@ function download_sources {
 	for url in $(spectool -l "$SPECFILE" 2>/dev/null | cut -f2 -d' '); do
 		filename="$SPECSDIR/$app/$(basename $url)"
 		if [ ! -s "$filename" ]; then
+			warning "File \"$filename\" not found, downloading."
 			local i=1
 			while [ $RC -ne 0 -a $i -lt 4 ]; do
-				wget -q -O "$filename" "$url"
+				wget -q -T 10 -O "$filename" "$url"
 				RC=$?
 				i=$((i+1))
 			done
 			if [ $RC -ne 0 ]; then
-				die "Problems downloading $url."
+				warning "Problems downloading source [$url]."
+				ERC=1
 			fi
 		fi
 	done
+	return $ERC
 }
 
 function build_env {
-	DISTTAG="$1"
-	DISTNAME="$2"
+	DISTNAME="$1"
 	OPTIONS=""
 	RPMVER="$(chroot $CHROOTDIR/$DISTNAME rpm --version | cut -d' ' -f3)"
 
@@ -219,7 +246,7 @@ function build_env {
 		OPTIONS="$OPTIONS --nosignature"
 	fi
 
-	chroot $CHROOTDIR/$DISTNAME rpm -qa $OPTIONS --qf "%{name}\t%{version}-%{release}\n"| sort >$FTPDIR/extra/state/rpmqa-$DISTTAG.list 2>/dev/null
+	chroot $CHROOTDIR/$DISTNAME rpm -qa $OPTIONS --qf "%{name}\t%{version}-%{release}\n"| sort >$FTPDIR/extra/state/rpmqa-$DISTNAME.list 2>/dev/null
 }
 
 function build_htaccess {
@@ -242,16 +269,21 @@ EOF
 }
 
 function build_content {
-	DIST="$1"
+	DISTNAME="$1"
+	DISTPATH="$2"
 	REPO="$DEFAULT_TAG"
 
-	find "$PACKAGEDIR/" -name "*.$REPO.$DIST.*.rpm" \
-			-o -name "*.$DIST.$REPO.*.rpm" | \
-		sed -e "
-			s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$REPO\.$DIST\..\+\.rpm|\1|;
-			s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$DIST\.$REPO\..\+\.rpm|\1|;
-		" | sort | uniq >$FTPDIR/extra/state/packages-$DIST.list
-#	find "$PACKAGEDIR/" -name "*.$DIST.$REPO.*.rpm" | perl -e -n "s|.+/(.+?)-[0-9].+\.$DIST\.$REPO\..+\.rpm|\$1|" | sort | uniq >$FTPDIR/extra/state/$NAME.list
+#	find "$PACKAGEDIR/" -name "*.$REPO.$DIST.*.rpm" \
+#			-o -name "*.$DIST.$REPO.*.rpm" | \
+#		sed -e "
+#			s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$REPO\.$DIST\..\+\.rpm|\1|;
+#			s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$DIST\.$REPO\..\+\.rpm|\1|;
+#		" | sort | uniq >$FTPDIR/extra/state/packages-$DIST.list
+
+	for rpm in $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/*.rpm; do
+		rpm="${rpm%-*-*}"
+		echo "${rpm//#*\/}"
+	done | sort | uniq >$FTPDIR/extra/state/packages-$DISTNAME.list
 }
 
 function build_repo_apt {
@@ -269,17 +301,10 @@ function build_repo_apt {
 	echo $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/*.rpm | xargs rm -f
 	echo $FTPDIR/$DISTPATH/en/i386/SRPMS.$REPO/*.rpm | xargs rm -f
 
-	### Hardlink files
-#	for list in $(ls $PACKAGEDIR); do
-#		if [ -f "$PACKAGEDIR/$list/DEPRECATED" ]; then continue; fi
-#		SPECFILE="$(ls $PACKAGEDIR/$list/$list.spec | tail -1)"
-#		version="$(rpmconf Version)"
-#		release="$(rpmconf Release)"
-#		ln -f $PACKAGEDIR/$list/*-$version-$release.$DISTTAG.*.rpm $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/
-#		ln -f $PACKAGEDIR/$list/$list-$version-${release//.*/}.$REPO.src.rpm $FTPDIR/$DISTPATH/en/i386/SRPMS.$REPO/
-#	done
-	echo $PACKAGEDIR/*/*.$REPO.$DISTTAG.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/ &>/dev/null # Backward compatibility
-	echo $PACKAGEDIR/*/*.$DISTTAG.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/ &>/dev/null
+	for tag in $DISTTAG; do
+		echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/ &>/dev/null # Backward compatibility
+		echo $PACKAGEDIR/*/*.$tag.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/ &>/dev/null
+	done
 	echo $PACKAGEDIR/*/*.$REPO.src.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/SRPMS.$REPO/ &>/dev/null
 
 	### Build Apt repository
@@ -301,8 +326,10 @@ function build_repo_yum {
 	echo $FTPDIR/$DISTPATH/en/i386/$REPO/headers/*.hdr | xargs rm -f
 
 	### Hardlink files
-	echo $PACKAGEDIR/*/*.$REPO.$DISTTAG.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/$REPO/RPMS/ &>/dev/null # Backward compatibility
-	echo $PACKAGEDIR/*/*.$DISTTAG.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/$REPO/RPMS/ &>/dev/null
+	for tag in $DISTTAG; do
+		echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/$REPO/RPMS/ &>/dev/null # Backward compatibility
+		echo $PACKAGEDIR/*/*.$tag.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/$REPO/RPMS/ &>/dev/null
+	done
 #	ln -f $PACKAGEDIR/*/*.$REPO.src.rpm $FTPDIR/$DISTPATH/en/i386/$REPO/SRPMS/ &>/dev/null
 
 	### Build Yum repository

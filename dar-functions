@@ -59,7 +59,8 @@ function die {
 }
 
 function rpmconf {
-	CONFIG="$1"
+	local CONFIG="$1"
+	local RPMDB=""
 
 	if [ "$2" ]; then
 		SPECFILE="$2"
@@ -69,8 +70,14 @@ function rpmconf {
 		return 1
 	fi
 
-	if ! grep -i "^ *$CONFIG *:" $SPECFILE | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
-		debug "Config $CONFIG not found in $SPECFILE"
+	if [ "$RPMVER" \> "4.0.2" ]; then
+		local RPMDB="xxxx"
+	fi
+
+	if [ -z "$DISTNICK" -o -z "$RPMDB" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su - -m $BUILD_USER -c "rpmdb -D \"dist $DISTNICK\" -D \"$DISTNICK 1\" -D \"DISTNAME 1\" -E \"%{expand:%(cat $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
+		if ! grep -i "^ *$CONFIG *:" $SPECFILE | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
+			debug "Config $CONFIG not found in $SPECFILE"
+		fi
 	fi
 }
 
@@ -167,7 +174,6 @@ function set_source_dists {
 	else
 		SOURCE_DISTS="$(metaconf SourceDists)"
 	fi
-	if [ -z "$SOURCE_DISTS" ]; then SOURCE_DISTS="$DEFAULT_SOURCE_DISTS"; fi
 }
 
 function set_tag {
@@ -227,7 +233,7 @@ function download_sources {
 	for url in $(spectool -l "$SPECFILE" 2>/dev/null | cut -f2 -d' '); do
 		filename="$SPECSDIR/$app/$(basename $url)"
 		if [ ! -s "$filename" ]; then
-			warning "File \"$filename\" not found, downloading."
+			warning "Source \"$filename\" not found, downloading."
 			local i=1
 			while [ $RC -ne 0 -a $i -lt 4 ]; do
 				wget -q -T 10 -O "$filename" "$url"

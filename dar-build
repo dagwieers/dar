@@ -75,8 +75,6 @@ for app in $PKGS; do
 	chmod -R a+r "$SPECDIR/"
 
 	set_tag
-	NEWSPECFILE="$TEMPDIR/$app-$VERSION-$TAG.spec"
-
 	set_dists
 	set_exclude_dist
 	set_exclusive_dist
@@ -99,6 +97,11 @@ for app in $PKGS; do
 			continue
 		fi
 
+		if [ ! -d "$CHROOTDIR/$DISTNICK" ]; then
+			warning "Distribution $DISTNICK has no build environment ($CHROOTDIR/$DISTNICK). Aborting."
+			continue
+		fi
+
 		for exclude_dist in $EXCLUDE_DIST; do
 			if [ "$DISTNAME" == "$exclude_dist" -o "$DISTNICK" == "$exclude_dist" ]; then
 				warning "Distribution $DISTNAME/$DISTARCH is excluded for package $app. Aborting."
@@ -113,27 +116,37 @@ for app in $PKGS; do
 			fi
 		done
 
+		RPMVER="$(chroot $CHROOTDIR/$DISTNICK rpm --version | cut -d' ' -f3)"
+
 		set_archs
 
 		### Check if etc/rpm/macros exists with proper content
 
 		for arch in $ARCHS; do
+			VERSION="$(rpmconf Version)"
+			RELEASE="$(rpmconf Release)"
+
+			NEWSPECFILE="$TEMPDIR/$app-$VERSION-$TAG.spec"
 			RPMFILE="$app-$VERSION-$RELEASE.${DISTTAG// *}.$TAG.$arch.rpm"
 			LOGFILE="$app-$VERSION-$RELEASE.${DISTTAG// *}.$TAG.$arch.log"
 			export MAKEFLAGS="%nil"
 
-			### Build binary package
-			if [ -z "$FORCE_OVERWRITE" -a -f "$PACKAGEDIR/$app/$RPMFILE" ]; then
-				warning "File \"$PACKAGEDIR/$app/$RPMFILE\" already exists."
-				continue;
-			fi
-
-			### Backward compatibility
-			OLDRPMFILE="$app-$VERSION-$RELEASE.$TAG.$dist.$arch.rpm"
-			if [ -z "$FORCE_OVERWRITE" -a -f "$PACKAGEDIR/$app/$OLDRPMFILE" ]; then
-				warning "File \"$PACKAGEDIR/$app/$OLDRPMFILE\" already exists."
-				continue;
-			fi
+			### Check if already build (2 version schemes, multiple disttags)
+			for disttag in $DISTTAG; do
+				NEWRPMFILE="$app-$VERSION-$RELEASE.$disttag.$TAG.$arch.rpm"
+				OLDRPMFILE="$app-$VERSION-$RELEASE.$TAG.$disttag.$arch.rpm"
+				for rpmfile in $NEWRPMFILE $OLDRPMFILE; do
+					if [ -z "$FORCE_OVERWRITE" -a -f "$PACKAGEDIR/$app/$rpmfile" ]; then
+						warning "Package \"$PACKAGEDIR/$app/$rpmfile\" already exists."
+		
+						if [ -z "$SOURCE_DISTS" ]; then
+							SOURCE_DISTS="$DISTNICK"
+						fi
+		
+						continue 3;
+					fi
+				done
+			done
 
 			rm -f "$NEWSPECFILE"
 			cat "$SPECFILE" | sed -e "s|\(Release: *.\+\)|\1.${DISTTAG// *}.$TAG|" >"$NEWSPECFILE"
@@ -331,6 +344,10 @@ for app in $PKGS; do
 
 				### Clean up current and older logfile
 				rm -f "$DISTCC_LOG"
+
+				if [ -z "$SOURCE_DISTS" ]; then
+					SOURCE_DISTS="$DISTNICK"
+				fi
 			else
 #				log "Failed building package $app for $dist/$arch." >> "$LOGDIR/dar.log"
 				error "Failed building package $app for $dist/$arch, see log. (RC=$RC)"
@@ -342,6 +359,9 @@ for app in $PKGS; do
 
 	### Only build when there was a succesful binary build
 	if [ "$DARBUILDRC" -eq 0 ]; then
+
+		if [ -z "$SOURCE_DISTS" ]; then SOURCE_DISTS="$DEFAULT_SOURCE_DISTS"; fi
+
 		for dist in $SOURCE_DISTS; do
 			RPMFILE="$app-$VERSION-$RELEASE.$TAG.src.rpm"
 

@@ -10,6 +10,11 @@ Version 0.6.1 # Probably the last version using bash
 - dar-build: Changed su parameters to '- -m $USER'
 - dar-exec: Changed su parameters to '- -m $USER'
 - dar-build: BuildAsUser-tag is now BuildAsRoot
+- dar.conf: Added DISTNAME, DISTNICK and DISTTAG config var
+- dar-build: Moved to new versioning scheme
+- dar-build: Better detection of old builds (2 version schemes x all known disttags)
+- dar-build: Use rpmdb -E if possible for resolving macros (thanks to Jeff Pitman)
+- dar-build: Check for existance of distribution build environment
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

@@ -387,6 +387,13 @@ function build_repo_yum {
 	yum-arch -q -z $FTPDIR/$DISTPATH/$REPO/ &>/dev/null
 }
 
+function build_repo_yum {
+	local DISTPATH="$1"
+	REPO="$DEFAULT_TAG"
+
+	createrepo -q $FTPDIR/$DISTPATH/$REPO/
+}
+
 export LD_ASSUME_KERNEL="2.4.1"
 
 ### Main

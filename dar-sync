@@ -35,6 +35,7 @@ for dist in $DISTS; do
 	echo "Building $dist repository in $DISTPATH."
 	build_repo_apt "$DISTTAG" "$DISTPATH"
 	build_repo_yum "$DISTTAG" "$DISTPATH"
+	build_repo "$DISTPATH"
 	build_env "$DISTNICK" "$DISTNAME"
 	build_content "$DISTNAME" "$DISTPATH"
 done
@@ -71,4 +72,4 @@ if [ $RSYNC_LIMIT ]; then
 	RSYNC_OPTIONS="$RSYNC_OPTIONS --bwlimit=\"$RSYNC_LIMIT\""
 fi
 #rsync -anvzHL --progress --delete-after $RSYNC_OPTIONS -e /usr/bin/ssh $PACKAGEDIR $FTPDIR $RSYNC_TARGET
-rsync -avHL --progress --delete-after $RSYNC_OPTIONS -e "/usr/bin/ssh -oCompression=no" $FTPDIR $RSYNC_TARGET
+rsync -avHL --progress --delete-after $RSYNC_OPTIONS -e "/usr/bin/ssh -oCompression=no" $PACKAGEDIR $FTPDIR/ $RSYNC_TARGET

@@ -24,6 +24,7 @@ Version 0.6.1 # Probably the last version using bash
 - dar-build: Added -n flag to build  without building a source RPM
 - dar-sync: Added i386 packages to x86_64 (could be done without hardcoding it)
 - dar-build: Added SETARCH supprt (Ralf Ertzinger)
+- dar-sync: Added createrepo metadata generation
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

@@ -1,6 +1,7 @@
 Version 0.6.1 # Probably the last version using bash
 - dar-functions: Added download_sources() using spectool
 - dar-build: Changed the way of handling logfiles
+- dar-functions: Make download_sources() work with spectool 1.0.2
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

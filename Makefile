@@ -3,12 +3,12 @@ description=Dag Apt Repository builder
 version=0.6.0
 arch=noarch
 
+prefix=/usr
 datadir=/usr/share
 sysconfdir=/etc
 localstatedir=/var
 libdir=/usr/lib
 sbindir=/usr/sbin
-topdir=$(prefix)/src/redhat
 
 DIST_SCRIPTS=dar-build dar-dotty dar-exec dar-kickoff dar-prepare dar-sync dar-update
 DIST_LIBS=dar-functions compartment.sh
@@ -28,15 +28,13 @@ install:
 		$(DESTDIR)$(sysconfdir)/logrotate.d \
 		$(DESTDIR)$(datadir)/dar/skel \
 		$(DESTDIR)$(libdir)/dar \
-		$(DESTDIR)$(sbindir) \
-		$(DESTDIR)$(topdir)/SPECS.dar
+		$(DESTDIR)$(sbindir)
 	install -m0700 -d $(DESTDIR)$(localstatedir)/log/dar
 
 	install -m0644 dar.conf $(DESTDIR)$(sysconfdir)/dar
 
 	install -m0755 $(DIST_SCRIPTS) $(DESTDIR)$(sbindir)
 	install -m0755 $(DIST_LIBS) $(DESTDIR)$(libdir)/dar/
-#	install -m0644 dar.spec $(DESTDIR)$(topdir)/SPECS.dar/
 #	install -m0644 dists/*/* $(DESTDIR)$(sysconfdir)/dar/dists/
 	cp -af dists/* $(DESTDIR)$(sysconfdir)/dar/dists/
 

@@ -21,14 +21,18 @@ chmod -R a+r "$SPECSDIR"
 for app in $PKGS; do
 	DARBUILDRC=1
 
+	SPECFILE="$app"
 	app="$(basename $app .spec)"
-	SPECFILE="$PWD/$app.spec"
+
+	if [ ! -r "$SPECFILE" -o ! -f "$SPECFILE" ]; then
+		SPECFILE="$PWD/$app.spec"
+	fi
 	if [ ! -r "$SPECFILE" -o ! -f "$SPECFILE" ]; then
 		SPECFILE="$SPECSDIR/$app/$app.spec"
-		if [ ! -r "$SPECFILE" ]; then 
-			echo "ERROR: specfile \"$SPECFILE\" is not found."
-			continue
-		fi
+	fi
+	if [ ! -r "$SPECFILE" -o ! -f "$SPECFILE" ]; then 
+		echo "ERROR: specfile \"$SPECFILE\" is not found."
+		continue
 	fi
 
 	app="$(rpmconf Name)"

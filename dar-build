@@ -21,16 +21,19 @@ chmod -R a+r "$SPECSDIR"
 for app in $PKGS; do
 	DARBUILDRC=1
 
-	if [ -r "$app" -a -f "$app" ]; then
-		SPECFILE="$app"
-	else
-		app="$(basename $app .spec)"
+	app="$(basename $app .spec)"
+	SPECFILE="$PWD/$app.spec"
+	if [ ! -r "$SPECFILE" -o ! -f "$SPECFILE" ]; then
 		SPECFILE="$SPECSDIR/$app/$app.spec"
 		if [ ! -r "$SPECFILE" ]; then 
 			echo "ERROR: specfile \"$SPECFILE\" is not found."
 			continue
 		fi
 	fi
+
+	mkdir -p "$PACKAGEDIR/$app/_buildlogs/" "$SPECSDIR/$app/"
+	ln -sf "$PACKAGEDIR/$app/_buildlogs/" "$SPECSDIR/$app/"
+	chown -R $BUILD_USER.$BUILD_USER "$PACKAGEDIR/$app/"
 
 	app="$(rpmconf Name)"
 	VERSION="$(rpmconf Version)"
@@ -46,6 +49,8 @@ for app in $PKGS; do
 	set_su_user
 	set_ccache
 	set_distcc
+
+	download_sources
 
 #	echo "Building $app package for dists: '$DISTS' and archs: '$ARCHS', tagged: '$TAG'"
 	for distname in $DISTS; do
@@ -76,13 +81,11 @@ for app in $PKGS; do
 				continue;
 			fi
 
-			mkdir -p "$PACKAGEDIR/$app/" "$SPECSDIR/$app/_buildlogs/"
-			chown -R $BUILD_USER.$BUILD_USER "$PACKAGEDIR/$app/"
 			rm -f "$NEWSPECFILE"
 			cat "$SPECFILE" | sed -e "s|\(Release: *.\+\)|\1.$DISTTAG.$TAG|" >"$NEWSPECFILE"
 
 			### Start logging
-			rm -f "$SPECSDIR/$app/$LOGFILE"
+			rm -f "$PACKAGEDIR/$app/$LOGFILE"
 			(	echo "----- Build information -----"
 				echo "Package name: $app"
 				echo "Package version: $VERSION"
@@ -122,7 +125,7 @@ for app in $PKGS; do
 					echo "Ccache: disabled"
 				fi
 
-			) &>"$SPECSDIR/$app/_buildlogs/$LOGFILE"
+			) &>"$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
 
 			### Backup PATH
 			OLDPATH="$PATH"
@@ -179,7 +182,7 @@ for app in $PKGS; do
 
 			### Check for Soapbox
 			if [ "$SOAPBOX" == "1" -a -f "/lib/libsoapbox.so" -a -f "$CHROOTDIR/$distname/lib/libsoapbox.so" ]; then
-				export SOAPBOXPATH="$SPECSDIR/$app/_buildlogs:$PACKAGEDIR/$app:$TEMPDIR:$BUILDDIR:/dev/null:/dev/tty:/tmp:/var/lib/rpm/__db:$HOME/.distcc"
+				export SOAPBOXPATH="$PACKAGEDIR/$app/_buildlogs:$PACKAGEDIR/$app:$TEMPDIR:$BUILDDIR:/dev/null:/dev/tty:/tmp:/var/lib/rpm/__db:$HOME/.distcc"
 				export SOAPBOXLOG="$TEMPDIR/soapbox-$LOGFILE"
 				rm -f "$SOAPBOXLOG"
 				export LD_PRELOAD="/lib/libsoapbox.so"
@@ -199,31 +202,31 @@ for app in $PKGS; do
 				echo "Build command: $BUILDCMD" | xargs
 				echo "Build path: $PATH"
 				echo -e "\n----- Build log -----"
-			) >>"$SPECSDIR/$app/_buildlogs/$LOGFILE" 2>&1
 
-			### Check for building as user
-			if [ $USE_USER -ne 0 -a $SU_USER -eq 1 ]; then
-				chroot "$CHROOTDIR/$distname" /bin/su -m $BUILD_USER -c "/usr/bin/rpmbuild -bb $RPMOPTS \
-					--define '_smp_mflags $MAKEFLAGS' \
-					--define '_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm' \
-					--define '_initrddir %{_sysconfdir}/rc.d/init.d' \
-					--define '_rpmdir $PACKAGEDIR/$app' \
-					--define '_sourcedir $SPECSDIR/$app' \
-					--define '_builddir $ROOT/build' \
-					--define '_tmppath $TEMPDIR' \
-					--define '$distname 1' \
-					$NEWSPECFILE" >>"$SPECSDIR/$app/_buildlogs/$LOGFILE" 2>&1
-			else
-				chroot "$CHROOTDIR/$distname" /usr/bin/rpmbuild -bb $RPMOPTS \
-					--define "_smp_mflags $MAKEFLAGS" \
-					--define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
-					--define "_initrddir %{_sysconfdir}/rc.d/init.d" \
-					--define "_rpmdir $PACKAGEDIR/$app" \
-					--define "_sourcedir $SPECSDIR/$app" \
-					--define "_builddir $ROOT/build" \
-					--define "$distname 1" \
-					"$NEWSPECFILE" >>"$SPECSDIR/$app/_buildlogs/$LOGFILE" 2>&1
-			fi
+				### Check for building as user
+				if [ $USE_USER -ne 0 -a $SU_USER -eq 1 ]; then
+					chroot "$CHROOTDIR/$distname" /bin/su -m $BUILD_USER -c "/usr/bin/rpmbuild -bb $RPMOPTS \
+						--define '_smp_mflags $MAKEFLAGS' \
+						--define '_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm' \
+						--define '_initrddir %{_sysconfdir}/rc.d/init.d' \
+						--define '_rpmdir $PACKAGEDIR/$app' \
+						--define '_sourcedir $SPECSDIR/$app' \
+						--define '_builddir $ROOT/build' \
+						--define '_tmppath $TEMPDIR' \
+						--define '$distname 1' \
+						$NEWSPECFILE"
+				else
+					chroot "$CHROOTDIR/$distname" /usr/bin/rpmbuild -bb $RPMOPTS \
+						--define "_smp_mflags $MAKEFLAGS" \
+						--define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
+						--define "_initrddir %{_sysconfdir}/rc.d/init.d" \
+						--define "_rpmdir $PACKAGEDIR/$app" \
+						--define "_sourcedir $SPECSDIR/$app" \
+						--define "_builddir $ROOT/build" \
+						--define "$distname 1" \
+						"$NEWSPECFILE"
+				fi
+			) >>"$PACKAGEDIR/$app/_buildlogs/$LOGFILE" 2>&1
 #			CHROOT="/usr/bin/compartment --chroot $CHROOTDIR/$distname --user $BUILD_USER --group $BUILD_USER --init /usr/lib/dar/compartment.sh --quiet"
 
 			RC=$?
@@ -248,12 +251,12 @@ for app in $PKGS; do
 						warning "Soapbox violations, see log."
 					fi
 					echo -e "\n----- Actions outside buildroot -----"
-					cat "$SOAPBOXLOG" >> $SPECSDIR/$app/_buildlogs/$LOGFILE
+					cat "$SOAPBOXLOG"
 					RC=15
 				fi
 				rm -f "$SOAPBOXLOG"
 				echo -e "\n----- End of file -----"
-			) >>"$SPECSDIR/$app/_buildlogs/$LOGFILE" 2>&1
+			) >>"$PACKAGEDIR/$app/_buildlogs/$LOGFILE" 2>&1
 
 
 			if [ $RC -eq 0 ]; then
@@ -261,17 +264,15 @@ for app in $PKGS; do
 				echo "OK for $distname/$arch, file eg. \"$PACKAGEDIR/$app/$RPMFILE\"."
 
 				if [ "$RETAIN_LOGS" == "yes" ]; then
-					mkdir -p "$PACKAGEDIR/$app/_buildlogs"
-					mv -f "$SPECSDIR/$app/_buildlogs/$LOGFILE" "$PACKAGEDIR/$app/_buildlogs/"
 					bzip2 -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
 				fi
 
 				### Clean up current and older logfile
-				rm -f "$SPECSDIR/$app/_buildlogs/$LOGFILE"{,.bz2} "$DISTCC_LOG"
+				rm -f "$DISTCC_LOG"
 			else
 #				log "Failed building package $app for $distname/$arch." >> "$LOGDIR/dar.log"
 				error "Failed building package $app for $distname/$arch, see log. (RC=$RC)"
-				bzip2 -9 -f "$SPECSDIR/$app/_buildlogs/$LOGFILE"
+				bzip2 -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
 			fi
 			rm -f "$NEWSPECFILE"
 		done

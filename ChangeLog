@@ -1,4 +1,8 @@
-Version 0.6.0 # Probably the last version using bash
+Version 0.6.1 # Probably the last version using bash
+- dar-functions: Added download_sources() using spectool
+- dar-build: Changed the way of handling logfiles
+
+Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section
 - dar-build: Changed LD_ASSUME_KERNEL to 2.2.5
 - dar-build: Added DISTCC_LOG to make sure configure isn't behaving different

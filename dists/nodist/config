@@ -1,0 +1,15 @@
+### DISTRIBUTION INDEPENDANT
+
+### Distcc compilers
+DISTCC_CC="echo 'NODIST: ' "
+DISTCC_CXX="echo 'NODIST: ' "
+
+#UPDATECMD="apt-get -qq update"
+#UPGRADECMD="apt-get -qq -f -y upgrade"
+#INSTALLCMD="apt-get -qq -y -m install %p"
+
+DISTNAME="nodist"
+DISTNICK="nodist"
+DISTTAG="no"
+#DISTPATH="fedora/2/en/x86_64"
+DISTARCH="noarch"

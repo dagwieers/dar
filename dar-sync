@@ -49,7 +49,9 @@ echo -e "\t($(wc -l $FTPDIR/extra/state/packages.list))"
 
 echo -n "Building summary list."
 rm -f $FTPDIR/extra/state/summaries.list
-for app in $PACKAGEDIR/*/; do
+
+#echo $PACKAGEDIR/*/*.$REPO.src.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/SRPMS.$REPO/ &>/dev/null
+for app in $(echo $PACKAGEDIR/*/); do
 	app="$(basename $app)"
 	SPECFILE="$PACKAGEDIR/$app/$app.spec"
 	if [ -r "$SPECFILE" ]; then
@@ -62,6 +64,8 @@ echo -n "Building all package list."
 find $PACKAGEDIR/ -name "*.rpm" -printf "%P\n" | sort > $FTPDIR/extra/state/all-packages.list
 echo -e "\t($(wc -l $FTPDIR/extra/state/all-packages.list))"
 
+echo -n "Press enter to start remote synchronisation."
+read
 echo "Starting remote synchronisation."
 #rsync -anvzHL --progress --delete-after --bwlimit="$RSYNC_LIMIT" -e /usr/bin/ssh $PACKAGEDIR $FTPDIR $RSYNC_TARGET
 rsync -avHL --progress --delete-after --bwlimit="$RSYNC_LIMIT" -e "/usr/bin/ssh -oCompression=no" $PACKAGEDIR $FTPDIR $RSYNC_TARGET

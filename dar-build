@@ -25,39 +25,33 @@ for app in $PKGS; do
 
 	if [ "$SPECDIR" == "." ]; then
 		SPECDIR="$PWD"
+		SPECFILE="$SPECDIR/$SPECFILE"
 	fi
 
 	if [ "${SPECDIR:0:1}" != "/" ]; then
 		SPECDIR="$PWD/$SPECDIR"
+		SPECFILE="$SPECDIR/$SPECFILE"
 	fi
 
 	if [ ! -f "$SPECFILE" ]; then
 		SPECFILE="$app.spec"
 	fi
 	if [ ! -f "$SPECFILE" ]; then
-		SPECFILE="$SPECSDIR/$app/$app.spec"
 		SPECDIR="$SPECSDIR/$app"
+		SPECFILE="$SPECDIR/$app.spec"
 	fi
 	if [ ! -f "$SPECFILE" ]; then 
 		echo "ERROR: specfile \"$SPECFILE\" is not found."
 		continue
 	fi
 
+	### Export to rpmconf
+	export RVERSION="$(rpmmacro real_version)"
+	export RRELEASE="$(rpmmacro real_release)"
+
 	app="$(rpmconf Name)"
-
-	RVERSION="$(rpmmacro real_version)"
-	RRELEASE="$(rpmmacro real_release)"
-
-	VERSION="$(rpmconf Version | perl -p -e "
-			s|\%{real_version}|$RVERSION|;
-			s|\%{.*}||g;
-		")"
-	RELEASE="$(rpmconf Release | perl -p -e "
-			s|\%{real_release}|$RRELEASE|;
-			s|\%{kversion}|kv|;
-			s|\%{krelease}|kr|;
-			s|\%{.*}||g;
-		")"
+	VERSION="$(rpmconf Version)"
+	RELEASE="$(rpmconf Release)"
 
 	if [ -z "$app" ]; then
 		die "Problem with specfile \"$SPECFILE\". (Name is empty)"
@@ -116,7 +110,8 @@ for app in $PKGS; do
 			fi
 		done
 
-		RPMVER="$(chroot $CHROOTDIR/$DISTNICK rpm --version | cut -d' ' -f3)"
+		### Export RPMVER to rpmconf
+		export RPMVER="$(chroot $CHROOTDIR/$DISTNICK /bin/su - -m $BUILD_USER -c "rpm --version" | cut -d' ' -f3)"
 
 		set_archs
 

@@ -60,25 +60,28 @@ function die {
 
 function rpmconf {
 	local CONFIG="$1"
-	local RPMDB=""
 
 	if [ "$2" ]; then
-		SPECFILE="$2"
+		local SPECFILE="$2"
 	fi
 
 	if [ -z "$SPECFILE" ]; then
 		return 1
 	fi
 
-	if [ "$RPMVER" \> "4.0.2" ]; then
-		local RPMDB="xxxx"
-	fi
-
-	if [ -z "$DISTNICK" -o -z "$RPMDB" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su - -m $BUILD_USER -c "rpmdb -D \"dist $DISTNICK\" -D \"$DISTNICK 1\" -D \"DISTNAME 1\" -E \"%{expand:%(cat $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
+	(
+	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su - -m $BUILD_USER -c "rpmdb -D \"dist $DISTNICK\" -D \"$DISTNICK 1\" -D \"DISTNAME 1\" -E \"%{expand:%(cat $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
 		if ! grep -i "^ *$CONFIG *:" $SPECFILE | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
 			debug "Config $CONFIG not found in $SPECFILE"
 		fi
 	fi
+	) | perl -p -e "
+                        s|\%{real_version}|$RVERSION|;
+                        s|\%{real_release}|$RRELEASE|;
+                        s|\%{kversion}|kv|;
+                        s|\%{krelease}|kr|;
+                        s|\%{.*}||g;
+                "
 }
 
 function rpmmacro {

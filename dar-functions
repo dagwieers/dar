@@ -135,6 +135,7 @@ function daropts {
 			(d)	FORCE_DISTS="$OPTARG";;
 			(f)	FORCE_OVERWRITE="true";;
 			(n)	NOSOURCE="true";;
+			(r)	CREATE_REPO="true";;
 			(s)	FORCE_SOURCE_DISTS="$OPTARG";;
 			(t)	FORCE_TAG="$OPTARG";;
 			(v)	FORCE_VERBOSE="true";;
@@ -322,14 +323,13 @@ function build_repo_apt {
 	local REPO="$DEFAULT_TAG"
 
 	### Creating directories
-	mkdir -p $FTPDIR/$DISTPATH/{base,RPMS.$REPO,SRPMS.$REPO}/
+	mkdir -p $FTPDIR/$DISTPATH/{base,RPMS.$REPO}/
 
 	### Make SPEC files readable
 	echo $PACKAGEDIR/*/*.spec | xargs chmod +r
 
 	### Removing old packages
 	echo $FTPDIR/$DISTPATH/RPMS.$REPO/*.rpm | xargs rm -f
-	echo $FTPDIR/$DISTPATH/SRPMS.$REPO/*.rpm | xargs rm -f
 
 	### FIXME: This should not be done hardcoded, rather have a list of archs inside the dist-config
 	### FIXME: And iterate through that list
@@ -345,7 +345,6 @@ function build_repo_apt {
 				;;
 		esac
 	done
-	echo $PACKAGEDIR/*/*.$REPO.src.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/SRPMS.$REPO/ &>/dev/null
 
 	### Build Apt repository
 	genbasedir --flat --bloat --bz2only $FTPDIR/$DISTPATH $REPO
@@ -387,14 +386,24 @@ function build_repo_yum {
 	yum-arch -q -z $FTPDIR/$DISTPATH/$REPO/ &>/dev/null
 }
 
-function build_repo_yum {
+function build_repo {
 	local DISTPATH="$1"
 	REPO="$DEFAULT_TAG"
 
 	createrepo -q $FTPDIR/$DISTPATH/$REPO/
 }
 
-export LD_ASSUME_KERNEL="2.4.1"
+function build_repo_srpms {
+	REPO="$DEFAULT_TAG"
+
+	mkdir -p $FTPDIR/extra/SRPMS.$REPO/
+	echo $FTPDIR/$DISTPATH/SRPMS.$REPO/*.rpm | xargs rm -f
+	echo $PACKAGEDIR/*/*.$REPO.src.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/extra/SRPMS.$REPO/ &>/dev/null
+
+	genbasedir --bloat --bz2only $FTPDIR/extra/ dag
+}
+
+export LD_ASSUME_KERNEL="2.4.9"
 
 ### Main
 if [ -r "$DARCONFIG" ]; then

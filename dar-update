@@ -4,7 +4,7 @@
 
 source "/usr/lib/dar/dar-functions"
 
-daropts ":a:d:s:" $@
+daropts ":a:d:r:s:" $@
 PKGS="$OPTS"
 
 DISTS="$DEFAULT_DISTS"
@@ -18,9 +18,11 @@ for distname in $DISTS; do
                 continue
         fi
 
-	echo "Building $distname repository in $DISTPATH."
-	build_repo_apt "$DISTTAG" "$DISTPATH"
-#	build_repo_yum "$DISTTAG" "$DISTPATH"
+	if [ "$CREATE_REPO" == "true" ]; then
+		echo "Building $distname repository in $DISTPATH."
+		build_repo_apt "$DISTTAG" "$DISTPATH"
+#		build_repo_yum "$DISTTAG" "$DISTPATH"
+	fi
 
 	echo "Updating $distname."
 	if [ "$UPDATECMD" ]; then
@@ -34,10 +36,10 @@ for distname in $DISTS; do
 
 	if [ "$INSTALLCMD" ]; then
 		for pkg in $PKGS; do
-			local instcmd="$(echo $INSTALLCMD | sed -e "s|%p|$pkg|g")"
+			instcmd="$(echo $INSTALLCMD | sed -e "s|%p|$pkg|g")"
 	
 			echo "Installing $pkg in $distname."
-			chroot $CHROOTDIR/$distname "$instcmd"
+			chroot $CHROOTDIR/$distname $instcmd
 		done
 	fi
 	echo

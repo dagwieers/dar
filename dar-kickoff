@@ -18,7 +18,7 @@ rpm --initdb --root "$ROOT/$DIST"
 : -<<EOF
 adduser dag
 
-chown dag.dag -R /usr/src/redhat/BUILD /mnt/dar/packages/ /mnt/dar/logs/
+chown dag.dag -R /usr/src/redhat/BUILD /dar/packages/ /dar/logs/
 
 rpm --root -ihvU %
 Install 
@@ -36,14 +36,14 @@ EOF
 
 : -<<EOF #$ROOT$DIST/etc/apt/sources.list
 ### Dag Apt Repository for Red Hat 8.0
-rpm file:///mnt/dar/apt redhat/8.0/en/i386 dag
+rpm file:///dar/apt redhat/8.0/en/i386 dag
 
 ### Red Hat Linux 8.0
 rpm http://apt.ccl.kuleuven.ac.be redhat/8.0/en/i386 os updates
 EOF
 
 ### Disable symbols in builds (for rh90) -g
-# perl -pi.orig -e 's|-O2 -g|-O2|' /mnt/dar/rh90/usr/lib/rpm/macros /mnt/dar/rh90/usr/lib/rpm/*/macros /mnt/dar/rh90/usr/lib/rpm/rpmrc
+# perl -pi.orig -e 's|-O2 -g|-O2|' /dar/rh90/usr/lib/rpm/macros /dar/rh90/usr/lib/rpm/*/macros /dar/rh90/usr/lib/rpm/rpmrc
 
 cp -auvx /etc/sysconfig/network $ROOT/$DIST/etc/sysconfig/network
 cp -auvx /usr/share/dar/skel/* $ROOT/$DIST

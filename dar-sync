@@ -2,7 +2,7 @@
 
 source "/usr/lib/dar/dar-functions"
 
-daropts ":a:d:s:" $@
+daropts ":a:d:rs:" $@
 
 DISTS="$DEFAULT_DISTS"
 TAG="$DEFAULT_TAG"
@@ -24,21 +24,25 @@ if [ "$GPG_NAME" -a "$GPG_PATH" ]; then
 	fi
 fi
 
-for dist in $DISTS; do
-	if [ -r "$CONFIGDIR/dists/$dist/config" ]; then
-		source "$CONFIGDIR/dists/$dist/config"
-	else
-		warning "Configfile $CONFIGDIR/dists/$dist/config missing. Aborting."
-		continue
-	fi
+if [ "$CREATE_REPO" == "true" ]; then
+	for dist in $DISTS; do
+		if [ -r "$CONFIGDIR/dists/$dist/config" ]; then
+			source "$CONFIGDIR/dists/$dist/config"
+		else
+			warning "Configfile $CONFIGDIR/dists/$dist/config missing. Aborting."
+			continue
+		fi
+	
+		echo "Building $dist repository in $DISTPATH."
+		build_repo_apt "$DISTTAG" "$DISTPATH"
+		build_repo_yum "$DISTTAG" "$DISTPATH"
+		build_repo "$DISTPATH"
+		build_env "$DISTNICK" "$DISTNAME"
+		build_content "$DISTNAME" "$DISTPATH"
+	done
 
-	echo "Building $dist repository in $DISTPATH."
-	build_repo_apt "$DISTTAG" "$DISTPATH"
-	build_repo_yum "$DISTTAG" "$DISTPATH"
-	build_repo "$DISTPATH"
-	build_env "$DISTNICK" "$DISTNAME"
-	build_content "$DISTNAME" "$DISTPATH"
-done
+	build_repo_srpms
+fi
 
 echo -n "Building source package list."
 find $PACKAGEDIR/ -name "*.$TAG.src.rpm" | sed -e "s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$TAG\.src\.rpm|\1|" | sort | uniq >$FTPDIR/extra/state/packages-src.list
@@ -51,7 +55,6 @@ echo -e "\t($(wc -l $FTPDIR/extra/state/packages.list))"
 echo -n "Building summary list."
 rm -f $FTPDIR/extra/state/summaries.list
 
-#echo $PACKAGEDIR/*/*.$REPO.src.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/SRPMS.$REPO/ &>/dev/null
 for app in $(echo $PACKAGEDIR/*/); do
 	app="$(basename $app)"
 	SPECFILE="$PACKAGEDIR/$app/$app.spec"
@@ -68,8 +71,9 @@ echo -e "\t($(wc -l $FTPDIR/extra/state/all-packages.list))"
 echo -n "Press enter to start remote synchronisation."
 read
 echo "Starting remote synchronisation."
-if [ $RSYNC_LIMIT ]; then
-	RSYNC_OPTIONS="$RSYNC_OPTIONS --bwlimit=\"$RSYNC_LIMIT\""
+if [ "$RSYNC_LIMIT" ]; then
+	RSYNC_OPTIONS="$RSYNC_OPTIONS --bwlimit=$RSYNC_LIMIT"
 fi
 #rsync -anvzHL --progress --delete-after $RSYNC_OPTIONS -e /usr/bin/ssh $PACKAGEDIR $FTPDIR $RSYNC_TARGET
-rsync -avHL --progress --delete-after $RSYNC_OPTIONS -e "/usr/bin/ssh -oCompression=no" $PACKAGEDIR $FTPDIR/ $RSYNC_TARGET
+#rsync -avHL --progress --delete-after $RSYNC_OPTIONS -e "/usr/bin/ssh -oCompression=no" $PACKAGEDIR $FTPDIR/ $RSYNC_TARGET
+rsync -avHl --progress --delete-after $RSYNC_OPTIONS -e "/usr/bin/ssh -oCompression=no" $PACKAGEDIR $FTPDIR/ $RSYNC_TARGET

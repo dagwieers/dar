@@ -1,0 +1,45 @@
+#!/bin/bash
+
+source "/usr/lib/dar/dar-functions"
+
+daropts ":a:d:s:" $@
+
+DISTS="$DEFAULT_DISTS"
+TAG="$DEFAULT_TAG"
+
+if pidof rsync &>/dev/null; then
+	exit 0
+fi
+
+chkconfig rsync off
+service xinetd restart
+
+find $PACKAGEDIR -newer $FTPDIR/extra/state/dar-repo -name "*.rpm" -type f
+
+if [ $? -eq 0 ]; then
+	touch $FTPDIR/extra/state/dar-repo
+elif [ $? -gt 1 ]; then
+	chkconfig rsync on
+	service xinetd restart
+	exit 0
+fi
+
+for dist in $DISTS; do
+	if [ -r "$CONFIGDIR/dists/$dist/config" ]; then
+		source "$CONFIGDIR/dists/$dist/config"
+	else
+		warning "Configfile $CONFIGDIR/dists/$dist/config missing. Aborting."
+		continue
+	fi
+
+	echo "Building $dist repository in $DISTPATH."
+	build_repo_apt "$DISTTAG" "$DISTPATH"
+	build_repo_yum "$DISTTAG" "$DISTPATH"
+	build_repo "$DISTPATH"
+	build_content "$DISTNAME" "$DISTPATH"
+done
+
+chkconfig rsync on
+service xinetd restart
+
+exit 0

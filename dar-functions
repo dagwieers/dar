@@ -70,7 +70,7 @@ function rpmconf {
 	fi
 
 	(
-	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su - -m $BUILD_USER -c "rpmdb -D \"dist $DISTNICK\" -D \"$DISTNICK 1\" -D \"DISTNAME 1\" -E \"%{expand:%(cat $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
+	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su - -m $BUILD_USER -c "rpmdb -D \"dist $DISTNICK\" -D \"$DISTNICK 1\" -D \"$DISTNAME 1\" -E \"%{expand:%(head -n64 $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
 		if ! grep -i "^ *$CONFIG *:" $SPECFILE | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
 			debug "Config $CONFIG not found in $SPECFILE"
 		fi
@@ -234,11 +234,13 @@ function download_sources {
 	for url in $(spectool -l "$SPECFILE" 2>/dev/null | cut -f2 -d' '); do
 		filename="$SPECSDIR/$app/$(basename $url)"
 		if [ ! -s "$filename" ]; then
-			warning "Source \"$filename\" not found, downloading."
+			warning "Source \"$(basename $filename)\" not found, downloading [$url]."
 			local i=1
 			RC=1
 			while [ $RC -ne 0 -a $i -lt 4 ]; do
 				wget -q -T 10 -O "$filename" "$url"
+#				lftpget "$url" -o "$filename"
+#				lftpget "$url" -O "$(dirname $filename)"
 				RC=$?
 				i=$((i+1))
 			done

@@ -15,6 +15,7 @@ Version 0.6.1 # Probably the last version using bash
 - dar-build: Better detection of old builds (2 version schemes x all known disttags)
 - dar-build: Use rpmdb -E if possible for resolving macros (thanks to Jeff Pitman)
 - dar-build: Check for existance of distribution build environment
+- dar-functions: Use lftpget instead of wget
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

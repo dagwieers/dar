@@ -18,8 +18,8 @@ export -n CC_FLAGS CXX_FLAGS LD_PRELOAD LINGUAS
 for app in $PKGS; do
 	DARBUILDRC=1
 
-	app="$(basename $app .spec)"
 	SPECDIR="$(dirname $app)"
+	app="$(basename $app .spec)"
 	SPECFILE="$app.spec"
 
 	if [ "$SPECDIR" == "." ]; then
@@ -57,7 +57,8 @@ for app in $PKGS; do
 	RELEASE="$(rpmconf Release)"
 
 	if [ -z "$app" ]; then
-		die "Problem with specfile \"$SPECFILE\". (Name is empty)"
+		error "Problem with specfile \"$SPECFILE\". (Name is empty)"
+		continue
 	fi
 
 	if [ -z "$VERSION" ]; then
@@ -100,18 +101,24 @@ for app in $PKGS; do
 		fi
 
 		for exclude_dist in $EXCLUDE_DIST; do
-			if [ "$DISTNAME" == "$exclude_dist" -o "$DISTNICK" == "$exclude_dist" ]; then
+			if [ "$exclude_dist" == "$DISTNAME" -o "$exclude_dist" == "$DISTNICK" ]; then
 				warning "Distribution $DISTNAME/$DISTARCH is excluded for package $app. Aborting."
 				continue 2
 			fi
 		done
 
-		for exclusive_dist in $EXCLUSIVE_DIST; do
-			if [ "$DISTNAME" != "$exclusive_dist" -a "$DISTNICK" != "$exclusive_dist" ]; then
+		if [ "$EXCLUSIVE_DIST" ]; then
+			EXCLUSIVE=0
+			for exclusive_dist in $EXCLUSIVE_DIST; do
+				if [ "$exclusive_dist" == "$DISTNAME" -o "$exclusive_dist" == "$DISTNICK" ]; then
+					EXCLUSIVE=1
+				fi
+			done
+			if [ $EXCLUSIVE -ne 1 ]; then
 				warning "Distribution $DISTNAME/$DISTARCH is excluded for package $app. Aborting."
-				continue 2
+				continue
 			fi
-		done
+		fi
 
 		### Export RPMVER to rpmconf
 		export RPMVER="$(chroot $CHROOTDIR/$DISTNICK /bin/su - -m $BUILD_USER -c "rpm --version" | cut -d' ' -f3)"
@@ -261,7 +268,7 @@ for app in $PKGS; do
 					--define \"_sourcedir $SPECDIR\" \
 					--define \"_builddir $BUILDDIR\" \
 					--define \"_tmppath $TEMPDIR\" \
-					--define \"dist $DISTNICK\"
+					--define \"dist $DISTNAME\"
 					--define \"$DISTNAME 1\"
 					--define \"$DISTNICK 1\" \"$NEWSPECFILE\""
 

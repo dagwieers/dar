@@ -20,11 +20,10 @@ if [ -z "$DISTS" ]; then
 	DISTS="$DEFAULT_DISTS"
 fi
 
+echo "Entering shells."
 for distname in $DISTS; do
-	echo "Entering $distname shell."
-
-	if [ -r "$CONFIGDIR/dists/$dist/config" ]; then
-		source "$CONFIGDIR/dists/$dist/config"
+	if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
+		source "$CONFIGDIR/dists/$distname/config"
 	fi
 
 	chroot $CHROOTDIR/$distname

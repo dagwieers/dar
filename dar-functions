@@ -433,7 +433,8 @@ function build_repo_srpms {
 #	genbasedir --bloat --bz2only $FTPDIR/$DISTPATH/ $REPO
 }
 
-export LD_ASSUME_KERNEL="2.4.9"
+#export LD_ASSUME_KERNEL="2.4.9"
+export LD_ASSUME_KERNEL
 
 ### Main
 if [ -r "$DARCONFIG" ]; then

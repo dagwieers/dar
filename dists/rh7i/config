@@ -18,4 +18,4 @@ REPO_APT="yes"
 REPO_YUM="yes"
 REPO_CREATEREPO="no"
 
-export LD_ASSUME_KERNEL=2.4.1
+export LD_ASSUME_KERNEL="2.4.1"

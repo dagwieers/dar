@@ -19,13 +19,14 @@ AS_ROOT=1
 for distname in $DISTS; do
 	echo "Executing \"$CMD\" for $distname."
 
-	if [ -r "$CONFIGDIR/dists/$dist/config" ]; then
-		source "$CONFIGDIR/dists/$dist/config"
+	if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
+		source "$CONFIGDIR/dists/$distname/config"
 	fi
 
 	### Check for building as user
 	if [ $AS_ROOT -eq 1 ]; then
-		DO_SU="/bin/su - -c"
+#		DO_SU="/bin/su - -c"
+		DO_SU="/bin/bash -c"
 	else
 		DO_SU="/bin/su - -m $BUILD_USER -c"
 	fi

@@ -12,11 +12,19 @@ for distname in $DEFAULT_DISTS; do
 	if [ "${DEFAULT_DISTS// */}" != $distname ]; then
 		ln -f $CHROOTDIR/${DEFAULT_DISTS// */}/root/.bash_history $CHROOTDIR/$distname/root/.bash_history
 	fi
-	umount $CHROOTDIR/$distname{/dev/pts,/proc,/tmp,$ROOT}/
+
+	umount $CHROOTDIR/$distname{/dev/pts,/proc,/tmp,$ROOT/build,$ROOT}/ 2>/dev/null
+
 	mkdir -p $CHROOTDIR/$distname{/dev/pts,/proc,/tmp,$ROOT}/
 #	rm -rf $CHROOTDIR/$distname{$RPMTMPPATH}/*
-	mount -o bind /tmp/ $CHROOTDIR/$distname/tmp/
 	mount -o bind $ROOT $CHROOTDIR/$distname$ROOT
 	mount -t proc proc $CHROOTDIR/$distname/proc/
 	mount -t devpts devpts $CHROOTDIR/$distname/dev/pts
+
+###	Use this when you want to speed up building :)
+	mount -o bind /dev/shm $CHROOTDIR/$distname$ROOT/build
+
+###	Use thise when using X processes inside chroots
+#	mount -o bind /tmp/ $CHROOTDIR/$distname/tmp/
+
 done

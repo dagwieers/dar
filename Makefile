@@ -24,19 +24,20 @@ check:
 	for i in dar.conf $(DIST_SCRIPTS) $(DIST_LIBS); do bash -n $$i || exit 1; done
 
 install:
-	install -m0755 -d $(DESTDIR)$(sysconfdir)/dar/{config,dists} \
+	install -m0755 -d $(DESTDIR)$(sysconfdir)/dar/{dists,scripts} \
 		$(DESTDIR)$(sysconfdir)/logrotate.d \
 		$(DESTDIR)$(datadir)/dar/skel \
 		$(DESTDIR)$(libdir)/dar \
 		$(DESTDIR)$(sbindir)
 	install -m0700 -d $(DESTDIR)$(localstatedir)/log/dar
 
-	install -m0644 dar.conf $(DESTDIR)$(sysconfdir)/dar
+	install -D -m0644 dar.conf $(DESTDIR)$(sysconfdir)/dar/dar.conf
 
 	install -m0755 $(DIST_SCRIPTS) $(DESTDIR)$(sbindir)
 	install -m0755 $(DIST_LIBS) $(DESTDIR)$(libdir)/dar/
 #	install -m0644 dists/*/* $(DESTDIR)$(sysconfdir)/dar/dists/
 	cp -af dists/* $(DESTDIR)$(sysconfdir)/dar/dists/
+	cp -af scripts/* $(DESTDIR)$(sysconfdir)/dar/scripts/
 
 #	install -m0644 skel/* $(DESTDIR)$(datadir)/dar/skel/
 	cp -af skel/* $(DESTDIR)$(datadir)/dar/skel/

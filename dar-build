@@ -168,7 +168,13 @@ for app in $PKGS; do
 			done
 
 			rm -f "$NEWSPECFILE"
-			cat "$SPECFILE" | sed -e "s|\(Release: *.\+\)|\1.${DISTTAG// *}.$TAG|" >"$NEWSPECFILE"
+			cp -af "$SPECFILE" "$NEWSPECFILE"
+			export NEWSPECFILE DISTTAG TAG
+
+			for script in $CONFIGDIR/scripts/pre-*.sh; do
+#				echo "Processing $script."
+				source "$script"
+			done
 
 			### Start logging
 			rm -f "$PACKAGEDIR/$app/$LOGFILE"
@@ -285,7 +291,7 @@ for app in $PKGS; do
 				export LD_PRELOAD="/lib/libsoapbox.so"
 			fi
 
-			BUILDCMD="/usr/bin/rpmbuild -bb $RPMOPTS \
+			BUILDCMD="/usr/bin/rpmbuild -bb --clean $RPMOPTS \
 					--define \"_smp_mflags $MAKEFLAGS\" \
 					--define \"_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm\" \
 					--define \"_initrddir %{_sysconfdir}/rc.d/init.d\" \
@@ -305,7 +311,7 @@ for app in $PKGS; do
 
 				### Check for building as user
 				if [ $AS_ROOT -eq 1 ]; then
-					$SETARCH chroot "$CHROOTDIR/$dist" /usr/bin/rpmbuild -bb $RPMOPTS \
+					$SETARCH chroot "$CHROOTDIR/$dist" /usr/bin/rpmbuild -bb --clean $RPMOPTS \
 						--define "_smp_mflags $MAKEFLAGS" \
 						--define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
 						--define "_initrddir %{_sysconfdir}/rc.d/init.d" \
@@ -319,7 +325,7 @@ for app in $PKGS; do
 						--define "$DISTNICK 1" \
 						"$NEWSPECFILE"
 				else
-					$SETARCH chroot "$CHROOTDIR/$dist" /bin/su - -m $BUILD_USER -c "/usr/bin/rpmbuild -bb $RPMOPTS \
+					$SETARCH chroot "$CHROOTDIR/$dist" /bin/su - -m $BUILD_USER -c "/usr/bin/rpmbuild -bb --clean $RPMOPTS \
 						--define '_smp_mflags $MAKEFLAGS' \
 						--define '_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm' \
 						--define '_initrddir %{_sysconfdir}/rc.d/init.d' \

@@ -31,6 +31,9 @@ Version 0.6.1 # Probably the last version using bash
 - dar-sync: Recompress createrepo metadata for rsyncability
 - dar-build: Added disttag as a macro
 - dar-*: Moved the LD_ASSUME_KERNEL bits to per distribution files
+- dar-build: Added preprocessing scripts
+- dar-update: Improved the handling of updates to update tools
+- dar-build: Experimental usage of /dev/shm for building
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

@@ -12,6 +12,7 @@ set_dists
 
 ### Update build environment
 for distname in $DISTS; do
+	echo "Updating $distname."
         if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
                 source "$CONFIGDIR/dists/$distname/config"
         else
@@ -25,23 +26,24 @@ for distname in $DISTS; do
 #		build_repo_yum "$DISTTAG" "$DISTPATH"
 	fi
 
-	echo "Updating $distname."
 	if [ "$UPDATECMD" ]; then
 		chroot $CHROOTDIR/$distname $UPDATECMD
 	fi
 
-	echo "Upgrading $distname."
 	if [ "$UPGRADECMD" ]; then
 		chroot $CHROOTDIR/$distname $UPGRADECMD
 	fi
 
-	if [ "$INSTALLCMD" ]; then
-		for pkg in $PKGS; do
-			instcmd="$(echo $INSTALLCMD | sed -e "s|%p|$pkg|g")"
-	
-			echo "Installing $pkg in $distname."
-			chroot $CHROOTDIR/$distname $instcmd
-		done
+	if [ "$INSTALLCMD" -a "$PKGS" ]; then
+		if echo "$INSTALLCMD" | grep -q '%p'; then
+			for pkg in $PKGS; do
+				instcmd="$(echo $INSTALLCMD | sed -e "s|%p|$pkg|g")"
+				echo "Installing $pkg in $distname."
+				chroot $CHROOTDIR/$distname $instcmd
+			done
+		else
+			echo $PKGS | xargs chroot $CHROOTDIR/$distname $INSTALLCMD
+		fi
 	fi
 	echo
 done

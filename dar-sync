@@ -30,16 +30,16 @@ if [ "$CREATE_REPO" == "true" ]; then
 	build_repo_srpms "source"
 fi
 
-for dist in $DISTS; do
-	if [ -r "$CONFIGDIR/dists/$dist/config" ]; then
-		source "$CONFIGDIR/dists/$dist/config"
+for distname in $DISTS; do
+	if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
+		source "$CONFIGDIR/dists/$distname/config"
 	else
-		warning "Configfile $CONFIGDIR/dists/$dist/config missing. Aborting."
+		warning "Configfile $CONFIGDIR/dists/$distname/config missing. Aborting."
 		continue
 	fi
 	
 	if [ "$CREATE_REPO" == "true" ]; then
-		echo "Building $dist repository in $DISTPATH."
+		echo "Building $distname repository in $DISTPATH."
 		ln -sf ../../../../source $FTPDIR/$DISTPATH/SRPMS.dag
 		if [ "$REPO_APT" == "yes" ]; then
 			build_repo_apt "$DISTTAG" "$DISTPATH"

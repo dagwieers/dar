@@ -21,6 +21,7 @@ for distname in $DISTS; do
 
 	if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
 		source "$CONFIGDIR/dists/$distname/config"
+		export distname DISTNAME DISTNICK DISTTAG DISTPATH DISTARCH
 	fi
 
 	### Check for building as user

@@ -16,10 +16,6 @@ set_dists
 set_as_root
 AS_ROOT=1
 
-if [ -z "$DISTS" ]; then
-	DISTS="$DEFAULT_DISTS"
-fi
-
 echo "Entering shells."
 for distname in $DISTS; do
 	if [ -r "$CONFIGDIR/dists/$distname/config" ]; then

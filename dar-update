@@ -23,15 +23,23 @@ for distname in $DISTS; do
 #	build_repo_yum "$DISTTAG" "$DISTPATH"
 
 	echo "Updating $distname."
-	chroot $CHROOTDIR/$distname /usr/bin/apt-get -qq update
+	if [ "$UPDATECMD" ]; then
+		chroot $CHROOTDIR/$distname $UPDATECMD
+	fi
 
-	echo "Upgrading $dist."
-	chroot $CHROOTDIR/$distname /usr/bin/apt-get -qq -f -y upgrade
+	echo "Upgrading $distname."
+	if [ "$UPGRADECMD" ]; then
+		chroot $CHROOTDIR/$distname $UPGRADECMD
+	fi
 
-	for pkg in $PKGS; do
-		echo "Installing $pkg in $distname."
-		chroot $CHROOTDIR/$distname /usr/bin/apt-get -qq -y -m install $pkg
-	done
+	if [ "$INSTALLCMD" ]; then
+		for pkg in $PKGS; do
+			local instcmd="$(echo $INSTALLCMD | sed -e "s|%p|$pkg|g")"
+	
+			echo "Installing $pkg in $distname."
+			chroot $CHROOTDIR/$distname "$instcmd"
+		done
+	fi
 	echo
 done
 echo "Finished."

@@ -4,5 +4,9 @@
 DISTCC_CC="i386-redhat-linux-gcc-2.91.6"
 DISTCC_CXX="i386-redhat-linux-g++-2.91.6"
 
+UPDATECMD="apt-get -qq update"
+UPGRADECMD="apt-get -qq -f -y upgrade"
+INSTALLCMD="apt-get -qq -y -m install %p"
+
 DISTTAG="rh62"
 DISTPATH="redhat/6.2"

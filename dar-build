@@ -38,6 +38,14 @@ for app in $PKGS; do
 	app="$(rpmconf Name)"
 	VERSION="$(rpmconf Version)"
 
+	if [ -z "$app" ]; then
+		die "Problem with specfile \"$SPECFILE\". (Name is empty)"
+	fi
+
+	if [ -z "$VERSION" ]; then
+		die "Problem with specfile \"$SPECFILE\". (Version is empty)"
+	fi
+
 	mkdir -p "$PACKAGEDIR/$app/_buildlogs/" "$SPECSDIR/$app/"
 	ln -sf "$PACKAGEDIR/$app/_buildlogs/" "$SPECSDIR/$app/"
 	chown -R $BUILD_USER.$BUILD_USER "$PACKAGEDIR/$app/"

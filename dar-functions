@@ -185,20 +185,25 @@ function set_ccache {
 function download_sources {
 	local RC=1
 	local i=1
-	while [ $RC -ne 0 -a $i -lt 4 ]; do
-		spectool -g "$SPECFILE" &>/dev/null
-		RC=$?
-		i=$((i+1))
-	done
-#	for url in $(spectool -l "$SPECFILE" sources 2>/dev/null | cut -f2 -d' '); do
-#		filename="$SPECSDIR/$app/$(basename $url)"
-#		if [ ! -s "$filename" ]; then
-#			wget -q -O "$filename" "$url"
-#			if [ $? -ne 0 ]; then
-#				echo "Problems downloading $url." >&2
-#			fi
-#		fi
+#	while [ $RC -ne 0 -a $i -lt 4 ]; do
+#		spectool -g "$SPECFILE" &>/dev/null
+#		RC=$?
+#		i=$((i+1))
 #	done
+	for url in $(spectool -l "$SPECFILE" 2>/dev/null | cut -f2 -d' '); do
+		filename="$SPECSDIR/$app/$(basename $url)"
+		if [ ! -s "$filename" ]; then
+			local i=1
+			while [ $RC -ne 0 -a $i -lt 4 ]; do
+				wget -q -O "$filename" "$url"
+				RC=$?
+				i=$((i+1))
+			done
+			if [ $RC -ne 0 ]; then
+				die "Problems downloading $url."
+			fi
+		fi
+	done
 }
 
 function build_env {
@@ -214,7 +219,7 @@ function build_env {
 		OPTIONS="$OPTIONS --nosignature"
 	fi
 
-	chroot $CHROOTDIR/$DISTNAME rpm -qa $OPTIONS --qf "%{name}\n"| sort >$FTPDIR/extra/state/rpmqa-$DISTTAG.list 2>/dev/null
+	chroot $CHROOTDIR/$DISTNAME rpm -qa $OPTIONS --qf "%{name}\t%{version}-%{release}\n"| sort >$FTPDIR/extra/state/rpmqa-$DISTTAG.list 2>/dev/null
 }
 
 function build_htaccess {

@@ -59,7 +59,7 @@ done
 echo -e "\t($(wc -l $FTPDIR/extra/state/summaries.list))"
 
 echo -n "Building all package list."
-find $PACKAGEDIR/ -name "*.rpm" | sort > $FTPDIR/extra/state/all-packages.list
+find $PACKAGEDIR/ -name "*.rpm" -printf "%P\n" | sort > $FTPDIR/extra/state/all-packages.list
 echo -e "\t($(wc -l $FTPDIR/extra/state/all-packages.list))"
 
 echo "Starting remote synchronisation."

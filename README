@@ -17,10 +17,12 @@ Placeholder for README ;)
     /etc/dar/config		Location for extra package information
     /etc/dar/dists		Location for extra distribution information
 
-    /mnt/dar			Default location for build-environments
-    /mnt/dar/packages		Default location for packages
-    /mnt/dar/logs		Default location for error logging
-    /mnt/dar/SPECS		Location for SPEC files
+    /mnt/dar/build		Location for building
+    /mnt/dar/chroot		Location for build-environments
+    /mnt/dar/packages		Location for binary and source packages
+    /mnt/dar/pub		Location for apt/yum repositories
+    /mnt/dar/rpms		Location for SPEC files and patches
+    /mnt/dar/tmp		Location for temporary files and buildroot
 
     /usr/share/dar		Location for extra files
     /usr/lib/dar		Location of library

@@ -1,11 +1,13 @@
 TODO for dar
 
+ + Rewrite in python using mach
+
  + dar-build: Print useful information before building
     - md5sum of sources and patches
 
  + dar-build: If possible check the source-files against an online MD5-checksum
 
- + dar-kickoff: Improvements
+ + dar-kickoff: Improvements (see mach)
     - Create package-lists for minimal installs
     - Make it modular using /etc/dar/dist/{rh62,rh73,rh80}.conf
 

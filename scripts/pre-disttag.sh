@@ -1,16 +1,16 @@
 #!/bin/bash
 
-#echo "Specfile: $NEWSPECFILE, Disttag: $DISTTAG, Tag: $TAG"
+#echo "** pre-disttag: BuildArch: $buildarch, Disttag: $disttag, Repotag: $repotag, Specfile: $specfile"
 #set -x
 
-case "$ARCH" in
+case "$buildarch" in
 	(src)
-		perl -pi.orig -e 's|^(Release)\s*:\s+(.+)\s*$|$1: $2.'$TAG'\n|' "$NEWSPECFILE"
+		perl -pi.orig -e 's|^(Release)\s*:\s+(.+)\s*$|$1: $2.'$repotag'\n|' "$specfile"
 		;;
 	(*)
-		perl -pi.orig -e 's|^(Release)\s*:\s+(.+)\s*$|$1: $2.'${DISTTAG// *}'.'$TAG'\n|' "$NEWSPECFILE"
+		perl -pi.orig -e 's|^(Release)\s*:\s+(.+)\s*$|$1: $2.'${disttag// *}'.'$repotag'\n|' "$specfile"
 		;;
 esac
 
-#diff -u "$NEWSPECFILE".orig "$NEWSPECFILE"
+#diff -u "$specfile".orig "$specfile"
 #set +x

@@ -168,8 +168,8 @@ for app in $PKGS; do
 			done
 
 			cp -af "$SPECFILE" "$NEWSPECFILE"
-			export NEWSPECFILE DISTTAG TAG
 
+			export buildarch="$arch" distarch="$DISTARCH" disttag="${DISTTAG// *}" specfile="$NEWSPECFILE" repotag="$TAG"
 			for script in $CONFIGDIR/scripts/pre-*.sh; do
 				source "$script"
 			done
@@ -406,8 +406,7 @@ for app in $PKGS; do
 
 			NEWSPECFILE="$TEMPDIR/$app.spec"
 			cp -af "$SPECFILE" "$NEWSPECFILE"
-			export NEWSPECFILE DISTTAG TAG ARCH="src"
-
+			export buildarch="src" distarch="$DISTARCH" disttag="${DISTTAG// *}" specfile="$NEWSPECFILE" repotag="$TAG"
 			for script in $CONFIGDIR/scripts/pre-*.sh; do
 				source "$script"
 			done

@@ -140,6 +140,7 @@ function set_archs {
 		ARCHS="$(metaconf Archs)"
 	fi
 	if [ -z "$ARCHS" ]; then ARCHS="$(rpmconf BuildArch)"; fi
+	if [ -z "$ARCHS" ]; then ARCHS="$DISTARCH"; fi
 	if [ -z "$ARCHS" ]; then ARCHS="$DEFAULT_ARCHS"; fi
 }
 
@@ -150,6 +151,14 @@ function set_dists {
 		DISTS="$(metaconf Dists)"
 	fi
 	if [ -z "$DISTS" ]; then DISTS="$DEFAULT_DISTS"; fi
+}
+
+function set_exclude_dist {
+	EXCLUDE_DIST="$(metaconf ExcludeDist)"
+}
+
+function set_exclusive_dist {
+	EXCLUSIVE_DIST="$(metaconf ExclusiveDist)"
 }
 
 function set_source_dists {
@@ -235,9 +244,10 @@ function download_sources {
 }
 
 function build_env {
-	DISTNAME="$1"
-	OPTIONS=""
-	RPMVER="$(chroot $CHROOTDIR/$DISTNAME rpm --version | cut -d' ' -f3)"
+	local DISTNICK="$1"
+	local DISTNAME="$2"
+	local OPTIONS=""
+	local RPMVER="$(chroot $CHROOTDIR/$DISTNICK rpm --version | cut -d' ' -f3)"
 
 	if [ "$RPMVER" \> "4.0.2" ]; then
 		OPTIONS="$OPTIONS --nodigest"
@@ -246,7 +256,7 @@ function build_env {
 		OPTIONS="$OPTIONS --nosignature"
 	fi
 
-	chroot $CHROOTDIR/$DISTNAME rpm -qa $OPTIONS --qf "%{name}\t%{version}-%{release}\n"| sort >$FTPDIR/extra/state/rpmqa-$DISTNAME.list 2>/dev/null
+	chroot $CHROOTDIR/$DISTNICK rpm -qa $OPTIONS --qf "%{name}\t%{version}-%{release}\n"| sort >$FTPDIR/extra/state/rpmqa-$DISTNAME-$DISTARCH.list 2>/dev/null
 }
 
 function build_htaccess {
@@ -269,9 +279,9 @@ EOF
 }
 
 function build_content {
-	DISTNAME="$1"
-	DISTPATH="$2"
-	REPO="$DEFAULT_TAG"
+	local DISTNAME="$1"
+	local DISTPATH="$2"
+	local REPO="$DEFAULT_TAG"
 
 #	find "$PACKAGEDIR/" -name "*.$REPO.$DIST.*.rpm" \
 #			-o -name "*.$DIST.$REPO.*.rpm" | \
@@ -280,64 +290,80 @@ function build_content {
 #			s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$DIST\.$REPO\..\+\.rpm|\1|;
 #		" | sort | uniq >$FTPDIR/extra/state/packages-$DIST.list
 
-	for rpm in $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/*.rpm; do
+	for rpm in $FTPDIR/$DISTPATH/RPMS.$REPO/*.rpm; do
 		rpm="${rpm%-*-*}"
 		echo "${rpm//#*\/}"
-	done | sort | uniq >$FTPDIR/extra/state/packages-$DISTNAME.list
+	done | sort | uniq >$FTPDIR/extra/state/packages-$DISTNAME-$DISTARCH.list
 }
 
 function build_repo_apt {
-	DISTTAG="$1"
-	DISTPATH="$2"
-	REPO="$DEFAULT_TAG"
+	local DISTTAG="$1"
+	local DISTPATH="$2"
+	local REPO="$DEFAULT_TAG"
 
 	### Creating directories
-	mkdir -p $FTPDIR/$DISTPATH/en/i386/{base,RPMS.$REPO,SRPMS.$REPO}/
+	mkdir -p $FTPDIR/$DISTPATH/{base,RPMS.$REPO,SRPMS.$REPO}/
 
 	### Make SPEC files readable
 	echo $PACKAGEDIR/*/*.spec | xargs chmod +r
 
 	### Removing old packages
-	echo $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/*.rpm | xargs rm -f
-	echo $FTPDIR/$DISTPATH/en/i386/SRPMS.$REPO/*.rpm | xargs rm -f
+	echo $FTPDIR/$DISTPATH/RPMS.$REPO/*.rpm | xargs rm -f
+	echo $FTPDIR/$DISTPATH/SRPMS.$REPO/*.rpm | xargs rm -f
 
 	for tag in $DISTTAG; do
-		echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/ &>/dev/null # Backward compatibility
-		echo $PACKAGEDIR/*/*.$tag.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/RPMS.$REPO/ &>/dev/null
+		case "$DISTARCH" in
+			i386)
+				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
+				echo $PACKAGEDIR/*/*.$tag.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
+				;;
+			x86_64)
+				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
+				echo $PACKAGEDIR/*/*.$tag.$REPO.{noarch,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
+				;;
+		esac
 	done
-	echo $PACKAGEDIR/*/*.$REPO.src.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/SRPMS.$REPO/ &>/dev/null
+	echo $PACKAGEDIR/*/*.$REPO.src.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/SRPMS.$REPO/ &>/dev/null
 
 	### Build Apt repository
-	genbasedir --flat --bloat --bz2only $FTPDIR/$DISTPATH/en/i386 $REPO
-#	genbasedir --progress --flat --bloat $FTPDIR/$DISTPATH/en/i386 $REPO
-#	genbasedir --progress --hashonly $FTPDIR/$DISTPATH/en/i386 $REPO
+	genbasedir --flat --bloat --bz2only $FTPDIR/$DISTPATH $REPO
+#	genbasedir --progress --flat --bloat $FTPDIR/$DISTPATH $REPO
+#	genbasedir --progress --hashonly $FTPDIR/$DISTPATH $REPO
 }
 
 function build_repo_yum {
-	DISTTAG="$1"
-	DISTPATH="$2"
+	local DISTTAG="$1"
+	local DISTPATH="$2"
 	REPO="$DEFAULT_TAG"
 
 	### Creating directories
-	mkdir -p $FTPDIR/$DISTPATH/en/i386/$REPO/{RPMS,headers}/
+	mkdir -p $FTPDIR/$DISTPATH/$REPO/{RPMS,headers}/
 
 	### Removing old packages
-	echo $FTPDIR/$DISTPATH/en/i386/$REPO/RPMS/*.rpm | xargs rm -f
-	echo $FTPDIR/$DISTPATH/en/i386/$REPO/headers/*.hdr | xargs rm -f
+	echo $FTPDIR/$DISTPATH/$REPO/RPMS/*.rpm | xargs rm -f
+	echo $FTPDIR/$DISTPATH/$REPO/headers/*.hdr | xargs rm -f
 
 	### Hardlink files
 	for tag in $DISTTAG; do
-		echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/$REPO/RPMS/ &>/dev/null # Backward compatibility
-		echo $PACKAGEDIR/*/*.$tag.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/en/i386/$REPO/RPMS/ &>/dev/null
+		case "$DISTARCH" in
+			i386)
+				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
+				echo $PACKAGEDIR/*/*.$tag.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
+				;;
+			x86_64)
+				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
+				echo $PACKAGEDIR/*/*.$tag.$REPO.{noarch,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
+				;;
+		esac
 	done
-#	ln -f $PACKAGEDIR/*/*.$REPO.src.rpm $FTPDIR/$DISTPATH/en/i386/$REPO/SRPMS/ &>/dev/null
+#	ln -f $PACKAGEDIR/*/*.$REPO.src.rpm $FTPDIR/$DISTPATH/$REPO/SRPMS/ &>/dev/null
 
 	### Build Yum repository
-#	yum-arch -q -z -d -c $FTPDIR/$DISTPATH/en/i386/$REPO/
-	yum-arch -q -z $FTPDIR/$DISTPATH/en/i386/$REPO/ &>/dev/null
+#	yum-arch -q -z -d -c $FTPDIR/$DISTPATH/$REPO/
+	yum-arch -q -z $FTPDIR/$DISTPATH/$REPO/ &>/dev/null
 }
 
-export LD_ASSUME_KERNEL="2.2.5"
+export LD_ASSUME_KERNEL="2.4.1"
 
 ### Main
 if [ -r "$DARCONFIG" ]; then

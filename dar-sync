@@ -24,19 +24,19 @@ if [ "$GPG_NAME" -a "$GPG_PATH" ]; then
 	fi
 fi
 
-for distname in $DISTS; do
-	if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
-		source "$CONFIGDIR/dists/$distname/config"
+for dist in $DISTS; do
+	if [ -r "$CONFIGDIR/dists/$dist/config" ]; then
+		source "$CONFIGDIR/dists/$dist/config"
 	else
-		warning "Configfile $CONFIGDIR/dists/$distname/config missing. Aborting."
+		warning "Configfile $CONFIGDIR/dists/$dist/config missing. Aborting."
 		continue
 	fi
 
-	echo "Building $distname repository in $DISTPATH."
+	echo "Building $dist repository in $DISTPATH."
 	build_repo_apt "$DISTTAG" "$DISTPATH"
 	build_repo_yum "$DISTTAG" "$DISTPATH"
-	build_env "$distname"
-	build_content "$distname" "$DISTPATH"
+	build_env "$DISTNICK" "$DISTNAME"
+	build_content "$DISTNAME" "$DISTPATH"
 done
 
 echo -n "Building source package list."

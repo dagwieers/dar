@@ -77,8 +77,9 @@ for app in $PKGS; do
 	set_tag
 	NEWSPECFILE="$TEMPDIR/$app-$VERSION-$TAG.spec"
 
-	set_archs
 	set_dists
+	set_exclude_dist
+	set_exclusive_dist
 	set_source_dists
 	set_soapbox
 	set_as_root
@@ -90,13 +91,29 @@ for app in $PKGS; do
 	fi
 
 #	echo "Building $app package for dists: '$DISTS' and archs: '$ARCHS', tagged: '$TAG'"
-	for distname in $DISTS; do
-		if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
-			source "$CONFIGDIR/dists/$distname/config"
+	for dist in $DISTS; do
+		if [ -r "$CONFIGDIR/dists/$dist/config" ]; then
+			source "$CONFIGDIR/dists/$dist/config"
 		else
-			warning "Configfile $CONFIGDIR/dists/$distname/config missing. Aborting."
+			warning "Configfile $CONFIGDIR/dists/$dist/config missing. Aborting."
 			continue
 		fi
+
+		for exclude_dist in $EXCLUDE_DIST; do
+			if [ "$DISTNAME" == "$exclude_dist" -o "$DISTNICK" == "$exclude_dist" ]; then
+				warning "Distribution $DISTNAME/$DISTARCH is excluded for package $app. Aborting."
+				continue 2
+			fi
+		done
+
+		for exclusive_dist in $EXCLUSIVE_DIST; do
+			if [ "$DISTNAME" != "$exclusive_dist" -a "$DISTNICK" != "$exclusive_dist" ]; then
+				warning "Distribution $DISTNAME/$DISTARCH is excluded for package $app. Aborting."
+				continue 2
+			fi
+		done
+
+		set_archs
 
 		### Check if etc/rpm/macros exists with proper content
 
@@ -112,7 +129,7 @@ for app in $PKGS; do
 			fi
 
 			### Backward compatibility
-			OLDRPMFILE="$app-$VERSION-$RELEASE.$TAG.$distname.$arch.rpm"
+			OLDRPMFILE="$app-$VERSION-$RELEASE.$TAG.$dist.$arch.rpm"
 			if [ -z "$FORCE_OVERWRITE" -a -f "$PACKAGEDIR/$app/$OLDRPMFILE" ]; then
 				warning "File \"$PACKAGEDIR/$app/$OLDRPMFILE\" already exists."
 				continue;
@@ -128,12 +145,12 @@ for app in $PKGS; do
 				echo "Package version: $VERSION"
 				echo "Package release: $RELEASE.${DISTTAG// *}.$TAG"
 				echo "Packager: $(logname)"
-				echo "Distribution: $distname"
+				echo "Distribution: $DISTNAME/$DISTARCH"
 				echo "Package arch: $arch"
 				echo "Build host: $(uname -n)"
 				echo "Build date: $(date)"
 
-				if [ $SOAPBOX -eq 1 -a -f "/lib/libsoapbox.so" -a -f "$CHROOTDIR/$distname/lib/libsoapbox.so" ]; then
+				if [ $SOAPBOX -eq 1 -a -f "/lib/libsoapbox.so" -a -f "$CHROOTDIR/$dist/lib/libsoapbox.so" ]; then
 					echo "Soapbox: enabled"
 				else
 					echo "Soapbox: disabled"
@@ -149,14 +166,14 @@ for app in $PKGS; do
 					export USER="$BUILD_USER"
 				fi
 
-				if [ $USE_DISTCC -ne 0 -a $DISTCC -eq 1 -a -n "$DISTCC_HOSTS" -a -x "$CHROOTDIR/$distname/usr/bin/distcc" -a -d "$CHROOTDIR/$distname/usr/lib/distcc/bin" ]; then
+				if [ $USE_DISTCC -ne 0 -a $DISTCC -eq 1 -a -n "$DISTCC_HOSTS" -a -x "$CHROOTDIR/$dist/usr/bin/distcc" -a -d "$CHROOTDIR/$dist/usr/lib/distcc/bin" ]; then
 					echo "Distcc: enabled"
 					echo "Distcc hosts: $DISTCC_HOSTS"
 				else
 					echo "Distcc: disabled"
 				fi
 
-				if [ $USE_CCACHE -ne 0 -a $CCACHE -eq 1 -a -x "$CHROOTDIR/$distname/usr/bin/ccache" -a -d "$CHROOTDIR/$distname/usr/lib/ccache/bin" ]; then
+				if [ $USE_CCACHE -ne 0 -a $CCACHE -eq 1 -a -x "$CHROOTDIR/$dist/usr/bin/ccache" -a -d "$CHROOTDIR/$dist/usr/lib/ccache/bin" ]; then
 					echo "Ccache: enabled"
 				else
 					echo "Ccache: disabled"
@@ -168,7 +185,7 @@ for app in $PKGS; do
 			OLDPATH="$PATH"
 
 			### Check for Distcc
-			if [ $USE_DISTCC -ne 0 -a $DISTCC -eq 1 -a -n "$DISTCC_HOSTS" -a -x "$CHROOTDIR/$distname/usr/bin/distcc" -a -d "$CHROOTDIR/$distname/usr/lib/distcc/bin" ]; then
+			if [ $USE_DISTCC -ne 0 -a $DISTCC -eq 1 -a -n "$DISTCC_HOSTS" -a -x "$CHROOTDIR/$dist/usr/bin/distcc" -a -d "$CHROOTDIR/$dist/usr/lib/distcc/bin" ]; then
 				if [ -z "$CPUNR" ]; then
 					CPUNR="$(( $(echo $DISTCC_HOSTS | wc -w) * 2 ))"
 				fi
@@ -179,12 +196,12 @@ for app in $PKGS; do
 					rmdir /root/.distcc/state/ &>/dev/null
 				fi
 				if [ $USE_ROOT -ne 1 -o $AS_ROOT -ne 1 ]; then
-					chown $BUILD_USER.$BUILD_USER $CHROOTDIR/$distname/root/.distcc/
-#					ln -sf $CHROOTDIR/$distname/home/$BUILD_USER/.distcc/state /root/.distcc/
+					chown $BUILD_USER.$BUILD_USER $CHROOTDIR/$dist/root/.distcc/
+#					ln -sf $CHROOTDIR/$dist/home/$BUILD_USER/.distcc/state /root/.distcc/
 #				else
-#					ln -sf $CHROOTDIR/$distname/root/.distcc/state /root/.distcc/
+#					ln -sf $CHROOTDIR/$dist/root/.distcc/state /root/.distcc/
 				fi
-				ln -sf $CHROOTDIR/$distname/root/.distcc/state /root/.distcc/
+				ln -sf $CHROOTDIR/$dist/root/.distcc/state /root/.distcc/
 				export DISTCC_LOG="$TEMPDIR/distcc-$LOGFILE"
 				rm -f "$DISTCC_LOG"
 				export MAKEFLAGS="-j$CPUNR CC=\"$DISTCC_CC\" CXX=\"$DISTCC_CXX\" GXX=\"$DISTCC_CXX\""
@@ -196,8 +213,8 @@ for app in $PKGS; do
 			fi
 
 			### Check for Ccache
-			if [ $USE_CCACHE -ne 0 -a $CCACHE -eq 1 -a -x "$CHROOTDIR/$distname/usr/bin/ccache" -a -d "$CHROOTDIR/$distname/usr/lib/ccache/bin" ]; then
-				export CCACHE_DIR="$TEMPDIR/ccache-$distname"
+			if [ $USE_CCACHE -ne 0 -a $CCACHE -eq 1 -a -x "$CHROOTDIR/$dist/usr/bin/ccache" -a -d "$CHROOTDIR/$dist/usr/lib/ccache/bin" ]; then
+				export CCACHE_DIR="$TEMPDIR/ccache-$dist"
 				export -n CCACHE_RECACHE
 				export PATH="/usr/lib/ccache/bin:$PATH"
 				mkdir -p "$CCACHE_DIR"
@@ -215,10 +232,10 @@ for app in $PKGS; do
 				RPMOPTS="--target $arch"
 			fi
 
-			echo "Building $distname/$arch [$SPECDIR/_buildlogs/$LOGFILE]."
+			echo "Building $dist/$arch [$SPECDIR/_buildlogs/$LOGFILE]."
 
 			### Check for Soapbox
-			if [ "$SOAPBOX" == "1" -a -f "/lib/libsoapbox.so" -a -f "$CHROOTDIR/$distname/lib/libsoapbox.so" ]; then
+			if [ "$SOAPBOX" == "1" -a -f "/lib/libsoapbox.so" -a -f "$CHROOTDIR/$dist/lib/libsoapbox.so" ]; then
 				export SOAPBOXPATH="$PACKAGEDIR/$app/_buildlogs:$PACKAGEDIR/$app:$TEMPDIR:$BUILDDIR:/dev/null:/dev/tty:/tmp:/var/lib/rpm/__db:$HOME/.distcc"
 				export SOAPBOXLOG="$TEMPDIR/soapbox-$LOGFILE"
 				rm -f "$SOAPBOXLOG"
@@ -233,7 +250,9 @@ for app in $PKGS; do
 					--define \"_sourcedir $SPECDIR\" \
 					--define \"_builddir $BUILDDIR\" \
 					--define \"_tmppath $TEMPDIR\" \
-					--define \"dist $DISTNICK\" \"$NEWSPECFILE\""
+					--define \"dist $DISTNICK\"
+					--define \"$DISTNAME 1\"
+					--define \"$DISTNICK 1\" \"$NEWSPECFILE\""
 
 			(
 				echo "Build command: $BUILDCMD" | xargs
@@ -242,7 +261,7 @@ for app in $PKGS; do
 
 				### Check for building as user
 				if [ $AS_ROOT -eq 1 ]; then
-					chroot "$CHROOTDIR/$distname" /usr/bin/rpmbuild -bb $RPMOPTS \
+					chroot "$CHROOTDIR/$dist" /usr/bin/rpmbuild -bb $RPMOPTS \
 						--define "_smp_mflags $MAKEFLAGS" \
 						--define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
 						--define "_initrddir %{_sysconfdir}/rc.d/init.d" \
@@ -250,10 +269,12 @@ for app in $PKGS; do
 						--define "_sourcedir $SPECDIR" \
 						--define "_builddir $ROOT/build" \
 						--define "_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root" \
-						--define "dist $DISTNICK" \
+						--define "dist $DISTNAME" \
+						--define "$DISTNAME 1" \
+						--define "$DISTNICK 1" \
 						"$NEWSPECFILE"
 				else
-					chroot "$CHROOTDIR/$distname" /bin/su - -m $BUILD_USER -c "/usr/bin/rpmbuild -bb $RPMOPTS \
+					chroot "$CHROOTDIR/$dist" /bin/su - -m $BUILD_USER -c "/usr/bin/rpmbuild -bb $RPMOPTS \
 						--define '_smp_mflags $MAKEFLAGS' \
 						--define '_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm' \
 						--define '_initrddir %{_sysconfdir}/rc.d/init.d' \
@@ -262,11 +283,13 @@ for app in $PKGS; do
 						--define '_builddir $ROOT/build' \
 						--define '_tmppath $TEMPDIR' \
 						--define '_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root' \
-						--define 'dist $DISTNICK' \
+						--define 'dist $DISTNAME' \
+						--define '$DISTNAME 1' \
+						--define '$DISTNICK 1' \
 						$NEWSPECFILE"
 				fi
 			) >>"$PACKAGEDIR/$app/_buildlogs/$LOGFILE" 2>&1
-#			CHROOT="/usr/bin/compartment --chroot $CHROOTDIR/$distname --user $BUILD_USER --group $BUILD_USER --init /usr/lib/dar/compartment.sh --quiet"
+#			CHROOT="/usr/bin/compartment --chroot $CHROOTDIR/$dist --user $BUILD_USER --group $BUILD_USER --init /usr/lib/dar/compartment.sh --quiet"
 
 			RC=$?
 			export -n LD_PRELOAD
@@ -300,7 +323,7 @@ for app in $PKGS; do
 
 			if [ $RC -eq 0 ]; then
 				DARBUILDRC=0
-				echo "OK for $distname/$arch, file eg. \"$PACKAGEDIR/$app/$RPMFILE\"."
+				echo "OK for $dist/$arch, file eg. \"$PACKAGEDIR/$app/$RPMFILE\"."
 
 				if [ "$RETAIN_LOGS" == "yes" ]; then
 					bzip2 -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
@@ -309,8 +332,8 @@ for app in $PKGS; do
 				### Clean up current and older logfile
 				rm -f "$DISTCC_LOG"
 			else
-#				log "Failed building package $app for $distname/$arch." >> "$LOGDIR/dar.log"
-				error "Failed building package $app for $distname/$arch, see log. (RC=$RC)"
+#				log "Failed building package $app for $dist/$arch." >> "$LOGDIR/dar.log"
+				error "Failed building package $app for $dist/$arch, see log. (RC=$RC)"
 				bzip2 -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
 			fi
 			rm -f "$NEWSPECFILE"
@@ -319,17 +342,17 @@ for app in $PKGS; do
 
 	### Only build when there was a succesful binary build
 	if [ "$DARBUILDRC" -eq 0 ]; then
-		for distname in $SOURCE_DISTS; do
+		for dist in $SOURCE_DISTS; do
 			RPMFILE="$app-$VERSION-$RELEASE.$TAG.src.rpm"
 
 			### Build source package (forced)
 			cat "$SPECFILE" | sed -e "s#\(Release: *.\+\)#\1.$TAG#" > "$NEWSPECFILE"
-			echo "Building source package $app using \"$SPECFILE\" for $distname"
-			chroot "$CHROOTDIR/$distname" /usr/bin/rpmbuild -bs \
+			echo "Building source package $app using \"$SPECFILE\" for $dist"
+			chroot "$CHROOTDIR/$dist" /usr/bin/rpmbuild -bs \
 				--define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
 				--define "_srcrpmdir $PACKAGEDIR/$app" \
 				--define "_sourcedir $SPECDIR" \
-				--define "$distname 1" \
+				--define "$dist 1" \
 				"$NEWSPECFILE"
 		done
 

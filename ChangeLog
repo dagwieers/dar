@@ -27,6 +27,8 @@ Version 0.6.1 # Probably the last version using bash
 - dar-sync: Added createrepo metadata generation
 - dar.conf: ROOT now defaults to /dar
 - dar-sync: Added -r switch to specify/skip creating repo metadata
+- dar-build: Revert back to gzip for logfiles
+- dar-sync: Recompress createrepo metadata for rsyncability
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

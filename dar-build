@@ -369,7 +369,8 @@ for app in $PKGS; do
 				echo "OK for $dist/$arch, file eg. \"$PACKAGEDIR/$app/$RPMFILE\"."
 
 				if [ "$RETAIN_LOGS" == "yes" ]; then
-					bzip2 -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
+#					bzip2 -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
+					gzip -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
 				fi
 
 				### Clean up current and older logfile
@@ -381,7 +382,8 @@ for app in $PKGS; do
 			else
 #				log "Failed building package $app for $dist/$arch." >> "$LOGDIR/dar.log"
 				error "Failed building package $app for $dist/$arch, see log. (RC=$RC)"
-				bzip2 -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
+#				bzip2 -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
+				gzip -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
 			fi
 			rm -f "$NEWSPECFILE"
 		done

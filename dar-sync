@@ -64,8 +64,8 @@ echo -n "Building all package list."
 find $PACKAGEDIR/ -name "*.rpm" -printf "%P\n" | sort > $FTPDIR/extra/state/all-packages.list
 echo -e "\t($(wc -l $FTPDIR/extra/state/all-packages.list))"
 
-echo -n "Press enter to start remote synchronisation."
+echo -n "Press enter to start remote synchronisation."
 read
-echo "Starting remote synchronisation."
+echo "Starting remote synchronisation."
 #rsync -anvzHL --progress --delete-after --bwlimit="$RSYNC_LIMIT" -e /usr/bin/ssh $PACKAGEDIR $FTPDIR $RSYNC_TARGET
 rsync -avHL --progress --delete-after --bwlimit="$RSYNC_LIMIT" -e "/usr/bin/ssh -oCompression=no" $PACKAGEDIR $FTPDIR $RSYNC_TARGET

@@ -18,10 +18,9 @@ export -n CC_FLAGS CXX_FLAGS LD_PRELOAD LINGUAS
 for app in $PKGS; do
 	DARBUILDRC=1
 
-	SPECFILE="$app"
 	app="$(basename $app .spec)"
-
-	SPECDIR="$(dirname $SPECFILE)"
+	SPECDIR="$(dirname $app)"
+	SPECFILE="$app.spec"
 
 	if [ "$SPECDIR" == "." ]; then
 		SPECDIR="$PWD"
@@ -43,6 +42,10 @@ for app in $PKGS; do
 	if [ ! -f "$SPECFILE" ]; then 
 		echo "ERROR: specfile \"$SPECFILE\" is not found."
 		continue
+	fi
+
+	if [ -d "$SPECDIR/.svn/" ]; then
+		svn -q up "$SPECDIR/"
 	fi
 
 	### Export to rpmconf

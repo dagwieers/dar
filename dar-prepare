@@ -12,10 +12,11 @@ for distname in $DEFAULT_DISTS; do
 	if [ "${DEFAULT_DISTS// */}" != $distname ]; then
 		ln -f $CHROOTDIR/${DEFAULT_DISTS// */}/root/.bash_history $CHROOTDIR/$distname/root/.bash_history
 	fi
-	umount $CHROOTDIR/$distname{/proc,/tmp,/mnt/dar}/
-	mkdir -p $CHROOTDIR/$distname{/proc,/tmp,/mnt/dar}/
+	umount $CHROOTDIR/$distname{/dev/pts,/proc,/tmp,/mnt/dar}/
+	mkdir -p $CHROOTDIR/$distname{/dev/pts,/proc,/tmp,/mnt/dar}/
 #	rm -rf $CHROOTDIR/$distname{$RPMTMPPATH}/*
 	mount -o bind /tmp/ $CHROOTDIR/$distname/tmp/
 	mount -o bind $ROOT $CHROOTDIR/$distname/mnt/dar
 	mount -t proc proc $CHROOTDIR/$distname/proc/
+	mount -t devpts devpts $CHROOTDIR/$distname/dev/pts
 done

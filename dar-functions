@@ -81,6 +81,9 @@ function rpmconf {
                         s|\%{kversion}|kv|;
                         s|\%{krelease}|kr|;
                         s|\%{.*}||g;
+			s|\s+| |g;
+			s|^\s+||;
+			s|\s+$||;
                 "
 }
 
@@ -228,16 +231,12 @@ function download_sources {
 	local RC=1
 	local ERC=0
 	local i=1
-#	while [ $RC -ne 0 -a $i -lt 4 ]; do
-#		spectool -g "$SPECFILE" &>/dev/null
-#		RC=$?
-#		i=$((i+1))
-#	done
 	for url in $(spectool -l "$SPECFILE" 2>/dev/null | cut -f2 -d' '); do
 		filename="$SPECSDIR/$app/$(basename $url)"
 		if [ ! -s "$filename" ]; then
 			warning "Source \"$filename\" not found, downloading."
 			local i=1
+			RC=1
 			while [ $RC -ne 0 -a $i -lt 4 ]; do
 				wget -q -T 10 -O "$filename" "$url"
 				RC=$?

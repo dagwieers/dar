@@ -69,8 +69,12 @@ function rpmconf {
 		return 1
 	fi
 
+	if [ "$DISTNICK" ]; then
+		local RPMVER="$(chroot $CHROOTDIR/$DISTNICK rpm --version | cut -d' ' -f3)"
+	fi
+
 	(
-	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su - -m $BUILD_USER -c "rpmdb -D \"dist $DISTNICK\" -D \"$DISTNICK 1\" -D \"$DISTNAME 1\" -E \"%{expand:%(head -n64 $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
+	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su - -m $BUILD_USER -c "rpmdb -D \"dist $DISTNAME\" -D \"$DISTNICK 1\" -D \"$DISTNAME 1\" -E \"%{expand:%(head -n128 $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
 		if ! grep -i "^ *$CONFIG *:" $SPECFILE | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
 			debug "Config $CONFIG not found in $SPECFILE"
 		fi
@@ -158,10 +162,15 @@ function set_archs {
 }
 
 function set_dists {
+	unset NODIST
 	if [ "$FORCE_DISTS" ]; then
 		DISTS="${FORCE_DISTS//[,:;]/ }"
 	else
 		DISTS="$(metaconf Dists)"
+	fi
+	if [ "$(metaconf Dist)" == "nodist" ]; then
+		NODIST="nodist"
+		DISTS="$(echo "$DISTS" | cut -f1)"
 	fi
 	if [ -z "$DISTS" ]; then DISTS="$DEFAULT_DISTS"; fi
 }
@@ -325,11 +334,11 @@ function build_repo_apt {
 		case "$DISTARCH" in
 			i386)
 				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.$tag.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
+				echo $PACKAGEDIR/*/*.{$tag,0}.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
 				;;
 			x86_64)
 				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.$tag.$REPO.{noarch,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
+				echo $PACKAGEDIR/*/*.{$tag,0}.$REPO.{noarch,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
 				;;
 		esac
 	done
@@ -358,11 +367,11 @@ function build_repo_yum {
 		case "$DISTARCH" in
 			i386)
 				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.$tag.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
+				echo $PACKAGEDIR/*/*.{$tag,0}.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
 				;;
 			x86_64)
 				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.$tag.$REPO.{noarch,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
+				echo $PACKAGEDIR/*/*.{$tag,0}.$REPO.{noarch,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
 				;;
 		esac
 	done

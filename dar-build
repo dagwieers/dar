@@ -95,6 +95,13 @@ for app in $PKGS; do
 			continue
 		fi
 
+		if [ "$NODIST" ]; then
+			DISTTAG="0"
+			DISTNAME="nodist"
+#			ARCHS="noarch"
+		fi
+
+
 		if [ ! -d "$CHROOTDIR/$DISTNICK" ]; then
 			warning "Distribution $DISTNICK has no build environment ($CHROOTDIR/$DISTNICK). Aborting."
 			continue
@@ -125,7 +132,7 @@ for app in $PKGS; do
 
 		set_archs
 
-		### Check if etc/rpm/macros exists with proper content
+		### TODO: Check if etc/rpm/macros exists with proper content
 
 		for arch in $ARCHS; do
 			VERSION="$(rpmconf Version)"

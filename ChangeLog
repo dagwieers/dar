@@ -16,6 +16,8 @@ Version 0.6.1 # Probably the last version using bash
 - dar-build: Use rpmdb -E if possible for resolving macros (thanks to Jeff Pitman)
 - dar-build: Check for existance of distribution build environment
 - dar-functions: Use lftpget instead of wget
+- dar-build: Added support for nodist packages
+- dar-functions: Fixed a small bug in rpmconf()
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

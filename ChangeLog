@@ -18,6 +18,8 @@ Version 0.6.1 # Probably the last version using bash
 - dar-functions: Use lftpget instead of wget
 - dar-build: Added support for nodist packages
 - dar-functions: Fixed a small bug in rpmconf()
+- dar-prepare: Replace /mnt/dar by ROOT (Edward Rudd)
+- dar-build: Added BUILD_GROUP (Edward Rudd)
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

@@ -68,8 +68,8 @@ for app in $PKGS; do
 
 	mkdir -p "$PACKAGEDIR/$app/_buildlogs/" "$SPECDIR/"
 	ln -sf "$PACKAGEDIR/$app/_buildlogs/" "$SPECDIR/"
-	chown -R $BUILD_USER.$BUILD_USER "$PACKAGEDIR/$app/"
-	chown -R $BUILD_USER.$BUILD_USER "$SPECDIR/"
+	chown -R $BUILD_USER.$BUILD_GROUP "$PACKAGEDIR/$app/"
+	chown -R $BUILD_USER.$BUILD_GROUP "$SPECDIR/"
 	chmod -R a+r "$SPECDIR/"
 
 	set_tag

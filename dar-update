@@ -2,7 +2,7 @@
 
 ### dar-update  [ -a <archs> ]  [ -d <dists> ]  [ -s <sdists> ]  <app> ...
 
-source "/usr/lib/dar/dar-functions"
+source "/usr/share/dar/dar-functions"
 
 daropts ":a:d:rs:" $@
 PKGS="$OPTS"

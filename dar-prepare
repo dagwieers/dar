@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "/usr/lib/dar/dar-functions"
+source "/usr/share/dar/dar-functions"
 
 if [ -z "$DEFAULT_DISTS" -o -z "$ROOT" ]; then
 	echo "ERROR: There's something wrong with your configuration !" >&2
@@ -25,6 +25,6 @@ for distname in $DEFAULT_DISTS; do
 	mount -o bind /dev/shm $CHROOTDIR/$distname$ROOT/build
 
 ###	Use thise when using X processes inside chroots
-#	mount -o bind /tmp/ $CHROOTDIR/$distname/tmp/
+	mount -o bind /tmp/ $CHROOTDIR/$distname/tmp/
 
 done

@@ -7,7 +7,6 @@ prefix=/usr
 datadir=/usr/share
 sysconfdir=/etc
 localstatedir=/var
-libdir=/usr/lib
 sbindir=/usr/sbin
 
 DIST_SCRIPTS=dar-build dar-dotty dar-exec dar-kickoff dar-new dar-prepare dar-repo dar-shell dar-sync dar-update
@@ -27,14 +26,13 @@ install:
 	install -m0755 -d $(DESTDIR)$(sysconfdir)/dar/{dists,scripts} \
 		$(DESTDIR)$(sysconfdir)/logrotate.d \
 		$(DESTDIR)$(datadir)/dar/skel \
-		$(DESTDIR)$(libdir)/dar \
 		$(DESTDIR)$(sbindir)
 	install -m0700 -d $(DESTDIR)$(localstatedir)/log/dar
 
 	install -D -m0644 dar.conf $(DESTDIR)$(sysconfdir)/dar/dar.conf
 
 	install -m0755 $(DIST_SCRIPTS) $(DESTDIR)$(sbindir)
-	install -m0755 $(DIST_LIBS) $(DESTDIR)$(libdir)/dar/
+	install -m0755 $(DIST_LIBS) $(DESTDIR)$(datadir)/dar/
 #	install -m0644 dists/*/* $(DESTDIR)$(sysconfdir)/dar/dists/
 	cp -af dists/* $(DESTDIR)$(sysconfdir)/dar/dists/
 	cp -af scripts/* $(DESTDIR)$(sysconfdir)/dar/scripts/

@@ -1,18 +1,16 @@
 #!/bin/bash
 
+#echo "Specfile: $NEWSPECFILE, Disttag: $DISTTAG, Tag: $TAG"
 #set -x
 
-### Processing disttag variable
-DISTTAG="${DISTTAG// *}"
-
-#echo "Specfile: $NEWSPECFILE"
-#echo "Disttag: $DISTTAG"
-#echo "Tag: $TAG"
-
-### Originally in dar-build
-#cat "$SPECFILE" | sed -e "s|\(Release: *.\+\)|\1.${DISTTAG// *}.$TAG|" >"$NEWSPECFILE"
-
-perl -pi.orig -e 's|^(Release)\s*:\s+(.+)\s*$|$1: '$DISTTAG'.'$TAG'\n|' "$NEWSPECFILE"
+case "$ARCH" in
+	(src)
+		perl -pi.orig -e 's|^(Release)\s*:\s+(.+)\s*$|$1: $2.'$TAG'\n|' "$NEWSPECFILE"
+		;;
+	(*)
+		perl -pi.orig -e 's|^(Release)\s*:\s+(.+)\s*$|$1: $2.'${DISTTAG// *}'.'$TAG'\n|' "$NEWSPECFILE"
+		;;
+esac
 
 #diff -u "$NEWSPECFILE".orig "$NEWSPECFILE"
 #set +x

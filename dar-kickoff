@@ -5,7 +5,7 @@ DIST="$1"
 echo "Not finished, see source for some instructions."
 exit 1
 
-source "/usr/lib/dar/dar-functions"
+source "/usr/share/dar/dar-functions"
 
 if [ -d "$ROOT/$DIST" ]; then
 	echo "ERROR: Dir $ROOT/$DIST already exists." >&2

@@ -2,7 +2,7 @@
 
 ### dar-exec  [ -d <dists> ]  <cmd> ...
 
-source "/usr/lib/dar/dar-functions"
+source "/usr/share/dar/dar-functions"
 
 daropts "d:" $@
 CMD="$OPTS"

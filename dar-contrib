@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "/usr/lib/dar/dar-functions"
+source "/usr/share/dar/dar-functions"
 
 upload="";
 

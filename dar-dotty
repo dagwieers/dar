@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source "/usr/lib/dar/dar-functions"
+source "/usr/share/dar/dar-functions"
 
 echo "Warning: this may take quite some time to finish." >&2
 for distname in $DEFAULT_DISTS; do

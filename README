@@ -6,6 +6,7 @@ Placeholder for README ;)
     dar-prepare		prepare a build-environment (mount necessary dirs)
     dar-build		build package serialized
     dar-update		update, upgrade or install packages
+    dar-shell		work inside your chroot
     dar-exec		execute a command in every build-environment
     dar-sync		sync packages with a remote site
     dar-dotty		create graphs from your build-environment (defunct pdf)
@@ -14,8 +15,8 @@ Placeholder for README ;)
   Overview of paths
   """""""""""""""""
     /etc/dar/dar.conf		General DAR configuration
-    /etc/dar/config		Location for extra package information
     /etc/dar/dists		Location for extra distribution information
+    /etc/dar/scripts		Pre-process and post-process scripts
 
     /dar/build			Location for building
     /dar/chroot			Location for build-environments
@@ -24,16 +25,15 @@ Placeholder for README ;)
     /dar/rpms			Location for SPEC files and patches
     /dar/tmp			Location for temporary files and buildroot
 
-    /usr/share/dar		Location for extra files
-    /usr/lib/dar		Location of library
+    /usr/share/dar		Location for extra files and library
 
 
   Tool arguments
   """"""""""""""
     dar-kickoff
     dar-prepare
-    dar-build -a arch -d dist -s sdist -t tag -f <package/spec> ...
-    dar-update <package> ...
-    dar-exec <cmd>
-    dar-sync
+    dar-build -a arch,arch2 -d dist,dist2 -s sdist -n -t tag -f <package/spec> ...
+    dar-update -d dist,dist2 <package> ...
+    dar-exec -d dist,dist2 <cmd>
+    dar-sync -d dist,dist2 -r
     dar-dotty

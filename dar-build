@@ -2,7 +2,7 @@
 
 ### dar-build  [ -a <archs> ]  [ -d <dists> ]  [ -s <sdists> ]  [ -f ]  [ -t tag ]  <app> ...
 
-source "/usr/lib/dar/dar-functions"
+source "/usr/share/dar/dar-functions"
 
 daropts ":a:d:fns:t:v" $@
 PKGS="$OPTS"
@@ -167,12 +167,10 @@ for app in $PKGS; do
 				done
 			done
 
-			rm -f "$NEWSPECFILE"
 			cp -af "$SPECFILE" "$NEWSPECFILE"
 			export NEWSPECFILE DISTTAG TAG
 
 			for script in $CONFIGDIR/scripts/pre-*.sh; do
-#				echo "Processing $script."
 				source "$script"
 			done
 
@@ -406,8 +404,14 @@ for app in $PKGS; do
 		for dist in $SOURCE_DISTS; do
 			RPMFILE="$app-$VERSION-$RELEASE.$TAG.src.rpm"
 
-			### Build source package (forced)
-			cat "$SPECFILE" | sed -e "s#\(Release: *.\+\)#\1.$TAG#" > "$NEWSPECFILE"
+			NEWSPECFILE="$TEMPDIR/$app.spec"
+			cp -af "$SPECFILE" "$NEWSPECFILE"
+			export NEWSPECFILE DISTTAG TAG ARCH="src"
+
+			for script in $CONFIGDIR/scripts/pre-*.sh; do
+				source "$script"
+			done
+
 			echo "Building source package $app using \"$SPECFILE\" for $dist"
 			chroot "$CHROOTDIR/$dist" /usr/bin/rpmbuild -bs \
 				--define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
@@ -415,9 +419,10 @@ for app in $PKGS; do
 				--define "_sourcedir $SPECDIR" \
 				--define "$dist 1" \
 				"$NEWSPECFILE"
+
+			cp -au "$NEWSPECFILE" "$PACKAGEDIR/$app/"
 		done
 
-		cp -au "$SPECFILE" "$PACKAGEDIR/$app/"
 	fi
 done
 

@@ -7,13 +7,13 @@ AUTHOR="$(grep '^# Authority: ' $NEWSPECFILE | sed -e 's|^# Authority: ||')"
 
 case "$AUTHOR" in
 	(dries)
-		PACKAGER="Dries Verachtert <dries@ulyssis.org>"
+		PACKAGER="Dries Verachtert <dries\@ulyssis.org>"
 		;;
 	(bert)
-		PACKAGER="Bert de Bruijn <bert@debruijn.be>";;
-		
-	(dag|thias|*)
-		PACKAGER="Dag Wieers <dag@wieers.com>"
+		PACKAGER="Bert de Bruijn <bert\@debruijn.be>"
+		;;
+	(dag|thias|matthias|*)
+		PACKAGER="Dag Wieers <dag\@wieers.com>"
 		;;
 esac
 

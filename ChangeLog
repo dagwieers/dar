@@ -34,6 +34,7 @@ Version 0.6.1 # Probably the last version using bash
 - dar-build: Added preprocessing scripts
 - dar-update: Improved the handling of updates to update tools
 - dar-build: Experimental usage of /dev/shm for building
+- dar-functions: Moved to /usr/share instead of /usr/lib
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

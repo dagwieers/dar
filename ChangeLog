@@ -39,6 +39,7 @@ Version 0.6.1 # Probably the last version using bash
 - scripts: Added pre-brand script to add branding/packager/vendor to SPEC
 - dar-exec: Export $dist, $nick, $path, $arch, $repo and $tag
 - dar-shell: Export $dist, $nick, $path, $arch, $repo and $tag
+- scripts: Added pre-changelog-trim and pre-diskspace
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

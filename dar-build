@@ -169,8 +169,8 @@ for app in $PKGS; do
 
 			cp -af "$SPECFILE" "$NEWSPECFILE"
 
-			export origspecfile="$SPECFILE" specfile="$NEWSPECFILE"
-			export buildarch="$arch" distarch="$DISTARCH" disttag="${DISTTAG// *}" repotag="$TAG"
+			export origspecfile="$SPECFILE" specfile="$NEWSPECFILE" builddir="$BUILDDIR"
+			export app buildarch="$arch" distarch="$DISTARCH" disttag="${DISTTAG// *}" repotag="$TAG"
 			for script in $CONFIGDIR/scripts/pre-*.sh; do
 				source "$script"
 			done

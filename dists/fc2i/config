@@ -17,3 +17,5 @@ DISTARCH="i386"
 REPO_APT="yes"
 REPO_YUM="yes"
 REPO_CREATEREPO="no"
+
+export -n LD_ASSUME_KERNEL

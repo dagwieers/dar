@@ -413,7 +413,7 @@ function build_repo {
 		echo "    <location href=\"repodata/$file.xml.gz\"/>" >>"$REPODATA/repomd.xml"
 		gunzip "$REPODATA/$file.xml.gz"
 		echo "    <open-checksum type=\"sha\">$(sha1sum "$REPODATA/$file.xml" | cut -f1 -d' ')</open-checksum>" >>"$REPODATA/repomd.xml"
-		gzip --rsyncable -9 "$REPODATA/$file.xml"
+		gzip -9 --rsyncable -f "$REPODATA/$file.xml"
     		echo "    <checksum type=\"sha\">$(sha1sum "$REPODATA/$file.xml.gz" | cut -f1 -d' ')</checksum>" >>"$REPODATA/repomd.xml"
 		echo "    <timestamp>$(stat -c "%Y" "$REPODATA/$file.xml.gz")</timestamp>" >>"$REPODATA/repomd.xml"
 		echo "  </data>" >>"$REPODATA/repomd.xml"

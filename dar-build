@@ -293,8 +293,9 @@ for app in $PKGS; do
 					--define \"_sourcedir $SPECDIR\" \
 					--define \"_builddir $BUILDDIR\" \
 					--define \"_tmppath $TEMPDIR\" \
-					--define \"dist $DISTNAME\"
-					--define \"$DISTNAME 1\"
+					--define \"dist $DISTNAME\" \
+					--define \"disttag ${DISTTAG// *}\" \
+					--define \"$DISTNAME 1\" \
 					--define \"$DISTNICK 1\" \"$NEWSPECFILE\""
 
 			(
@@ -313,6 +314,7 @@ for app in $PKGS; do
 						--define "_builddir $ROOT/build" \
 						--define "_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root" \
 						--define "dist $DISTNAME" \
+						--define "disttag ${DISTTAG// *}" \
 						--define "$DISTNAME 1" \
 						--define "$DISTNICK 1" \
 						"$NEWSPECFILE"
@@ -327,6 +329,7 @@ for app in $PKGS; do
 						--define '_tmppath $TEMPDIR' \
 						--define '_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root' \
 						--define 'dist $DISTNAME' \
+						--define 'disttag ${DISTTAG// *}' \
 						--define '$DISTNAME 1' \
 						--define '$DISTNICK 1' \
 						$NEWSPECFILE"
@@ -370,7 +373,7 @@ for app in $PKGS; do
 
 				if [ "$RETAIN_LOGS" == "yes" ]; then
 #					bzip2 -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
-					gzip -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
+					gzip -9 --rsyncable -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
 				fi
 
 				### Clean up current and older logfile
@@ -383,7 +386,7 @@ for app in $PKGS; do
 #				log "Failed building package $app for $dist/$arch." >> "$LOGDIR/dar.log"
 				error "Failed building package $app for $dist/$arch, see log. (RC=$RC)"
 #				bzip2 -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
-				gzip -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
+				gzip -9 --rsyncable -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
 			fi
 			rm -f "$NEWSPECFILE"
 		done

@@ -29,6 +29,8 @@ Version 0.6.1 # Probably the last version using bash
 - dar-sync: Added -r switch to specify/skip creating repo metadata
 - dar-build: Revert back to gzip for logfiles
 - dar-sync: Recompress createrepo metadata for rsyncability
+- dar-build: Added disttag as a macro
+- dar-*: Moved the LD_ASSUME_KERNEL bits to per distribution files
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

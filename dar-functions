@@ -161,6 +161,8 @@ function daropts {
 function set_archs {
 	if [ "$FORCE_ARCHS" ]; then
 		ARCHS="${FORCE_ARCHS//[,:;]/ }"
+	elif [ "$(rpmconf Nosource)" != "" ]; then
+		ARCHS="nosrc"
 	else
 		ARCHS="$(metaconf Archs)"
 	fi
@@ -173,6 +175,9 @@ function set_dists {
 	unset NODIST
 	if [ "$FORCE_DISTS" ]; then
 		DISTS="${FORCE_DISTS//[,:;]/ }"
+	elif [ "$(rpmconf Nosource)" != "" ]; then
+		NODIST="nodist"
+		DISTS="$(echo "$DISTS" | cut -f1)"
 	else
 		DISTS="$(metaconf Dists)"
 	fi
@@ -194,6 +199,8 @@ function set_exclusive_dist {
 function set_source_dists {
 	if [ "$FORCE_SOURCE_DISTS" ]; then
 		SOURCE_DISTS="${FORCE_SOURCE_DISTS//[,:;]/ }"
+	elif [ "$(rpmconf Nosource)" != "" ]; then
+		SOURCE_DISTS="$(echo ${FORCE_DISTS//[,:;]/ } | cut -f1)"
 	else
 		SOURCE_DISTS="$(metaconf SourceDists)"
 	fi

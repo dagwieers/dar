@@ -148,6 +148,11 @@ for app in $PKGS; do
 			LOGFILE="$app-$VERSION-$RELEASE.${DISTTAG// *}.$TAG.$arch.log"
 			export MAKEFLAGS="%nil"
 
+			if [ "$arch" == "nosrc" ]; then
+				DARBUILDRC=0
+				break
+			fi
+
 			### Check if already build (2 version schemes, multiple disttags)
 			for disttag in $DISTTAG; do
 				for tag in $TAGS; do

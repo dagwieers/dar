@@ -15,7 +15,7 @@ export free="$(set -- $(df $builddir | grep -v 'Filesystem'); echo $4)"
 
 while [ -z "$free" -o $free -lt 20480 ]; do
 	echo "Disk is almost full ($free kB), please free up space in $builddir and press ENTER." >&2
-	pause
+	read a
 	export free="$(set -- $(df /dev/shm/ | grep -v 'Filesystem'); echo $4)"
 done
 

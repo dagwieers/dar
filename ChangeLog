@@ -40,6 +40,8 @@ Version 0.6.1 # Probably the last version using bash
 - dar-exec: Export $dist, $nick, $path, $arch, $repo and $tag
 - dar-shell: Export $dist, $nick, $path, $arch, $repo and $tag
 - scripts: Added pre-changelog-trim and pre-diskspace
+- dar-update: If arguments are given, don't do update/upgrade
+- dar-build: Added support for nosrc packages
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

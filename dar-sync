@@ -60,6 +60,7 @@ echo -n "Building source package list."
 (
 	for TAG in $TAGS; do
 		find $PACKAGEDIR/ -name "*.$TAG.src.rpm" | sed -e "s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$TAG\.src\.rpm|\1|" 
+		find $PACKAGEDIR/ -name "*.$TAG.nosrc.rpm" | sed -e "s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$TAG\.nosrc\.rpm|\1|" 
 	done
 ) | sort | uniq >$FTPDIR/extra/state/packages-src.list
 echo -e "\t($(wc -l $FTPDIR/extra/state/packages-src.list))"

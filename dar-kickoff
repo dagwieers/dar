@@ -57,18 +57,16 @@ cp -avx /etc/{group,fstab,mtab,hosts,passwd,resolv.conf,modules.conf,modprobe.co
 
 ### Customize /etc/rpm/macros
 
-### Fix /dev/null
+### Fix /dev/
 rm -f $ROOT/$DIST/dev/null
 mknod -m0666 $ROOT/$DIST/dev/null c 1 3
-
-### Fix /dev/ptmx
+mknod -m0666 $ROOT/$DIST/dev/zero c 1 5
+mknod -m0666 $ROOT/$DIST/dev/full c 1 7
+mknod -m0644 $ROOT/$DIST/dev/random c 1 8
+mknod -m0644 $ROOT/$DIST/dev/urandom c 1 9
+mknod -m0666 $ROOT/$DIST/dev/tty c 5 0
 mknod -m0666 $ROOT/$DIST/dev/ptmx c 5 2
-
-### Fix /dev/urandom
-mknod -m0644 el4i/dev/random c 1 8
-mknod -m0644 el4i/dev/urandom c 1 9
-
-### Fix /dev/shm
+ln -sf ../proc/self/fd $ROOT/$DIST/dev/fd
 mkdir $ROOT/$DIST/dev/shm/
 chmod 1777 $ROOT/$DIST/dev/shm/
 

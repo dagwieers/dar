@@ -20,6 +20,10 @@ Version 0.6.1 # Probably the last version using bash
 - dar-functions: Fixed a small bug in rpmconf()
 - dar-prepare: Replace /mnt/dar by ROOT (Edward Rudd)
 - dar-build: Added BUILD_GROUP (Edward Rudd)
+- dar-build: Small fixes to SPEC file location
+- dar-build: Added -n flag to build  without building a source RPM
+- dar-sync: Added i386 packages to x86_64 (could be done without hardcoding it)
+- dar-build: Added SETARCH supprt (Ralf Ertzinger)
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

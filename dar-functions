@@ -134,6 +134,7 @@ function daropts {
 			(a)	FORCE_ARCHS="$OPTARG";;
 			(d)	FORCE_DISTS="$OPTARG";;
 			(f)	FORCE_OVERWRITE="true";;
+			(n)	NOSOURCE="true";;
 			(s)	FORCE_SOURCE_DISTS="$OPTARG";;
 			(t)	FORCE_TAG="$OPTARG";;
 			(v)	FORCE_VERBOSE="true";;
@@ -337,8 +338,8 @@ function build_repo_apt {
 				echo $PACKAGEDIR/*/*.{$tag,0}.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
 				;;
 			x86_64)
-				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.{$tag,0}.$REPO.{noarch,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
+				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
+				echo $PACKAGEDIR/*/*.{$tag,0}.$REPO.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
 				;;
 		esac
 	done
@@ -362,6 +363,8 @@ function build_repo_yum {
 	echo $FTPDIR/$DISTPATH/$REPO/RPMS/*.rpm | xargs rm -f
 	echo $FTPDIR/$DISTPATH/$REPO/headers/*.hdr | xargs rm -f
 
+	### FIXME: This should not be done hardcoded, rather have a list of archs inside the dist-config
+	### FIXME: And iterate through that list
 	### Hardlink files
 	for tag in $DISTTAG; do
 		case "$DISTARCH" in

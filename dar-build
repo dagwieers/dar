@@ -21,7 +21,7 @@ chmod -R a+r "$SPECSDIR"
 for app in $PKGS; do
 	DARBUILDRC=1
 
-	SPECFILE="$app"
+	SPECFILE="$PWD/$app"
 	app="$(basename $app .spec)"
 
 	if [ ! -r "$SPECFILE" -o ! -f "$SPECFILE" ]; then
@@ -37,6 +37,7 @@ for app in $PKGS; do
 
 	app="$(rpmconf Name)"
 	VERSION="$(rpmconf Version)"
+	SPECSDIR="$(dirname $(dirname $SPECFILE))"
 
 	if [ -z "$app" ]; then
 		die "Problem with specfile \"$SPECFILE\". (Name is empty)"

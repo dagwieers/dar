@@ -331,6 +331,8 @@ function build_repo_apt {
 	echo $FTPDIR/$DISTPATH/RPMS.$REPO/*.rpm | xargs rm -f
 	echo $FTPDIR/$DISTPATH/SRPMS.$REPO/*.rpm | xargs rm -f
 
+	### FIXME: This should not be done hardcoded, rather have a list of archs inside the dist-config
+	### FIXME: And iterate through that list
 	for tag in $DISTTAG; do
 		case "$DISTARCH" in
 			i386)
@@ -373,8 +375,8 @@ function build_repo_yum {
 				echo $PACKAGEDIR/*/*.{$tag,0}.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
 				;;
 			x86_64)
-				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.{$tag,0}.$REPO.{noarch,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
+				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
+				echo $PACKAGEDIR/*/*.{$tag,0}.$REPO.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
 				;;
 		esac
 	done

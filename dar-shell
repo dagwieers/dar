@@ -1,10 +1,26 @@
 #!/bin/bash
-
-### dar-shell  [ -d <dists> ]
-
 source "/usr/share/dar/dar-functions"
 
-daropts "d:" $@
+function help {
+	cat <<EOF
+usage: dar-shell [-q] [-d dist,dist2] cmd     
+Acquire a shell in one or more DAR build environments
+
+dar-exec options:
+
+  -d dist,dist2         select build envs
+  -h                    this help message
+  -q                    be very quiet
+
+exported variables:
+
+  arch, dist, nick, path, repo, tag
+
+EOF
+exit 1
+}
+
+daropts "d:hq" $@
 CMD="$OPTS"
 
 if [ ! -d "$ROOT" ]; then
@@ -16,16 +32,20 @@ set_dists
 set_as_root
 AS_ROOT=1
 
-echo "Entering shells."
+if [ -z "$QUIET" ]; then
+	echo -e "$_BL_$_WH= Entering shells.$_DE"
+fi
 for distname in $DISTS; do
 	if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
 		source "$CONFIGDIR/dists/$distname/config"
-		export arch="$DISTARCH" dist="${DISTNAME// *}" nick="$DISTNICK" path="$DISTPATH" repo="$REPO" tag="$TAG"
+		export arch="$DISTARCH" dist="${DISTNAME// *}" nick="$DISTNICK" path="$DISTPATH" repo="$REPO" tag="${DISTTAG// *}"
 	fi
 
 	chroot $CHROOTDIR/$distname
 done
-echo -n "Returning to parent shell. Press ENTER."
-read a
+if [ -z "$QUIET" ]; then
+	echo -en "$_BL_$_WH= Returning to parent shell. Press ENTER.$_DE"
+	read a
+fi
 
 exit 0

@@ -1,10 +1,33 @@
 #!/bin/bash
-
-### dar-exec  [ -d <dists> ]  <cmd> ...
-
 source "/usr/share/dar/dar-functions"
 
-daropts "d:" $@
+function help {
+	cat <<EOF
+usage: dar-exec [-q] [-d dist,dist2] cmd	
+Run a command in one or more DAR build environments
+
+dar-exec options:
+
+  -d dist,dist2         select build envs
+  -h                    this help message
+  -q                    be very quiet
+
+exported variables:
+
+  arch, dist, nick, path, repo, tag
+
+examples:
+
+  dar-exec cat /etc/redhat-release
+  dar-exec 'rpm -qa | wc -l'
+  dar-exec 'rpm -ihvU /dar/packages/foo/*\$dist*\$arch.rpm'
+  diff -u <(dar-exec -d el4i rpm -qa | sort) <(dar-exec -d el4a rpm -qa | sort)
+
+EOF
+exit 1
+}
+
+daropts "d:hq" $@
 CMD="$OPTS"
 
 if [ ! -d "$ROOT" ]; then
@@ -17,28 +40,29 @@ set_as_root
 AS_ROOT=1
 
 for distname in $DISTS; do
-	echo "Executing \"$CMD\" for $distname."
+	if [ -z "$QUIET" ]; then
+		echo -e "$_BL_$_WH= Executing \"$_YE$CMD$_WH\" for $_YE$distname$_WH.$_DE"
+	fi
 
 	if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
 		source "$CONFIGDIR/dists/$distname/config"
-		export arch="$DISTARCH" dist="${DISTNAME// *}" nick="$DISTNICK" path="$DISTPATH" repo="$REPO" tag="$TAG"
+		export arch="$DISTARCH" dist="${DISTNAME// *}" nick="$DISTNICK" path="$DISTPATH" repo="$REPO" tag="${DISTTAG// *}"
 	fi
 
 	### Check for building as user
 	if [ $AS_ROOT -eq 1 ]; then
-#		DO_SU="/bin/su - -c"
+#		DO_SU="/bin/su -l -c"
 		DO_SU="/bin/bash -c"
 	else
-		DO_SU="/bin/su - -m $BUILD_USER -c"
+		DO_SU="/bin/su -lm $BUILD_USER -c"
 	fi
 
 	chroot "$CHROOTDIR/$distname" $DO_SU "$CMD"
 	RC=$?
 
 	if [ $RC -ne 0 ]; then
-		error "Failed executing \"$CMD\" (RC=$RC)"
+		error "$_RE_${_WH}Failed execution (RC=$_YE$RC$_WH)$_DE"
 	fi
-	echo
 done
 
 exit 0

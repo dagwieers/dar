@@ -30,7 +30,7 @@ for distname in $DISTS; do
 		chroot $CHROOTDIR/$distname $UPDATECMD
 	fi
 
-	if [ -z "$PKGS" "$UPGRADECMD" ]; then
+	if [ -z "$PKGS" -a "$UPGRADECMD" ]; then
 		chroot $CHROOTDIR/$distname $UPGRADECMD
 	fi
 

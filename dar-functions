@@ -6,6 +6,25 @@ set -p #-u -f
 ### general variables
 DARCONFIG="/etc/dar/dar.conf"
 
+### ANSI colors
+_DE="\033[0;0m"		# Default
+_BK="\033[0;30m"	# Black
+_DB="\033[0;34m"	# Dark Blue
+_SI="\033[0;37m"	# Silver
+_GA="\033[1;30m"	# Gray
+_RE="\033[1;31m"	# Red
+_GR="\033[1;32m"	# Green
+_YE="\033[1;33m"	# Yellow
+_BL="\033[1;34m"	# Blue
+_MA="\033[1;35m"	# Magenta
+_CY="\033[1;36m"	# Cyan
+_WH="\033[1;37m"	# White
+
+_BK_="\033[40m"		# Black BG
+_RE_="\033[41m"		# Red BG
+_BL_="\033[44m"		# Blue BG
+_WH_="\033[47m"		# White BG
+
 ### Cleans environment
 function clean_env {
 	:
@@ -36,7 +55,7 @@ function debug {
 ### Log and put error-boolean on (so die will escalate the problem)
 function error {
 	ERROR="yes"
-	echo "ERROR: $*" >&2
+	echo -e "ERROR: $*" >&2
 #	log "ERROR: $*"
 }
 
@@ -75,7 +94,7 @@ function rpmconf {
 		fi
 
 	(
-	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su - -m $BUILD_USER -c "rpmdb -D \"dist $DISTNAME\" -D \"$DISTNICK 1\" -D \"$DISTNAME 1\" -E \"%{expand:%(head -n128 $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
+	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su -lm $BUILD_USER -c "rpmdb -D \"dist $DISTNAME\" -D \"$DISTNICK 1\" -D \"$DISTNAME 1\" -E \"%{expand:%(head -n128 $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
 		if ! grep -i "^ *$CONFIG *:" $SPECFILE | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
 			debug "Config $CONFIG not found in $SPECFILE"
 		fi
@@ -140,11 +159,13 @@ function daropts {
 			(a)	FORCE_ARCHS="$OPTARG";;
 			(d)	FORCE_DISTS="$OPTARG";;
 			(f)	FORCE_OVERWRITE="true";;
+			(h)	help;;
 			(n)	NOSOURCE="true";;
 			(r)	CREATE_REPO="true";;
 			(s)	FORCE_SOURCE_DISTS="$OPTARG";;
 			(t)	FORCE_TAG="$OPTARG";;
 			(v)	FORCE_VERBOSE="true";;
+			(q)	QUIET="true";;
 #			(-)	c=${OPTARG/#-/}; OPTARG="$(echo $* | cut -d' ' -f$OPTIND)"
 #			case "$c" in
 #				(port) port="$OPTARG"; OPTIND=$((OPTIND+1));;

@@ -133,7 +133,7 @@ for app in $PKGS; do
 		fi
 
 		### Export RPMVER to rpmconf
-		export RPMVER="$(chroot $CHROOTDIR/$DISTNICK /bin/su - -m $BUILD_USER -c "rpm --version" | cut -d' ' -f3)"
+		export RPMVER="$(chroot $CHROOTDIR/$DISTNICK /bin/su -lm $BUILD_USER -c "rpm --version" | cut -d' ' -f3)"
 
 		set_archs
 
@@ -329,7 +329,7 @@ for app in $PKGS; do
 						--define "$DISTNICK 1" \
 						"$NEWSPECFILE"
 				else
-					$SETARCH chroot "$CHROOTDIR/$dist" /bin/su - -m $BUILD_USER -c "/usr/bin/rpmbuild -bb --clean $RPMOPTS \
+					$SETARCH chroot "$CHROOTDIR/$dist" /bin/su -lm $BUILD_USER -c "/usr/bin/rpmbuild -bb --clean $RPMOPTS \
 						--define '_smp_mflags $MAKEFLAGS' \
 						--define '_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm' \
 						--define '_initrddir %{_sysconfdir}/rc.d/init.d' \

@@ -42,6 +42,8 @@ Version 0.6.1 # Probably the last version using bash
 - scripts: Added pre-changelog-trim and pre-diskspace
 - dar-update: If arguments are given, don't do update/upgrade
 - dar-build: Added support for nosrc packages
+- dar-exec: Started adding colors !
+- dar-shell: Started adding colors !
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

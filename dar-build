@@ -31,12 +31,12 @@ for app in $PKGS; do
 		fi
 	fi
 
+	app="$(rpmconf Name)"
+	VERSION="$(rpmconf Version)"
+
 	mkdir -p "$PACKAGEDIR/$app/_buildlogs/" "$SPECSDIR/$app/"
 	ln -sf "$PACKAGEDIR/$app/_buildlogs/" "$SPECSDIR/$app/"
 	chown -R $BUILD_USER.$BUILD_USER "$PACKAGEDIR/$app/"
-
-	app="$(rpmconf Name)"
-	VERSION="$(rpmconf Version)"
 
 	set_tag
 	NEWSPECFILE="$TEMPDIR/$app-$VERSION-$TAG.spec"

@@ -1,0 +1,35 @@
+#!/bin/bash
+
+### dar-shell  [ -d <dists> ]
+
+source "/usr/lib/dar/dar-functions"
+
+daropts "d:" $@
+CMD="$OPTS"
+
+if [ ! -d "$ROOT" ]; then
+	echo "ERROR: probably in chroot jail" >&2
+	exit 1
+fi
+
+set_dists
+set_as_root
+AS_ROOT=1
+
+if [ -z "$DISTS" ]; then
+	DISTS="$DEFAULT_DISTS"
+fi
+
+for distname in $DISTS; do
+	echo "Entering $distname shell."
+
+	if [ -r "$CONFIGDIR/dists/$dist/config" ]; then
+		source "$CONFIGDIR/dists/$dist/config"
+	fi
+
+	chroot $CHROOTDIR/$distname
+done
+echo -n "Returning to parent shell. Press ENTER."
+read a
+
+exit 0

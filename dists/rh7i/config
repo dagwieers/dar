@@ -13,3 +13,7 @@ DISTNICK="rh7i"
 DISTTAG="0.rh7 rh73"
 DISTPATH="redhat/7.3/en/i386"
 DISTARCH="i386"
+
+REPO_APT="yes"
+REPO_YUM="yes"
+REPO_CREATEREPO="no"

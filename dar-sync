@@ -4,8 +4,8 @@ source "/usr/lib/dar/dar-functions"
 
 daropts ":a:d:rs:" $@
 
-DISTS="$DEFAULT_DISTS"
-TAG="$DEFAULT_TAG"
+set_dists
+set_tag
 
 #build_htaccess
 
@@ -25,27 +25,42 @@ if [ "$GPG_NAME" -a "$GPG_PATH" ]; then
 fi
 
 if [ "$CREATE_REPO" == "true" ]; then
-	for dist in $DISTS; do
-		if [ -r "$CONFIGDIR/dists/$dist/config" ]; then
-			source "$CONFIGDIR/dists/$dist/config"
-		else
-			warning "Configfile $CONFIGDIR/dists/$dist/config missing. Aborting."
-			continue
-		fi
-	
-		echo "Building $dist repository in $DISTPATH."
-		build_repo_apt "$DISTTAG" "$DISTPATH"
-		build_repo_yum "$DISTTAG" "$DISTPATH"
-		build_repo "$DISTPATH"
-		build_env "$DISTNICK" "$DISTNAME"
-		build_content "$DISTNAME" "$DISTPATH"
-	done
-
-	build_repo_srpms
+	echo "Building SRPM repository."
+	build_repo_srpms "source"
 fi
 
+for dist in $DISTS; do
+	if [ -r "$CONFIGDIR/dists/$dist/config" ]; then
+		source "$CONFIGDIR/dists/$dist/config"
+	else
+		warning "Configfile $CONFIGDIR/dists/$dist/config missing. Aborting."
+		continue
+	fi
+	
+	if [ "$CREATE_REPO" == "true" ]; then
+		echo "Building $dist repository in $DISTPATH."
+		ln -sf ../../../../source $FTPDIR/$DISTPATH/SRPMS.dag
+		if [ "$REPO_APT" == "yes" ]; then
+			build_repo_apt "$DISTTAG" "$DISTPATH"
+		fi
+		if [ "$REPO_YUM" == "yes" ]; then
+			build_repo_yum "$DISTTAG" "$DISTPATH"
+		fi
+		if [ "$REPO_CREATEREPO" == "yes" ]; then
+			build_repo "$DISTPATH"
+		fi
+	fi
+	build_env "$DISTNICK" "$DISTNAME"
+	build_content "$DISTNAME" "$DISTPATH"
+
+done
+
 echo -n "Building source package list."
-find $PACKAGEDIR/ -name "*.$TAG.src.rpm" | sed -e "s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$TAG\.src\.rpm|\1|" | sort | uniq >$FTPDIR/extra/state/packages-src.list
+(
+	for TAG in $TAGS; do
+		find $PACKAGEDIR/ -name "*.$TAG.src.rpm" | sed -e "s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$TAG\.src\.rpm|\1|" 
+	done
+) | sort | uniq >$FTPDIR/extra/state/packages-src.list
 echo -e "\t($(wc -l $FTPDIR/extra/state/packages-src.list))"
 
 echo -n "Building package list."
@@ -55,11 +70,11 @@ echo -e "\t($(wc -l $FTPDIR/extra/state/packages.list))"
 echo -n "Building summary list."
 rm -f $FTPDIR/extra/state/summaries.list
 
-for app in $(echo $PACKAGEDIR/*/); do
+for app in $(cd $PACKAGEDIR; echo *); do
 	app="$(basename $app)"
 	SPECFILE="$PACKAGEDIR/$app/$app.spec"
 	if [ -r "$SPECFILE" ]; then
-		echo -e "$app\t$(rpmconf Summary)" >> $FTPDIR/extra/state/summaries.list
+		echo -e "$app\t$(rpmconf Summary "" nocheck)" >> $FTPDIR/extra/state/summaries.list
 	fi
 done
 echo -e "\t($(wc -l $FTPDIR/extra/state/summaries.list))"

@@ -69,9 +69,10 @@ function rpmconf {
 		return 1
 	fi
 
-	if [ "$DISTNICK" ]; then
-		local RPMVER="$(chroot $CHROOTDIR/$DISTNICK rpm --version | cut -d' ' -f3)"
-	fi
+	if [ "$3" != "nocheck" ]; then
+		if [ "$DISTNICK" ]; then
+			local RPMVER="$(chroot $CHROOTDIR/$DISTNICK rpm --version | cut -d' ' -f3)"
+		fi
 
 	(
 	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su - -m $BUILD_USER -c "rpmdb -D \"dist $DISTNAME\" -D \"$DISTNICK 1\" -D \"$DISTNAME 1\" -E \"%{expand:%(head -n128 $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
@@ -89,6 +90,11 @@ function rpmconf {
 			s|^\s+||;
 			s|\s+$||;
                 "
+	else
+		if ! grep -i "^ *$CONFIG *:" $SPECFILE | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
+			debug "Config $CONFIG not found in $SPECFILE"
+		fi
+	fi
 }
 
 function rpmmacro {
@@ -194,11 +200,13 @@ function set_source_dists {
 }
 
 function set_tag {
+	TAGS="$DEFAULT_TAGS"
 	if [ -n "$FORCE_TAG" ]; then
 		TAG="$FORCE_TAG"
 	else
 		TAG="$(metaconf Tag)"
 	fi
+	if [ -z "$DEFAULT_TAG" ]; then DEFAULT_TAG="${DEFAULT_TAGS/ */}"; fi
 	if [ -z "$TAG" ]; then TAG="$DEFAULT_TAG"; fi
 }
 
@@ -249,9 +257,10 @@ function download_sources {
 			local i=1
 			RC=1
 			while [ $RC -ne 0 -a $i -lt 4 ]; do
-				wget -q -T 10 -O "$filename" "$url"
-#				lftpget "$url" -o "$filename"
-#				lftpget "$url" -O "$(dirname $filename)"
+				wget -v -t3 -T1 -O "$filename" "$url"
+#				wget -q -T1 -O "$filename" "$url"
+#				lftpget "$url" -c -o "$filename"
+#				lftpget "$url" -c -O "$(dirname $filename)" -o "$(basename $filename)"
 				RC=$?
 				i=$((i+1))
 			done
@@ -302,13 +311,12 @@ EOF
 function build_content {
 	local DISTNAME="$1"
 	local DISTPATH="$2"
-	local REPO="$DEFAULT_TAG"
 
-#	find "$PACKAGEDIR/" -name "*.$REPO.$DIST.*.rpm" \
-#			-o -name "*.$DIST.$REPO.*.rpm" | \
+#	find "$PACKAGEDIR/" -name "*.$TAG.$DIST.*.rpm" \
+#			-o -name "*.$DIST.$TAG.*.rpm" | \
 #		sed -e "
-#			s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$REPO\.$DIST\..\+\.rpm|\1|;
-#			s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$DIST\.$REPO\..\+\.rpm|\1|;
+#			s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$TAG\.$DIST\..\+\.rpm|\1|;
+#			s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$DIST\.$TAG\..\+\.rpm|\1|;
 #		" | sort | uniq >$FTPDIR/extra/state/packages-$DIST.list
 
 	for rpm in $FTPDIR/$DISTPATH/RPMS.$REPO/*.rpm; do
@@ -320,7 +328,6 @@ function build_content {
 function build_repo_apt {
 	local DISTTAG="$1"
 	local DISTPATH="$2"
-	local REPO="$DEFAULT_TAG"
 
 	### Creating directories
 	mkdir -p $FTPDIR/$DISTPATH/{base,RPMS.$REPO}/
@@ -333,17 +340,21 @@ function build_repo_apt {
 
 	### FIXME: This should not be done hardcoded, rather have a list of archs inside the dist-config
 	### FIXME: And iterate through that list
-	for tag in $DISTTAG; do
+	for disttag in $DISTTAG; do
+		for tag in $TAGS; do
+		
 		case "$DISTARCH" in
 			i386)
-				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.{$tag,0}.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
+				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
+				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
 				;;
 			x86_64)
-				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.{$tag,0}.$REPO.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
+				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
+				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
 				;;
 		esac
+
+		done
 	done
 
 	### Build Apt repository
@@ -355,7 +366,6 @@ function build_repo_apt {
 function build_repo_yum {
 	local DISTTAG="$1"
 	local DISTPATH="$2"
-	REPO="$DEFAULT_TAG"
 
 	### Creating directories
 	mkdir -p $FTPDIR/$DISTPATH/$REPO/{RPMS,headers}/
@@ -367,19 +377,23 @@ function build_repo_yum {
 	### FIXME: This should not be done hardcoded, rather have a list of archs inside the dist-config
 	### FIXME: And iterate through that list
 	### Hardlink files
-	for tag in $DISTTAG; do
+	for disttag in $DISTTAG; do
+		for tag in $TAGS; do
+
 		case "$DISTARCH" in
 			i386)
-				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.{$tag,0}.$REPO.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
+				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
+				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
 				;;
 			x86_64)
-				echo $PACKAGEDIR/*/*.$REPO.$tag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.{$tag,0}.$REPO.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
+				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
+				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
 				;;
 		esac
+
+		done
 	done
-#	ln -f $PACKAGEDIR/*/*.$REPO.src.rpm $FTPDIR/$DISTPATH/$REPO/SRPMS/ &>/dev/null
+#	ln -f $PACKAGEDIR/*/*.$TAG.src.rpm $FTPDIR/$DISTPATH/$REPO/SRPMS/ &>/dev/null
 
 	### Build Yum repository
 #	yum-arch -q -z -d -c $FTPDIR/$DISTPATH/$REPO/
@@ -388,19 +402,20 @@ function build_repo_yum {
 
 function build_repo {
 	local DISTPATH="$1"
-	REPO="$DEFAULT_TAG"
 
 	createrepo -q $FTPDIR/$DISTPATH/$REPO/
 }
 
 function build_repo_srpms {
-	REPO="$DEFAULT_TAG"
+	local DIR="$1"
 
-	mkdir -p $FTPDIR/extra/SRPMS.$REPO/
-	echo $FTPDIR/$DISTPATH/SRPMS.$REPO/*.rpm | xargs rm -f
-	echo $PACKAGEDIR/*/*.$REPO.src.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/extra/SRPMS.$REPO/ &>/dev/null
+	mkdir -p $FTPDIR/$DIR
+	echo $FTPDIR/$DIR/*.src.rpm | xargs rm -f
+	for tag in $TAGS; do
+		echo $PACKAGEDIR/*/*.$tag.src.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DIR/ &>/dev/null
+	done
 
-	genbasedir --bloat --bz2only $FTPDIR/extra/ dag
+#	genbasedir --bloat --bz2only $FTPDIR/$DISTPATH/ $REPO
 }
 
 export LD_ASSUME_KERNEL="2.4.9"

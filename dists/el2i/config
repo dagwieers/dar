@@ -15,3 +15,7 @@ DISTNICK="el2i"
 DISTTAG="0.el2 rhel2.1"
 DISTPATH="redhat/el2.1/en/i386"
 DISTARCH="i386"
+
+REPO_APT="yes"
+REPO_YUM="no"
+REPO_CREATEREPO="no"

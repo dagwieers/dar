@@ -53,6 +53,19 @@ echo "PS1=\"[\u@$DIST \W]# \"" >> $ROOT/$DIST/root/.bashrc
 
 cp -auvx /etc/{group,hosts,passwd,resolv.conf,modules.conf} $ROOT/$DIST/etc/
 
+### Customize /etc/rpm/macros
+
+### Fix /dev/null
+rm -f $ROOT/$DIST/dev/null
+mknod -m0666 $ROOT/$DIST/dev/null c 1 3
+
+### Fix /dev/ptmx
+mknod -m0666 $ROOT/$DIST/dev/ptmx c 5 2
+
+### Fix /dev/shm
+mkdir $ROOT/$DIST/dev/shm/
+chmod 1777 $ROOT/$DIST/dev/shm/
+
 #chroot $ROOT/$DIST /bin/nice /usr/bin/apt install
 
 exit 0

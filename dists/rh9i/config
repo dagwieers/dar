@@ -13,3 +13,7 @@ DISTNICK="rh9i"
 DISTTAG="0.rh9 rh90"
 DISTPATH="redhat/9/en/i386"
 DISTARCH="i386"
+
+REPO_APT="yes"
+REPO_YUM="yes"
+REPO_CREATEREPO="no"

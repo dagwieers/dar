@@ -150,18 +150,20 @@ for app in $PKGS; do
 
 			### Check if already build (2 version schemes, multiple disttags)
 			for disttag in $DISTTAG; do
-				NEWRPMFILE="$app-$VERSION-$RELEASE.$disttag.$TAG.$arch.rpm"
-				OLDRPMFILE="$app-$VERSION-$RELEASE.$TAG.$disttag.$arch.rpm"
-				for rpmfile in $NEWRPMFILE $OLDRPMFILE; do
-					if [ -z "$FORCE_OVERWRITE" -a -f "$PACKAGEDIR/$app/$rpmfile" ]; then
-						warning "Package \"$PACKAGEDIR/$app/$rpmfile\" already exists."
-		
-						if [ -z "$SOURCE_DISTS" ]; then
-							SOURCE_DISTS="$DISTNICK"
+				for tag in $TAGS; do
+					NEWRPMFILE="$app-$VERSION-$RELEASE.$disttag.$tag.$arch.rpm"
+					OLDRPMFILE="$app-$VERSION-$RELEASE.$tag.$disttag.$arch.rpm"
+					for rpmfile in $NEWRPMFILE $OLDRPMFILE; do
+						if [ -z "$FORCE_OVERWRITE" -a -f "$PACKAGEDIR/$app/$rpmfile" ]; then
+							warning "Package \"$PACKAGEDIR/$app/$rpmfile\" already exists."
+			
+							if [ -z "$SOURCE_DISTS" ]; then
+								SOURCE_DISTS="$DISTNICK"
+							fi
+			
+							continue 4
 						fi
-		
-						continue 3;
-					fi
+					done
 				done
 			done
 
@@ -238,7 +240,11 @@ for app in $PKGS; do
 				export DISTCC_HOSTS CC="$DISTCC_CC" CXX="$DISTCC_CXX" GXX="$DISTCC_CXX"
 				export PATH="/usr/lib/distcc/bin:$PATH"
 			else
-				export MAKEFLAGS="-j1"
+				if [ "$CPUNR" -a $CPUNR -ne 0 -a $CPUNR -ne 1 ]; then
+					export MAKEFLAGS="-j$CPUNR"
+				else
+					export MAKEFLAGS="-j1"
+				fi
 				export -n DISTCC_HOSTS CC CXX GXX
 			fi
 

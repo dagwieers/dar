@@ -15,3 +15,7 @@ DISTNICK="el3i"
 DISTTAG="1.el3 rhel3"
 DISTPATH="redhat/el3/en/i386"
 DISTARCH="i386"
+
+REPO_APT="yes"
+REPO_YUM="yes"
+REPO_CREATEREPO="no"

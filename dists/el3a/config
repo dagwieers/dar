@@ -15,3 +15,7 @@ DISTNICK="el3a"
 DISTTAG="1.el3 rhel3"
 DISTPATH="redhat/el3/en/x86_64"
 DISTARCH="x86_64"
+
+REPO_APT="yes"
+REPO_YUM="yes"
+REPO_CREATEREPO="no"

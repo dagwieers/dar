@@ -12,6 +12,10 @@ INSTALLCMD="yum install %p"
 
 DISTNAME="fc2"
 DISTNICK="fc2a"
-DISTTAG="1.fc2 rhfc2"
+DISTTAG="1.fc2"
 DISTPATH="fedora/2/en/x86_64"
 DISTARCH="x86_64"
+
+REPO_APT="yes"
+REPO_YUM="yes"
+REPO_CREATEREPO="no"

@@ -13,3 +13,7 @@ DISTNICK="rh6i"
 DISTTAG="0.rh6 rh62"
 DISTPATH="redhat/6.2/en/i386"
 DISTARCH="i386"
+
+REPO_APT="yes"
+REPO_YUM="no"
+REPO_CREATEREPO="no"

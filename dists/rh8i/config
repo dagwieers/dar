@@ -13,3 +13,7 @@ DISTNICK="rh8i"
 DISTTAG="0.rh8 rh80"
 DISTPATH="redhat/8.0/en/i386"
 DISTARCH="i386"
+
+REPO_APT="yes"
+REPO_YUM="yes"
+REPO_CREATEREPO="no"

@@ -4,10 +4,11 @@
 
 source "/usr/lib/dar/dar-functions"
 
-daropts ":a:d:r:s:" $@
+daropts ":a:d:rs:" $@
 PKGS="$OPTS"
 
-DISTS="$DEFAULT_DISTS"
+#DISTS="$DEFAULT_DISTS"
+set_dists
 
 ### Update build environment
 for distname in $DISTS; do

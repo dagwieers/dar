@@ -15,37 +15,29 @@ fi
 ### Clear important build variables
 export -n CC_FLAGS CXX_FLAGS LD_PRELOAD LINGUAS
 
-for app in $PKGS; do
+for arg in $PKGS; do
 	DARBUILDRC=1
 
-	SPECDIR="$(dirname $app)"
-	app="$(basename $app .spec)"
-	SPECFILE="$app.spec"
+	SPECDIR="$(dirname $arg)"
+	app="$(basename $arg .spec)"
+	SPECFILE="$PWD/$app.spec"
 
-	if [ "$SPECDIR" == "." ]; then
-		SPECDIR="$PWD"
-		SPECFILE="$SPECDIR/$SPECFILE"
-	fi
+	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECDIR/$app.spec" fi
+	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECSDIR/$app.spec" fi
+	if [ ! -f "$SPECFILE" ]; then SPECFILE="$PWD/$app/$app.spec" fi
+	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECDIR/$app/$app.spec" fi
+	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECSDIR/$app/$app.spec" fi
 
-	if [ "${SPECDIR:0:1}" != "/" ]; then
-		SPECDIR="$PWD/$SPECDIR"
-		SPECFILE="$SPECDIR/$SPECFILE"
-	fi
+	SPECDIR="$(dirname $SPECFILE)"
+	SPECFILE="$SPECDIR/$app.spec"
 
-	if [ ! -f "$SPECFILE" ]; then
-		SPECFILE="SPECDIR/$SPECFILE"
-	fi
-
-	if [ ! -f "$SPECFILE" ]; then
-		SPECFILE="SPECDIR/$app.spec"
-	fi
-
-	if [ ! -f "$SPECFILE" ]; then
-		SPECDIR="$SPECSDIR/$app"
-		SPECFILE="$SPECDIR/$app.spec"
-	fi
 	if [ ! -f "$SPECFILE" ]; then 
 		echo "ERROR: specfile \"$SPECFILE\" is not found."
+		continue
+	fi
+
+	if [ ! -d "$SPECDIR" ]; then 
+		echo "ERROR: specdir \"$SPECDIR\" is not found."
 		continue
 	fi
 

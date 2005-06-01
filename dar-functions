@@ -279,13 +279,14 @@ function download_sources {
 	local ERC=0
 	local i=1
 	for url in $(spectool -l "$SPECFILE" 2>/dev/null | cut -f2 -d' '); do
-		filename="$SPECSDIR/$app/$(basename $url)"
+		filename="$SPECDIR/$(basename $url)"
 		if [ ! -s "$filename" ]; then
 			warning "Source \"$(basename $filename)\" not found, downloading [$url]."
 			local i=1
 			RC=1
 			while [ $RC -ne 0 -a $i -lt 4 ]; do
-				wget -v -t3 -T1 -O "$filename" "$url"
+#				wget -v -t5 -T2 -O "$filename" "$url"
+				wget -q -t5 -T2 -O "$filename" "$url"
 #				wget -q -T1 -O "$filename" "$url"
 #				lftpget "$url" -c -o "$filename"
 #				lftpget "$url" -c -O "$(dirname $filename)" -o "$(basename $filename)"
@@ -376,9 +377,13 @@ function build_repo_apt {
 				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
 				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
 				;;
-			x86_64)
-				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
+#			x86_64)
+#				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
+#				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
+#				;;
+			*)
+				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
+				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
 				;;
 		esac
 
@@ -413,9 +418,13 @@ function build_repo_yum {
 				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
 				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
 				;;
-			x86_64)
-				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
+#			x86_64)
+#				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
+#				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
+#				;;
+			*)
+				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
+				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
 				;;
 		esac
 

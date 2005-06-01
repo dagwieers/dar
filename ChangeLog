@@ -44,6 +44,7 @@ Version 0.6.1 # Probably the last version using bash
 - dar-build: Added support for nosrc packages
 - dar-exec: Started adding colors !
 - dar-shell: Started adding colors !
+- dar-build: Improved specfile location search code
 
 Version 0.6.0
 - dar.conf: Removed DISTSMAP, added it to dists specific section

@@ -22,7 +22,7 @@ check:
 	@echo "Syntax checking source-files."; \
 	for i in dar.conf $(DIST_SCRIPTS) $(DIST_LIBS); do bash -n $$i || exit 1; done
 
-install:
+install: check
 	install -m0755 -d $(DESTDIR)$(sysconfdir)/dar/{dists,scripts} \
 		$(DESTDIR)$(sysconfdir)/logrotate.d \
 		$(DESTDIR)$(datadir)/dar/skel \

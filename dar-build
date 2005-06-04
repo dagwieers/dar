@@ -2,6 +2,8 @@
 
 ### dar-build  [ -a <archs> ]  [ -d <dists> ]  [ -s <sdists> ]  [ -f ]  [ -t tag ]  <app> ...
 
+set -x
+
 source "/usr/share/dar/dar-functions"
 
 daropts ":a:d:fns:t:v" $@
@@ -22,11 +24,12 @@ for arg in $PKGS; do
 	app="$(basename $arg .spec)"
 	SPECFILE="$PWD/$app.spec"
 
-	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECDIR/$app.spec" fi
-	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECSDIR/$app.spec" fi
-	if [ ! -f "$SPECFILE" ]; then SPECFILE="$PWD/$app/$app.spec" fi
-	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECDIR/$app/$app.spec" fi
-	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECSDIR/$app/$app.spec" fi
+	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECDIR/$app.spec"; fi
+	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECSDIR/$app.spec"; fi
+	if [ ! -f "$SPECFILE" ]; then SPECFILE="$PWD/$app/$app.spec"; fi
+	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECDIR/$app/$app.spec"; fi
+	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECSDIR/$app/$app.spec"; fi
+	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECSDIR/$SPECDIR/$app.spec"; fi
 
 	SPECDIR="$(dirname $SPECFILE)"
 	SPECFILE="$SPECDIR/$app.spec"

@@ -4,13 +4,8 @@
 DISTCC_CC="i386-redhat-linux-gcc-2.96"
 DISTCC_CXX="i386-redhat-linux-g++-2.96"
 
-#UPDATECMD="apt-get -qq update"
-#UPGRADECMD="apt-get -qq -f -y upgrade"
-#INSTALLCMD="apt-get -qq -y -m install %p"
 UPDATECMD="up2date -u"
 INSTALLCMD="up2date -if"
-#UPDATECMD="yum update"
-#INSTALLCMD="yum install %p"
 
 DISTNAME="el2"
 DISTNICK="el2i"

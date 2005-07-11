@@ -1,22 +1,24 @@
 ### RED HAT FEDORA CORE 3
 
 ### Distcc compilers
-DISTCC_CC="i386-redhat-linux-gcc-3.4.2"
-DISTCC_CXX="i386-redhat-linux-g++-3.4.2"
+DISTCC_CC="i386-redhat-linux-gcc-4.0.0"
+DISTCC_CXX="i386-redhat-linux-g++-4.0.0"
 
 UPDATECMD="apt-get -qq update"
 UPGRADECMD="apt-get -qq -f -y upgrade"
 INSTALLCMD="apt-get -qq -y -m install %p"
 CLEANCMD="apt-get clean"
+#UPDATECMD="yum update"
+#INSTALLCMD="yum install %p"
 
-DISTNAME="fc3"
-DISTNICK="fc3i"
-DISTTAG="1.fc3"
-DISTPATH="fedora/3/en/i386"
+DISTNAME="fc4"
+DISTNICK="fc4i"
+DISTTAG="2.fc4"
+DISTPATH="fedora/4/en/i386"
 DISTARCH="i386"
 
 REPO_APT="yes"
-REPO_YUM="yes"
+REPO_YUM="no"
 REPO_CREATEREPO="yes"
 
 export -n LD_ASSUME_KERNEL

@@ -15,16 +15,21 @@ for distname in $DEFAULT_DISTS; do
 
 	umount $CHROOTDIR/$distname{/dev/pts,/proc,/tmp,$ROOT/build,$ROOT}/ 2>/dev/null
 
-	mkdir -p $CHROOTDIR/$distname{/dev/pts,/proc,/tmp,$ROOT}/
 #	rm -rf $CHROOTDIR/$distname{$RPMTMPPATH}/*
+	mkdir -p $CHROOTDIR/$distname$ROOT}/
 	mount -o bind $ROOT $CHROOTDIR/$distname$ROOT
+
+	mkdir -p $CHROOTDIR/$distname/proc
 	mount -t proc proc $CHROOTDIR/$distname/proc/
+
+	mkdir -p $CHROOTDIR/$distname/dev/pts
 	mount -t devpts devpts $CHROOTDIR/$distname/dev/pts
 
 ###	Use this when you want to speed up building :)
+	mkdir -p $CHROOTDIR/$distname/$ROOT/build
 	mount -o bind /dev/shm $CHROOTDIR/$distname$ROOT/build
 
 ###	Use thise when using X processes inside chroots
+	mkdir -p $CHROOTDIR/$distname/tmp
 	mount -o bind /tmp/ $CHROOTDIR/$distname/tmp/
-
 done

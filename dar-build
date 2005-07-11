@@ -29,11 +29,13 @@ for arg in $PKGS; do
 	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECSDIR/$app/$app.spec"; fi
 	if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECSDIR/$SPECDIR/$app.spec"; fi
 
+	if [ "${SPECFILE:0:1}" != "/" ]; then SPECFILE="$PWD/$SPECFILE"; fi
+
 	SPECDIR="$(dirname $SPECFILE)"
 	SPECFILE="$SPECDIR/$app.spec"
 
 	if [ ! -f "$SPECFILE" ]; then 
-		echo "ERROR: specfile \"$SPECFILE\" is not found."
+		echo "ERROR: specfile \"$(basename $SPECFILE)\" is not found."
 		continue
 	fi
 
@@ -42,9 +44,9 @@ for arg in $PKGS; do
 		continue
 	fi
 
-	if [ -d "$SPECDIR/.svn/" ]; then
-		svn -q up "$SPECDIR/"
-	fi
+#	if [ -d "$SPECDIR/.svn/" ]; then
+#		svn -q up "$SPECDIR/"
+#	fi
 
 	### Export to rpmconf
 	export RVERSION="$(rpmmacro real_version)"

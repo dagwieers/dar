@@ -4,13 +4,8 @@
 DISTCC_CC="x86_64-redhat-linux-gcc-3.2.3"
 DISTCC_CXX="x86_64-redhat-linux-g++-3.2.3"
 
-#UPDATECMD="apt-get -qq update"
-#UPGRADECMD="apt-get -qq -f -y upgrade"
-#INSTALLCMD="apt-get -qq -y -m install %p"
 UPDATECMD="up2date -u"
 INSTALLCMD="up2date -if"
-#UPDATECMD="yum update"
-#INSTALLCMD="yum install %p"
 
 DISTNAME="el3"
 DISTNICK="el3a"

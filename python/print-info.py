@@ -2,11 +2,14 @@
 
 import glob, sqlite, sys, re, os, string
 
+specdb = '/dar/tmp/state/specdb.sqlite'
+pkgdb = '/dar/tmp/state/pkgdb.sqlite'
+
 sys.stdout = os.fdopen(1, 'w', 0)
 
-con = sqlite.connect('/dar/pub/info/state/specdb.sqlite')
+con = sqlite.connect(specdb)
 cur = con.cursor()
-con2 = sqlite.connect('/dar/pub/info/state/pkgdb.sqlite')
+con2 = sqlite.connect(pkgdb)
 cur2 = con2.cursor()
 
 print 'General info'
@@ -48,7 +51,7 @@ print 'Packager activity:'
 cur.execute('select distinct authority from spec order by authority')
 for name in cur.fetchall():
 	cur.execute('select * from spec where authority = "%s"' % name[0])
-	print '  %s packaged %d packages' % (name[0], len(cur.fetchall()))
+	print '  %s maintains %d packages' % (name[0], len(cur.fetchall()))
 
 #print
 #print 'Print summaries:'

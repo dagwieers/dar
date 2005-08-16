@@ -2,13 +2,15 @@
 
 import glob, sqlite, sys, re, os, string, rpm
 
+pkgdb = '/dar/tmp/state/pkgdb.sqlite'
+
 def vercmp((e1, v1, r1), (e2, v2, r2)):
 	rc = rpm.labelCompare((e1, v1, r1), (e2, v2, r2))
 	return rc
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-con = sqlite.connect('/dar/pub/info/state/pkgdb.sqlite')
+con = sqlite.connect(pkgdb)
 cur = con.cursor()
 
 cur.execute('select distinct name from pkg order by name')

@@ -1,0 +1,106 @@
+#!/bin/bash
+
+shopt -s extglob
+source "/usr/share/dar/dar-functions"
+
+#daropts ":a:d:fs:t:v" $@
+#PKGS="$OPTS"
+PKGS=$@
+
+function host {
+	HOST="$1"
+	HOST="${HOST/#http:\/\/}"
+	HOST="${HOST/#ftp:\/\/}"
+	echo "${HOST/%\/*}"
+}
+
+function file {
+	FILE="$1"
+	echo "${FILE/#+([!\/])\/\/+([!\/])}"
+}
+
+function httptest {
+	URL="$1"
+	HOST="$(host $URL | sed -e 's|.sf.|.sourceforge.|')"
+	FILE="$(host $URL)"
+	echo -e "HEAD $FILE HTTP/1.1\nHost: $HOST\n\n" | nc -w 10 $HOST 80 | grep -E " (200|302) "
+	return $?
+}
+
+function v1 {
+	local V="$1"
+	M="${V//*./}"
+	echo "${V//%+([0-9])/}$((M+1))"
+}
+
+function v2 {
+	local V="$1"
+	M="${V/%.+([0-9])/}"
+	M="${M/#*./}"
+	echo "${V//%+([0-9]).+([0-9])/}$((M+1))" 2>/dev/null
+}
+
+function v3 {
+	local V="$1"
+	M="${V/%.+([0-9])/}"
+	M="${M/#*./}"
+	echo "${V//%+([0-9]).+([0-9])/}$((M+1)).0" 2>/dev/null
+}
+
+function rewrite {
+	echo "$(echo "$1" | perl -p -e "
+		s|\%{name}|$NAME|g;
+		s|\%{version}|$VERSIONX|g;
+		s|\%{real_name}|$RNAME|g;
+		s|\%{real_version}|$RVERSIONX|g;
+		s|\%{real_release}|$RRELEASE|g;
+	")"
+}
+
+for app in $PKGS; do
+
+	SPECFILE="$PWD/$app"
+	app="$(basename $app .spec)"
+
+	if [ ! -r "$SPECFILE" -o ! -f "$SPECFILE" ]; then
+		SPECFILE="$PWD/$app.spec"
+	fi
+	if [ ! -r "$SPECFILE" -o ! -f "$SPECFILE" ]; then
+		SPECFILE="$SPECSDIR/$app/$app.spec"
+	fi
+	if [ ! -r "$SPECFILE" -o ! -f "$SPECFILE" ]; then
+		echo "ERROR: specfile \"$SPECFILE\" is not found."
+		continue
+	fi
+
+	NAME="$(rpmconf Name)"
+	VERSION="$(rpmconf Version)"
+	RNAME="$(rpmmacro real_name)"
+	RVERSION="$(rpmmacro real_version)"
+	RRELEASE="$(rpmmacro real_release)"
+
+	SOURCE="$(rpmconf Source)"
+	if [ -z "$SOURCE" ]; then
+		SOURCE="$(rpmconf Source0)"
+	fi
+
+	SOURCEX="$(rewrite $SOURCE)"
+
+	if echo "$SOURCEX" | grep -q '%{'; then
+		error "$NAME: Source $SOURCE incorrect"
+		continue
+	fi
+	
+	if [ -z "$SOURCEX" ]; then
+		error "$NAME: Source is empty"
+		continue
+	fi
+
+	VERSIONX="$(v1 $VERSION)"
+#	echo "$NAME: $VERSION -> $(host $SOURCE)"
+	if httptest "$(rewrite $SOURCE)"; then
+		echo "$NAME: New version $VERSIONX found !!"
+		continue;
+	fi
+
+done

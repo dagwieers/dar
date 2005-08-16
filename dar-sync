@@ -12,15 +12,15 @@ set_tag
 ### Sign first as we're starting the script.
 if [ "$GPG_NAME" -a "$GPG_PATH" ]; then
 	echo "Signing (new) packages."
-	touch "$FTPDIR/extra/state/rpmfind"
+	touch "$STATEDIR/rpmfind"
 	pushd $PACKAGEDIR >/dev/null
-	find . -newer $FTPDIR/extra/state/rpmsign -name "*.rpm" -type f | xargs rpm --resign  \
+	find . -newer $STATEDIR/rpmsign -name "*.rpm" -type f | xargs rpm --resign  \
 		--define "_signature gpg" \
 		--define "_gpg_path $GPG_PATH" \
 		--define "_gpg_name $GPG_NAME"
 	popd
 	if [ $? -eq 0 ]; then
-		touch -r "$FTPDIR/extra/state/rpmfind" "$FTPDIR/extra/state/rpmsign"
+		touch -r "$STATEDIR/rpmfind" "$STATEDIR/rpmsign"
 	elif [ $? -gt 1 ]; then
 		echo $?
 		exit $?
@@ -64,28 +64,28 @@ echo -n "Building source package list."
 		find $PACKAGEDIR/ -name "*.$TAG.src.rpm" | sed -e "s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$TAG\.src\.rpm|\1|" 
 		find $PACKAGEDIR/ -name "*.$TAG.nosrc.rpm" | sed -e "s|.\+/\(.\+\)-[0-9].\+-[0-9].*\.$TAG\.nosrc\.rpm|\1|" 
 	done
-) | sort | uniq >$FTPDIR/extra/state/packages-src.list
-echo -e "\t($(wc -l $FTPDIR/extra/state/packages-src.list))"
+) | sort | uniq >$STATEDIR/packages-src.list
+echo -e "\t($(wc -l $STATEDIR/packages-src.list))"
 
 echo -n "Building package list."
-cat $FTPDIR/extra/state/packages-*.list | sort | uniq > $FTPDIR/extra/state/packages.list
-echo -e "\t($(wc -l $FTPDIR/extra/state/packages.list))"
+cat $STATEDIR/packages-*.list | sort | uniq > $STATEDIR/packages.list
+echo -e "\t($(wc -l $STATEDIR/packages.list))"
 
 echo -n "Building summary list."
-rm -f $FTPDIR/extra/state/summaries.list
+rm -f $STATEDIR/summaries.list
 
 for app in $(cd $PACKAGEDIR; echo *); do
 	app="$(basename $app)"
 	SPECFILE="$PACKAGEDIR/$app/$app.spec"
 	if [ -r "$SPECFILE" ]; then
-		echo -e "$app\t$(rpmconf Summary "" nocheck)" >> $FTPDIR/extra/state/summaries.list
+		echo -e "$app\t$(rpmconf Summary "" nocheck)" >> $STATEDIR/summaries.list
 	fi
 done
-echo -e "\t($(wc -l $FTPDIR/extra/state/summaries.list))"
+echo -e "\t($(wc -l $STATEDIR/summaries.list))"
 
 echo -n "Building all package list."
-find $PACKAGEDIR/ -name "*.rpm" -printf "%P\n" | sort > $FTPDIR/extra/state/all-packages.list
-echo -e "\t($(wc -l $FTPDIR/extra/state/all-packages.list))"
+find $PACKAGEDIR/ -name "*.rpm" -printf "%P\n" | sort > $STATEDIR/all-packages.list
+echo -e "\t($(wc -l $STATEDIR/all-packages.list))"
 
 echo -n "Press enter to start remote synchronisation."
 read

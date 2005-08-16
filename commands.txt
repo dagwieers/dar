@@ -1,0 +1,55 @@
+### BUILDING
+### """"""""
+
+### Install build environment
+old=fc3-i386; new=el4-i386; chr=el4i; diff -u <(cut -d"$(echo -e '\t')" -f1 /dar/pub/info/state/rpmqa-$old.list) <(cut -d"$(echo -e '\t')" -f1 /dar/pub/info/state/rpmqa-$new.list) | grep "^-" | sed -e 's|^-||' | xargs dar-update
+
+### Build missing packages compared to other dist
+old=fc3-i386; new=el4-i386; chr=el4i; diff -u <(cut -d"$(echo -e '\t')" -f1 /dar/pub/info/state/packages-$old.list) <(cut -d"$(echo -e '\t')" -f1 /dar/pub/info/state/packages-$new.list) | grep "^-" | sed -e 's|^-||' | xargs dar-build -n -d $chr
+
+### Build library packages first
+old=fc3; chr=fc4i; for pkg in $(echo /dar/packages/*/*-devel-*.$old.rf.i386.rpm); do pkg="$(basename $pkg)"; echo ${pkg%-*-*-*}; done | xargs dar-build -n -d $chr
+
+### Clean up chroots
+#dar-exec
+
+
+### INSTALLING
+### """"""""""
+
+echo ... | xargs chroot /dar/chroot/$chr/ up2date -if
+echo ... | xargs chroot /dar/chroot/$chr/ apt-get -qq -y -m install
+
+
+### QUALITY ASSURANCE
+### """""""""""""""""
+
+### Find noarch perl packages with problems
+echo /dar/packages/*/*.noarch.rpm | xargs rpm -qpl | grep -E '\.(a|la|so)$'
+echo /dar/packages/*/*.noarch.rpm | xargs rpm -qpl | grep -E '/lib64'
+
+### Find missing requirements
+echo /dar/rpms/*/_buildlogs/*el2*.i386.log.gz | xargs zgrep -h ' is needed by ' | cut -d' ' -f1 | sort | uniq
+
+### Find build environment polution (32bit vs 64bit)
+dar-exec -d el3a,fc2a,fc3a,el4a 'rpm -qa --qf "%{name}.%{arch}\n" | grep i.86'
+
+### Count number/size of packages per project
+for i in /dar/packages/*; do j="$(ls $i/*.rpm | wc -l)"; echo -e "$j  -  $(basename $i)"; done | sort -n | less
+for i in /dar/packages/*; do du -s $i; done | sort -n | less
+
+### Count packages that match latest distribution
+dist="el4"; for i in /dar/packages/*/*.$dist.*; do v="${i%.*.*.*.*.*}"; echo "$(ls -l $v* | wc -l) - $(basename ${v%-*})"; done | sort -n | uniq | less
+
+
+### METADATA
+### """"""""
+
+### Create rpmforge-packages.txt
+for i in /dar/rpms/*; do pkg="$(basename $i)"; author="$(grep '^# Authority:' $i/$pkg.spec | cut -f3 -d' ')"; if [ "$author" ]; then echo -e "$pkg $author"; fi; done | sort > /dar/pub/info/docs/rpmforge-packages.txt
+
+### Compare mega-merge.txt and rpmforge-packages.txt
+diff -ud <(cat /dar/docs/mega-merge.txt | while read a b c; do echo "$a $b"; done) /dar/docs/rpmforge-packages.txt
+
+### Count packages per distribution
+wc -l /dar/pub/info/state/packages-*.list

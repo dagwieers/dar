@@ -10,7 +10,7 @@ localstatedir=/var
 sbindir=/usr/sbin
 
 DIST_SCRIPTS=dar-build dar-dotty dar-exec dar-kickoff dar-new dar-prepare dar-repo dar-shell dar-sync dar-update
-DIST_LIBS=dar-functions compartment.sh
+DIST_LIBS=dar-functions
 
 DESTDIR=
 

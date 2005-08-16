@@ -14,10 +14,10 @@ fi
 chkconfig rsync off
 service xinetd restart
 
-find $PACKAGEDIR -newer $FTPDIR/extra/state/dar-repo -name "*.rpm" -type f
+find $PACKAGEDIR -newer $STATEDIR/dar-repo -name "*.rpm" -type f
 
 if [ $? -eq 0 ]; then
-	touch $FTPDIR/extra/state/dar-repo
+	touch $STATEDIR/dar-repo
 elif [ $? -gt 1 ]; then
 	chkconfig rsync on
 	service xinetd restart

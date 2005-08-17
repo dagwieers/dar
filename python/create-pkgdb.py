@@ -5,15 +5,17 @@ import glob, sqlite, sys, re, os, string
 packagedir = '/dar/packages/'
 pkgdb = '/dar/tmp/state/pkgdb.sqlite'
 
-pkghdr = {
-	'filename':100,
-	'name':40,
-	'version':15,
-	'release':15,
-	'arch':8,
-	'repo':5,
-	'dist':5,
-}
+pkghdr = ('filename', 'name', 'version', 'release', 'arch', 'repo', 'dist')
+
+#pkghdr = {
+##	'filename':100,
+#	'name':40,
+#	'version':15,
+#	'release':15,
+#	'arch':8,
+#	'repo':5,
+#	'dist':5,
+#}
 
 def repo(filename):
         try:
@@ -46,14 +48,14 @@ def dist(filename):
 	elif dist in distmap.keys(): return distmap[dist]
         else:   
                 print 'Unknown distribution tag %s in filename %s' % (dist, filename)
-                return None
+		raise
 
 def readfile(file):
 	rec = {
 		'filename': os.path.basename(file),
 		'parent': os.path.basename(os.path.dirname(file)),
 	}
-	rec.update(re.search('(?P<name>.+)-(?P<version>[\w\.]+)-(?P<release>[\w\.]+)\.(?P<arch>\w+).rpm$', file).groupdict())
+	rec.update(re.search('(?P<name>[^/]+)-(?P<version>[\w\.]+)-(?P<release>[\w\.]+)\.(?P<arch>\w+).rpm$', file).groupdict())
 	rec['repo'] = repo(file)
 	if rec['arch'] in ('src', 'nosrc'): 
 		rec['dist'] = rec['arch']
@@ -65,27 +67,29 @@ sys.stdout = os.fdopen(1, 'w', 0)
 
 dropsta = 'drop table pkg'
 createsta = 'create table pkg ( '
-for key in pkghdr.keys(): createsta += '%s varchar(%d), ' % (key, pkghdr[key])
+for key in pkghdr: createsta += '%s varchar(10), ' % key
 createsta = createsta.rstrip(', ') + ' )'
 
 insertsta = 'insert into pkg ( '
-for key in pkghdr.keys(): insertsta += '%s, ' % key
+for key in pkghdr: insertsta += '%s, ' % key
 insertsta = insertsta.rstrip(', ') + ' ) values ( '
-for key in pkghdr.keys(): insertsta += '"%%(%s)s", ' % key
+for key in pkghdr: insertsta += '"%%(%s)s", ' % key
 insertsta = insertsta.rstrip(', ') + ' )'
 
-con = sqlite.connect(pkgdb)
-cur = con.cursor()
-try: cur.execute(dropsta)
+pkgcon = sqlite.connect(pkgdb)
+pkgcur = pkgcon.cursor()
+try: pkgcur.execute(dropsta)
 except: pass
-cur.execute(createsta)
+pkgcur.execute(createsta)
 
 for file in glob.glob(os.path.join(packagedir, '*/*.rpm')):
-	rec = readfile(file)
-	if not rec:
+	try:
+		rec = readfile(file)
+	except:
 		print file, 'FAILED'
 		continue
-	cur.execute(insertsta % rec)
+	pkgcur.execute(insertsta % rec)
 
-con.commit()
-con.close()
+pkgcon.commit()
+pkgcur.close()
+pkgcon.close()

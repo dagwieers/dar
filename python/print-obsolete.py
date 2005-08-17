@@ -10,32 +10,35 @@ def vercmp((e1, v1, r1), (e2, v2, r2)):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-con = sqlite.connect(pkgdb)
-cur = con.cursor()
+pkgcon = sqlite.connect(pkgdb)
+pkgcur = pkgcon.cursor()
 
-cur.execute('select distinct name from pkg order by name')
-for name in cur.fetchall():
-#	print 'Processing', name[0]
-	cur.execute('select filename, arch, version, release, dist, repo from pkg where name = "%s" and arch != "src" order by dist, version, release, arch' % name[0])
-	filename = 0
-	arch = 1
-	version = 2
-	release = 3
-	dist = 4
-	repo = 5
-	pkgs = cur.fetchall()
-	for pkg1 in pkgs:
-		if pkg1[arch] == 'nosrc': continue
-		if pkg1[repo] == 'test': continue
-		if pkg1[filename].find('kernel') == 0: continue
-		for pkg2 in pkgs:
-			if pkg2[arch] == 'nosrc': continue
-			if pkg2[repo] == 'test': continue
-			if pkg1[filename] == pkg2[filename]: continue
-			if pkg1[dist] != pkg2[dist]: continue
-			if pkg1[arch] != pkg2[arch]: continue
-			if vercmp(('0', pkg1[version], pkg1[release]), ('0', pkg2[version], pkg2[release])) > 0:
-				print '%s deprecated by %s' % (pkg2[filename], pkg1[filename])
+pkgcur.execute('select distinct name from pkg order by name')
+for name, in pkgcur.fetchall():
+#	print 'Processing', name
+	pkgcur.execute('select filename, arch, version, release, dist, repo from pkg where name = "%s" and arch != "src" order by dist, version, release, arch' % name)
+	pkgs = pkgcur.fetchall()
+	A = {}
+	obsoletelist = []
+	for A['filename'], A['arch'], A['version'], A['release'], A['dist'], A['repo'] in pkgs:
+		if A['arch'] == 'nosrc': continue
+		if A['repo'] == 'test': continue
+		if A['filename'].find('kernel') == 0: continue
+		B = {}
+		for B['filename'], B['arch'], B['version'], B['release'], B['dist'], B['repo'] in pkgs:
+			if B['arch'] == 'nosrc': continue
+			if B['repo'] == 'test': continue
+			if A['filename'] == B['filename']: continue
+			if A['dist'] != B['dist']: continue
+			if A['arch'] != B['arch']: continue
+			if vercmp(('0', A['version'], A['release']), ('0', B['version'], B['release'])) > 0:
+				if B['filename'] not in obsoletelist:
+					obsoletelist.append(B['filename'])
+#				print '%s deprecated by %s' % (B['filename'], A['filename'])
+	if obsoletelist:
+#		print '%d %s' % (len(obsoletelist), name)
+		obsoletelist.sort()
+		for file in obsoletelist: print file
 
-cur.close()
-con.close()
+pkgcur.close()
+pkgcon.close()

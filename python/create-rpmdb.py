@@ -5,34 +5,7 @@ import glob, sqlite, sys, re, os, string, rpm
 packagedir = '/dar/packages/'
 rpmdb = '/dar/tmp/state/rpmdb.sqlite'
 
-rpmhdr = {
-	'filename':	100,
-	'name':		40,
-	'version':	15,
-	'release':	15,
-	'arch':		8,
-	'repo':		5,
-	'dist':		5,
-#	'packager':	100,
-#	'distribution':	100,
-#	'vendor':	100,
-#	'sourcerpm':	100,
-}
-
-infohdr = {
-	'name':		40,
-	'summary':	100,
-	'description':	1024,
-	'url':		100,
-	'category':	40,
-	'parent':	40,
-}
-
-userpm404 = 0
-
-if sys.version[0] == "2" and not userpm404:
-	ts = rpm.TransactionSet("", (rpm._RPMVSF_NOSIGNATURES or rpm.RPMVSF_NOHDRCHK or rpm._RPMVSF_NODIGESTS or rpm.RPMVSF_NEEDPAYLOAD))
-
+rpmhdr = ('name', 'version', 'release', 'arch', 'repo', 'dist', 'epoch')
 
 def repo(filename):
         try:
@@ -70,37 +43,34 @@ def dist(filename):
 def getHeader(filename):
 	'''Read a rpm header.'''
 	fd = os.open(filename, os.O_RDONLY)
-	if sys.version[0] == "2" and not userpm404:
-		h = ts.hdrFromFdno(fd)
-		issrc = h[rpm.RPMTAG_SOURCEPACKAGE]
-	else:
-		(h, issrc) = rpm.headerFromPackage(fd)
+	h = ts.hdrFromFdno(fd)
 	os.close(fd)
-	return (h, issrc)
+	return h
 
 def readrpm(file):
-	(header, issrc) = getHeader(file)
+	header = getHeader(file)
 	rec = {
-		'filename': os.path.basename(file),
-		'parent': os.path.basename(os.path.dirname(file)),
+#		'filename': os.path.basename(file),
+#		'parent': os.path.basename(os.path.dirname(file)),
 		'name': header[rpm.RPMTAG_NAME],
 		'arch': header[rpm.RPMTAG_ARCH],
 		'version': header[rpm.RPMTAG_VERSION],
 		'release': header[rpm.RPMTAG_RELEASE],
-		'summary': header[rpm.RPMTAG_SUMMARY].replace('"', '\''),
-		'description': header[rpm.RPMTAG_DESCRIPTION].replace('"', '\''),
-		'buildtime': header[rpm.RPMTAG_BUILDTIME],
-		'buildhost': header[rpm.RPMTAG_BUILDHOST],
-		'category': header[rpm.RPMTAG_GROUP],
-		'packager': header[rpm.RPMTAG_PACKAGER],
-		'distribution': header[rpm.RPMTAG_DISTRIBUTION],
-		'vendor': header[rpm.RPMTAG_VENDOR],
-		'license': header[rpm.RPMTAG_LICENSE],
-		'url': header[rpm.RPMTAG_URL],
-		'sourcerpm': header[rpm.RPMTAG_SOURCERPM],
+#		'summary': header[rpm.RPMTAG_SUMMARY].replace('"', '\''),
+#		'description': header[rpm.RPMTAG_DESCRIPTION].replace('"', '\''),
+#		'buildtime': header[rpm.RPMTAG_BUILDTIME],
+#		'buildhost': header[rpm.RPMTAG_BUILDHOST],
+#		'category': header[rpm.RPMTAG_GROUP],
+#		'packager': header[rpm.RPMTAG_PACKAGER],
+#		'distribution': header[rpm.RPMTAG_DISTRIBUTION],
+#		'vendor': header[rpm.RPMTAG_VENDOR],
+#		'license': header[rpm.RPMTAG_LICENSE],
+#		'url': header[rpm.RPMTAG_URL],
+#		'sourcerpm': header[rpm.RPMTAG_SOURCERPM],
+		'epoch': header[rpm.RPMTAG_EPOCH],
 	}
 #	rec.update(re.search('(?P<name>.+)-(?P<version>[\w\.]+)-(?P<release>[\w\.]+)\.(?P<arch>\w+).rpm$', rpm).groupdict())
-	if issrc: rec['arch'] = 'src'
+	if header[rpm.RPMTAG_SOURCEPACKAGE]: rec['arch'] = 'src'
 	rec['repo'] = repo(file)
 	if rec['arch'] in ('src', 'nosrc'): 
 		rec['dist'] = rec['arch']
@@ -108,38 +78,27 @@ def readrpm(file):
 		rec['dist'] = dist(file)
 	return rec
 
+
 sys.stdout = os.fdopen(1, 'w', 0)
 
-droprpmsta = 'drop table rpm'
-dropinfosta = 'drop table info'
-createrpmsta = 'create table rpm ( '
-for key in rpmhdr.keys(): createrpmsta += '%s varchar(%d), ' % (key, rpmhdr[key])
-createrpmsta = createrpmsta.rstrip(', ') + ' )'
+ts = rpm.TransactionSet("", (rpm._RPMVSF_NOSIGNATURES or rpm.RPMVSF_NOHDRCHK or rpm._RPMVSF_NODIGESTS or rpm.RPMVSF_NEEDPAYLOAD))
 
-createinfosta = 'create table info ( '
-for key in infohdr.keys(): createinfosta += '%s varchar(%d), ' % (key, infohdr[key])
-createinfosta = createinfosta.rstrip(', ') + ' )'
+dropsta = 'drop table rpm'
+createsta = 'create table rpm ( '
+for key in rpmhdr: createsta += '%s varchar(10), ' % key
+createsta = createsta.rstrip(', ') + ' )'
 
-insertrpmsta = 'insert into rpm ( '
-for key in rpmhdr.keys(): insertrpmsta += '%s, ' % key
-insertrpmsta = insertrpmsta.rstrip(', ') + ' ) values ( '
-for key in rpmhdr.keys(): insertrpmsta += '"%%(%s)s", ' % key
-insertrpmsta = insertrpmsta.rstrip(', ') + ' )'
+insertsta = 'insert into rpm ( '
+for key in rpmhdr: insertsta += '%s, ' % key
+insertsta = insertsta.rstrip(', ') + ' ) values ( '
+for key in rpmhdr: insertsta += '"%%(%s)s", ' % key
+insertsta = insertsta.rstrip(', ') + ' )'
 
-insertinfosta = 'insert into info ( '
-for key in infohdr.keys(): insertinfosta += '%s, ' % key
-insertinfosta = insertinfosta.rstrip(', ') + ' ) values ( '
-for key in infohdr.keys(): insertinfosta += '"%%(%s)s", ' % key
-insertinfosta = insertinfosta.rstrip(', ') + ' )'
-
-con = sqlite.connect(rpmdb)
-cur = con.cursor()
-try: cur.execute(droprpmsta)
+rpmcon = sqlite.connect(rpmdb)
+rpmcur = rpmcon.cursor()
+try: rpmcur.execute(dropsta)
 except: pass
-try: cur.execute(dropinfosta)
-except: pass
-cur.execute(createrpmsta)
-cur.execute(createinfosta)
+rpmcur.execute(createsta)
 
 for file in glob.glob(os.path.join(packagedir, '*/*.rpm')):
 	try:
@@ -147,11 +106,8 @@ for file in glob.glob(os.path.join(packagedir, '*/*.rpm')):
 	except:
 		print file, 'FAILED'
 		continue
-	cur.execute(insertrpmsta % rec)
-	cur.execute('select distinct name from info where name = %(name)s' % rec)
-	list = cur.fetchall()
-	if not list:
-		cur.execute(insertinfosta % rec)
+	rpmcur.execute(insertsta % rec)
 
-con.commit()
-con.close()
+rpmcon.commit()
+rpmcur.close()
+rpmcon.close()

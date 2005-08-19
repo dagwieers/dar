@@ -83,7 +83,6 @@ sys.stdout = os.fdopen(1, 'w', 0)
 
 ts = rpm.TransactionSet("", (rpm._RPMVSF_NOSIGNATURES or rpm.RPMVSF_NOHDRCHK or rpm._RPMVSF_NODIGESTS or rpm.RPMVSF_NEEDPAYLOAD))
 
-dropsta = 'drop table rpm'
 createsta = 'create table rpm ( '
 for key in rpmhdr: createsta += '%s varchar(10), ' % key
 createsta = createsta.rstrip(', ') + ' )'
@@ -94,10 +93,8 @@ insertsta = insertsta.rstrip(', ') + ' ) values ( '
 for key in rpmhdr: insertsta += '"%%(%s)s", ' % key
 insertsta = insertsta.rstrip(', ') + ' )'
 
-rpmcon = sqlite.connect(rpmdb)
+rpmcon = sqlite.connect(rpmdb + '.tmp')
 rpmcur = rpmcon.cursor()
-try: rpmcur.execute(dropsta)
-except: pass
 rpmcur.execute(createsta)
 
 for file in glob.glob(os.path.join(packagedir, '*/*.rpm')):
@@ -109,5 +106,4 @@ for file in glob.glob(os.path.join(packagedir, '*/*.rpm')):
 	rpmcur.execute(insertsta % rec)
 
 rpmcon.commit()
-rpmcur.close()
-rpmcon.close()
+os.rename(rpmdb + '.tmp', rpmdb)

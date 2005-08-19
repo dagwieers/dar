@@ -3,8 +3,8 @@
 import glob, sqlite, sys, re, os, string
 
 htmldir = '/dar/tmp/html'
-specdb = '/dar/tmp/state/specdb.sqlite'
-infodb = '/dar/tmp/state/infodb.sqlite'
+#infodb = '/dar/tmp/state/infodb.sqlite'
+infodb = '/dar/tmp/state/specdb.sqlite'
 
 index_template = '''
 <?_head('RPM packages for Red Hat / Fedora / Aurora')?>
@@ -62,12 +62,12 @@ categorylist = ''
 alphabeticlist = 'TBD'
 for cat in infocur.fetchall():
 	# FIXME: Add license when rpmdb has been improved
-	infocur.execute('select name, summary, description, category, url, license, parent from info where category = "%s" order by name' % cat[0])
+	infocur.execute('select name, summary, description, category, url, license, parent, upstream from info where category = "%s" order by name' % cat[0])
 
 	rec = {}
 	packagelist = ''
 	categorysize = 0
-	for rec['name'], rec['summary'], rec['description'], rec['category'], rec['url'], rec['url'], rec['parent'] in infocur.fetchall():
+	for rec['name'], rec['summary'], rec['description'], rec['category'], rec['url'], rec['url'], rec['parent'], rec['upstream'] in infocur.fetchall():
 		packagelist += '<a href="%(name)s/">%(name)s</a>: %(summary)s<br>\n' % rec
 		
 		try: os.mkdir(os.path.join(htmldir, rec['name']))
@@ -90,6 +90,3 @@ for cat in infocur.fetchall():
 
 rec = { 'categorylist': categorylist, 'alphabeticlist': 'alphabeticlist' }
 open(os.path.join(htmldir, 'index.php'), 'w').write(index_template % rec)
-
-infocur.close()
-infocon.close()

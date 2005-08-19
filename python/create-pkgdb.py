@@ -1,21 +1,11 @@
 #!/usr/bin/python
 
-import glob, sqlite, sys, re, os, string
+import glob, sqlite, sys, re, os, string, shutil
 
 packagedir = '/dar/packages/'
 pkgdb = '/dar/tmp/state/pkgdb.sqlite'
 
-pkghdr = ('filename', 'name', 'version', 'release', 'arch', 'repo', 'dist')
-
-#pkghdr = {
-##	'filename':100,
-#	'name':40,
-#	'version':15,
-#	'release':15,
-#	'arch':8,
-#	'repo':5,
-#	'dist':5,
-#}
+pkghdr = ('name', 'version', 'release', 'arch', 'repo', 'dist', 'parent')
 
 def repo(filename):
         try:
@@ -65,21 +55,18 @@ def readfile(file):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-dropsta = 'drop table pkg'
-createsta = 'create table pkg ( '
+createsta = 'create table rpm ( '
 for key in pkghdr: createsta += '%s varchar(10), ' % key
 createsta = createsta.rstrip(', ') + ' )'
 
-insertsta = 'insert into pkg ( '
+insertsta = 'insert into rpm ( '
 for key in pkghdr: insertsta += '%s, ' % key
 insertsta = insertsta.rstrip(', ') + ' ) values ( '
 for key in pkghdr: insertsta += '"%%(%s)s", ' % key
 insertsta = insertsta.rstrip(', ') + ' )'
 
-pkgcon = sqlite.connect(pkgdb)
+pkgcon = sqlite.connect(pkgdb + '.tmp')
 pkgcur = pkgcon.cursor()
-try: pkgcur.execute(dropsta)
-except: pass
 pkgcur.execute(createsta)
 
 for file in glob.glob(os.path.join(packagedir, '*/*.rpm')):
@@ -89,7 +76,5 @@ for file in glob.glob(os.path.join(packagedir, '*/*.rpm')):
 		print file, 'FAILED'
 		continue
 	pkgcur.execute(insertsta % rec)
-
 pkgcon.commit()
-pkgcur.close()
-pkgcon.close()
+os.rename(pkgdb + '.tmp', pkgdb)

@@ -34,10 +34,8 @@ def readrpm(file):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-dropsta = 'drop table info'
-
-createsta = 'create table info ( '
-for key in infohdr: createsta += '%s varchar(10), ' % key
+createsta = 'create table info ( name varchar(10) unique primary key, '
+for key in infohdr[1:]: createsta += '%s varchar(10), ' % key
 createsta = createsta.rstrip(', ') + ' )'
 
 insertsta = 'insert into info ( '
@@ -46,10 +44,8 @@ insertsta = insertsta.rstrip(', ') + ' ) values ( '
 for key in infohdr: insertsta += '"%%(%s)s", ' % key
 insertsta = insertsta.rstrip(', ') + ' )'
 
-infocon = sqlite.connect(infodb)
+infocon = sqlite.connect(infodb + '.tmp')
 infocur = infocon.cursor()
-try: infocur.execute(dropsta)
-except: pass
 infocur.execute(createsta)
 
 for file in glob.glob(os.path.join(packagedir, '*/*.rpm')):
@@ -62,7 +58,5 @@ for file in glob.glob(os.path.join(packagedir, '*/*.rpm')):
 		print file, 'FAILED'
 		continue
 	infocur.execute(insertsta % rec)
-
 infocon.commit()
-infocur.close()
-infocon.close()
+os.rename(infodb + '.tmp', infodb)

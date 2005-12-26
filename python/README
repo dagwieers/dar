@@ -2,19 +2,20 @@ Information about the different databases
 
         infodb  ->      85 sec
                 Based on selected RPM headers (2773 files)
-                has: name, summary, description, url, license, group, parent
+                has: description, group, license, name, parent, summary, url
                 lacks: authority, upstream
 
         specdb  ->      <10 sec
                 Based on SPEC files (2172 files)
-                has: name, summary, description, url, license, group, parent, authority, upstream
+                has: authority, description, epoch, group, license, name, parent, summary, upstream, url
                 lacks: subpackages
+		adds: 'current' epoch
 
         rpmdb   ->      13 min
                 Based on all RPM headers (38k files)
-                has: name, epoch, version, release, arch, dist, repo
+                has: arch, dist, epoch, name, release, repo, version
 
         pkgdb   ->      <10 sec
                 Based on filelist
-                has: name, version, release, arch, dist, repo
+                has: arch, builder, dist, name, release, repo, version
 		lacks: epoch

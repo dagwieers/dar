@@ -9,6 +9,8 @@ UPGRADECMD="apt-get -qq -f -y upgrade"
 INSTALLCMD="apt-get -qq -y -m install %p"
 CLEANCMD="apt-get clean"
 
+RPMBUILDOPTS='--define "fedora 2"'
+
 DISTNAME="fc2"
 DISTNICK="fc2i"
 DISTTAG="1.fc2"
@@ -17,6 +19,6 @@ DISTARCH="i386"
 
 REPO_APT="yes"
 REPO_YUM="yes"
-REPO_CREATEREPO="no"
+REPO_CREATEREPO="yes"
 
 export -n LD_ASSUME_KERNEL

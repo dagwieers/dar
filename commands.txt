@@ -2,10 +2,10 @@
 ### """"""""
 
 ### Install build environment
-old=fc3-i386; new=el4-i386; chr=el4i; diff -u <(cut -d"$(echo -e '\t')" -f1 /dar/pub/info/state/rpmqa-$old.list) <(cut -d"$(echo -e '\t')" -f1 /dar/pub/info/state/rpmqa-$new.list) | grep "^-" | sed -e 's|^-||' | xargs dar-update
+old=fc3-i386; new=el4-i386; chr=el4i; diff -u <(cut -d"$(echo -e '\t')" -f1 /dar/pub/rpmforge/persona/dag/state/rpmqa-$old.list) <(cut -d"$(echo -e '\t')" -f1 /dar/pub/rpmforge/persona/dag/state/rpmqa-$new.list) | grep "^-" | sed -e 's|^-||' | xargs dar-update
 
 ### Build missing packages compared to other dist
-old=fc3-i386; new=el4-i386; chr=el4i; diff -u <(cut -d"$(echo -e '\t')" -f1 /dar/pub/info/state/packages-$old.list) <(cut -d"$(echo -e '\t')" -f1 /dar/pub/info/state/packages-$new.list) | grep "^-" | sed -e 's|^-||' | xargs dar-build -n -d $chr
+old=fc3-i386; new=el4-i386; chr=el4i; diff -u <(cut -d"$(echo -e '\t')" -f1 /dar/pub/rpmforge/persona/dag/state/packages-$old.list) <(cut -d"$(echo -e '\t')" -f1 /dar/pub/rpmforge/persona/dag/state/packages-$new.list) | grep "^-" | sed -e 's|^-||' | xargs dar-build -n -d $chr
 
 ### Build library packages first
 old=fc3; chr=fc4i; for pkg in $(echo /dar/packages/*/*-devel-*.$old.rf.i386.rpm); do pkg="$(basename $pkg)"; echo ${pkg%-*-*-*}; done | xargs dar-build -n -d $chr
@@ -46,10 +46,10 @@ dist="el4"; for i in /dar/packages/*/*.$dist.*; do v="${i%.*.*.*.*.*}"; echo "$(
 ### """"""""
 
 ### Create rpmforge-packages.txt
-for i in /dar/rpms/*; do pkg="$(basename $i)"; author="$(grep '^# Authority:' $i/$pkg.spec | cut -f3 -d' ')"; if [ "$author" ]; then echo -e "$pkg $author"; fi; done | sort > /dar/pub/info/docs/rpmforge-packages.txt
+for i in /dar/rpms/*; do pkg="$(basename $i)"; author="$(grep '^# Authority:' $i/$pkg.spec | cut -f3 -d' ')"; if [ "$author" ]; then echo -e "$pkg $author"; fi; done | sort > /dar/pub/rpmforge/persona/dag/docs/rpmforge-packages.txt
 
 ### Compare mega-merge.txt and rpmforge-packages.txt
-diff -ud <(cat /dar/docs/mega-merge.txt | while read a b c; do echo "$a $b"; done) /dar/docs/rpmforge-packages.txt
+diff -ud <(cat /dar/docs/mega-merge.txt | while read a b c; do echo "$a $b"; done) /dar/pub/rpmforge/persona/dag/docs/rpmforge-packages.txt
 
 ### Count packages per distribution
-wc -l /dar/pub/info/state/packages-*.list
+wc -l /dar/pub/rpmforge/persona/dag/state/packages-*.list

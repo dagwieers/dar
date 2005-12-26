@@ -9,6 +9,8 @@ UPGRADECMD="apt-get -qq -f -y upgrade"
 INSTALLCMD="apt-get -qq -y -m install %p"
 CLEANCMD="apt-get clean"
 
+RPMBUILDOPTS='--define "rhl 7"'
+
 DISTNAME="rh7"
 DISTNICK="rh7i"
 DISTTAG="0.rh7 rh73"

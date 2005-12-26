@@ -6,7 +6,7 @@ import glob, sqlite, sys, re, os, string, shutil
 specdir = '/dar/rpms/'
 specdb = '/dar/tmp/state/specdb.sqlite'
 
-spechdr = ('name', 'authority', 'summary', 'version', 'release', 'license', 'category', 'url', 'description', 'upstream', 'parent')
+spechdr = ('name', 'authority', 'summary', 'epoch', 'version', 'release', 'license', 'category', 'url', 'description', 'upstream', 'parent')
 
 specre = {
 	'authority':	'^# Authority: (\w+)$',
@@ -14,6 +14,7 @@ specre = {
 	'summary':	'^Summary: (.+?)$',
 	'name':		'^Name: ([\w\-\+_]+)$',
 	'parent':	'^Name: ([\w\-\+_]+)$',
+	'epoch':	'^Epoch: (\d+)$',
 	'version':	'^Version: ([^\s]+)$',
 	'release':	'^Release: ([^\s]+)$',
 	'license':	'^License: (.+?)$',
@@ -31,12 +32,12 @@ def readspec(file):
 		for key in specre.keys():
 			rec[key] += re.search(specre[key], data, re.M | re.DOTALL).group(1).replace('"', '\'')
 	except:
-		if key in ('upstream', ):
+		if key in ('upstream', 'epoch'):
 			pass
 		elif key in ('url', ):
 			print 'Error with key "%s" in "%s"' % (key, file)
 		else:
-			print 'Error with key "%s" in "%s"' % (key, file)
+			print 'Error with key "%s" in "%s" (FAILED)' % (key, file)
 			raise
 	if not rec['upstream']: rec['upstream'] = 'packagers@list.rpmforge.net'
 	return rec
@@ -61,7 +62,7 @@ for file in glob.glob(os.path.join(specdir, '*/*.spec')):
 	try:
 		rec = readspec(file)
 	except:
-		print file, 'FAILED'
+#		print file, 'FAILED'
 		continue
 	try: speccur.execute(insertsta % rec)
 	except: pass

@@ -9,6 +9,8 @@ UPGRADECMD="apt-get -qq -f -y upgrade"
 INSTALLCMD="apt-get -qq -y -m install %p"
 CLEANCMD="apt-get clean"
 
+RPMBUILDOPTS='--define "fedora 3"'
+
 DISTNAME="fc3"
 DISTNICK="fc3a"
 DISTTAG="1.fc3"

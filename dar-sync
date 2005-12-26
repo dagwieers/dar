@@ -56,6 +56,13 @@ for distname in $DISTS; do
 	build_env "$DISTNICK" "$DISTNAME"
 	build_content "$DISTNAME" "$DISTPATH"
 
+	if [ -f $STATEDIR/mirrors ]; then
+		path="$(dirname $DISTPATH)"
+		echo -n >$FTPDIR/$path/mirrors-rpmforge
+		for mirror in $(cat "$STATEDIR/mirrors"); do
+			echo "$mirror/$path/\$ARCH/dag" >>$FTPDIR/$path/mirrors-rpmforge
+		done
+	fi
 done
 
 echo -n "Building source package list."

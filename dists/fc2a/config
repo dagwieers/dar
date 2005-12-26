@@ -1,6 +1,14 @@
-#INSTALLCMD="up2date -if"
-#UPDATECMD="yum update"
-#INSTALLCMD="yum install %p"
+### RED HAT FEDORA CORE 2
+
+### Distcc compilers
+DISTCC_CC="x86_64-redhat-linux-gcc-3.3.3"
+DISTCC_CXX="x86_64-redhat-linux-g++-3.3.3"
+
+INSTALLCMD="up2date -if"
+UPDATECMD="yum -y update"
+INSTALLCMD="yum -y install %p"
+
+RPMBUILDOPTS='--define "fedora 2"'
 
 DISTNAME="fc2"
 DISTNICK="fc2a"
@@ -10,6 +18,6 @@ DISTARCH="x86_64"
 
 REPO_APT="yes"
 REPO_YUM="yes"
-REPO_CREATEREPO="no"
+REPO_CREATEREPO="yes"
 
 export -n LD_ASSUME_KERNEL

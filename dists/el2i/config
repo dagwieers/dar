@@ -7,6 +7,8 @@ DISTCC_CXX="i386-redhat-linux-g++-2.96"
 UPDATECMD="up2date -u"
 INSTALLCMD="up2date -if"
 
+RPMBUILDOPTS='--define "rhel 2"'
+
 DISTNAME="el2"
 DISTNICK="el2i"
 DISTTAG="0.el2 rhel2.1"

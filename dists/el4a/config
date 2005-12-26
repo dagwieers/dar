@@ -7,6 +7,8 @@ DISTCC_CXX="x86_64-redhat-linux-g++-3.4.3"
 UPDATECMD="up2date -u"
 INSTALLCMD="up2date -if"
 
+RPMBUILDOPTS='--define "rhel 4"'
+
 DISTNAME="el4"
 DISTNICK="el4a"
 DISTTAG="2.el4"

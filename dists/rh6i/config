@@ -9,6 +9,8 @@ UPGRADECMD="apt-get -qq -f -y upgrade"
 INSTALLCMD="apt-get -qq -y -m install %p"
 CLEANCMD="apt-get clean"
 
+RPMBUILDOPTS='--define "rhl 6"'
+
 DISTNAME="rh6"
 DISTNICK="rh6i"
 DISTTAG="0.rh6 rh62"

@@ -7,38 +7,42 @@ rpmdb = '/dar/tmp/state/rpmdb.sqlite'
 
 rpmhdr = ('name', 'version', 'release', 'arch', 'repo', 'dist', 'epoch')
 
+distmap = {
+	'rhfc1': 'fc1',
+	'rhel3': 'el3',
+	'rhel2.1': 'el2',
+	'rhas21': 'el2',
+	'rh90': 'rh9',
+	'rh80': 'rh8',
+	'rh73': 'rh7',
+	'rh62': 'rh6',
+}
+
+distlist = ['0', 'rh6', 'rh7', 'rh8', 'rh9', 'el2', 'el3', 'el4', 'fc1', 'fc2', 'fc3', 'fc4', 'fc5', 'au1.91', 'au1.92']
+distlistre = '|'.join(distlist + distmap.keys())
+
 def repo(filename):
         try:
-                return re.search('.(dag|rf|test).\w+.rpm$', filename).groups()[0]
+                return re.search('\.(dag|dries|rf|test)\.\w+\.rpm$', filename).groups()[0]
         except: 
                 try:
-                        return re.search('.(dag|rf|test).(\w+|rhel2\.1).\w+.rpm$', filename).groups()[0]
+                        return re.search('\.(dag|dries|rf|test)\.('+distlistre+')\.\w+\.rpm$', filename).groups()[0]
                 except: 
                         return None
 
 def dist(filename):
-	distmap = {
-		'rhfc1': 'fc1',
-		'rhel3': 'el3',
-		'rhel2.1': 'el2',
-		'rhas21': 'el2',
-		'rh90': 'rh9',
-		'rh80': 'rh8',
-		'rh73': 'rh7',
-		'rh62': 'rh6',
-	}
         try:
-                dist = re.search('.(\w+|rhel2\.1).(dag|rf|test).\w+.rpm$', filename).groups()[0]
+                dist = re.search('\.('+distlistre+')\.(dag|dries|rf|test)\.\w+\.rpm$', filename).groups()[0]
         except: 
                 try:
-                        dist = re.search('.(dag|rf|test).(\w+).\w+.rpm$', filename).groups()[1]
+                        dist = re.search('\.(dag|dries|rf|test)\.(\w+)\.\w+\.rpm$', filename).groups()[1]
                 except: 
                         dist = None
-        if dist in ('0', 'rh6', 'rh7', 'rh8', 'rh9', 'el2', 'el3', 'el4', 'fc1', 'fc2', 'fc3', 'fc4'): return dist
+        if dist in distlist: return dist
 	elif dist in distmap.keys(): return distmap[dist]
         else:   
                 print 'Unknown distribution tag %s in filename %s' % (dist, filename)
-                return None
+		raise
 
 def getHeader(filename):
 	'''Read a rpm header.'''

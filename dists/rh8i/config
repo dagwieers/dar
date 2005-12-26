@@ -9,6 +9,8 @@ UPGRADECMD="apt-get -qq -f -y upgrade"
 INSTALLCMD="apt-get -qq -y -m install %p"
 CLEANCMD="apt-get clean"
 
+RPMBUILDOPTS='--define "rhl 8"'
+
 DISTNAME="rh8"
 DISTNICK="rh8i"
 DISTTAG="0.rh8 rh80"

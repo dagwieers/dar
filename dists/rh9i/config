@@ -8,8 +8,10 @@ UPDATECMD="apt-get -qq update"
 UPGRADECMD="apt-get -qq -f -y upgrade"
 INSTALLCMD="apt-get -qq -y -m install %p"
 CLEANCMD="apt-get clean"
-#UPDATECMD="yum update"
-#INSTALLCMD="yum install %p"
+#UPDATECMD="yum -y update"
+#INSTALLCMD="yum -y install %p"
+
+RPMBUILDOPTS='--define "rhl 9"'
 
 DISTNAME="rh9"
 DISTNICK="rh9i"

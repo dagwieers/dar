@@ -149,11 +149,12 @@ for arg in $PKGS; do
 			fi
 
 			### Check if already build (2 version schemes, multiple disttags)
-			for disttag in $DISTTAG; do
-				for tag in $TAGS; do
-					NEWRPMFILE="$app-$VERSION-$RELEASE.$disttag.$tag.$arch.rpm"
-					OLDRPMFILE="$app-$VERSION-$RELEASE.$tag.$disttag.$arch.rpm"
-					for rpmfile in $NEWRPMFILE $OLDRPMFILE; do
+#			for disttag in $DISTTAG; do
+#				for tag in $TAGS; do
+#					NEWRPMFILE="$app-$VERSION-$RELEASE.$disttag.$tag.$arch.rpm"
+#					OLDRPMFILE="$app-$VERSION-$RELEASE.$tag.$disttag.$arch.rpm"
+#					for rpmfile in $NEWRPMFILE $OLDRPMFILE; do
+					rpmfile=$RPMFILE
 						if [ -z "$FORCE_OVERWRITE" -a -f "$PACKAGEDIR/$app/$rpmfile" ]; then
 							warning "Package \"$PACKAGEDIR/$app/$rpmfile\" already exists."
 			
@@ -163,9 +164,9 @@ for arg in $PKGS; do
 			
 							continue 4
 						fi
-					done
-				done
-			done
+#					done
+#				done
+#			done
 
 			cp -af "$SPECFILE" "$NEWSPECFILE"
 

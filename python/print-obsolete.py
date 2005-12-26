@@ -34,7 +34,7 @@ for name, parent in pkgcur.fetchall():
 			if A == B: continue
 			if A['dist'] != B['dist']: continue
 			if A['arch'] != B['arch']: continue
-			if vercmp(('0', A['version'], A['release']), ('0', B['version'], B['release'])) > 0:
+			if vercmp(('0', A['version'], A['release']), ('0', B['version'], B['release'])) >= 0:
 				if filename(B) not in obsoletelist:
 					obsoletelist.append(filename(B))
 	if obsoletelist:

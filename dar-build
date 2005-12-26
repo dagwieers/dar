@@ -88,6 +88,7 @@ for arg in $PKGS; do
 
 #	echo "Building $app package for dists: '$DISTS' and archs: '$ARCHS', tagged: '$TAG'"
 	for dist in $DISTS; do
+		RPMBUILDOPTS=""
 		if [ -r "$CONFIGDIR/dists/$dist/config" ]; then
 			source "$CONFIGDIR/dists/$dist/config"
 		else
@@ -276,9 +277,9 @@ for arg in $PKGS; do
 
 			### Prepare rpm options
 			if [ "$FORCE_VERBOSE" ]; then
-				RPMOPTS="-vv --target $arch"
+				RPMBUILDOPTS="$RPMBUILDOPTS -vv --target $arch"
 			else
-				RPMOPTS="--target $arch"
+				RPMBUILDOPTS="$RPMBUILDOPTS --target $arch"
 			fi
 
 			echo "Building $dist/$arch [$SPECDIR/_buildlogs/$LOGFILE]."
@@ -291,7 +292,7 @@ for arg in $PKGS; do
 				export LD_PRELOAD="/lib/libsoapbox.so"
 			fi
 
-			BUILDCMD="/usr/bin/rpmbuild -bb --clean $RPMOPTS \
+			BUILDCMD="/usr/bin/rpmbuild -bb --clean $RPMBUILDOPTS \
 					--define \"_smp_mflags $MAKEFLAGS\" \
 					--define \"_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm\" \
 					--define \"_initrddir %{_sysconfdir}/rc.d/init.d\" \
@@ -305,13 +306,13 @@ for arg in $PKGS; do
 					--define \"$DISTNICK 1\" \"$NEWSPECFILE\""
 
 			(
-				echo "Build command: $BUILDCMD" | xargs
+				echo "Build command:" $BUILDCMD
 				echo "Build path: $PATH"
 				echo -e "\n----- Build log -----"
 
 				### Check for building as user
 				if [ $AS_ROOT -eq 1 ]; then
-					$SETARCH chroot "$CHROOTDIR/$dist" /usr/bin/rpmbuild -bb --clean $RPMOPTS \
+					$SETARCH chroot "$CHROOTDIR/$dist" /usr/bin/rpmbuild -bb --clean $RPMBUILDOPTS \
 						--define "_smp_mflags $MAKEFLAGS" \
 						--define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
 						--define "_initrddir %{_sysconfdir}/rc.d/init.d" \
@@ -325,7 +326,7 @@ for arg in $PKGS; do
 						--define "$DISTNICK 1" \
 						"$NEWSPECFILE"
 				else
-					$SETARCH chroot "$CHROOTDIR/$dist" /bin/su -lm $BUILD_USER -c "/usr/bin/rpmbuild -bb --clean $RPMOPTS \
+					$SETARCH chroot "$CHROOTDIR/$dist" /bin/su -lm $BUILD_USER -c "/usr/bin/rpmbuild -bb --clean $RPMBUILDOPTS \
 						--define '_smp_mflags $MAKEFLAGS' \
 						--define '_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm' \
 						--define '_initrddir %{_sysconfdir}/rc.d/init.d' \

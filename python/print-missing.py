@@ -40,8 +40,8 @@ disttaglist = distmap.keys() + [ '0.el2', '0.rh6', '0.rh7', '0.rh8', '0.rh9',
 				'3.el5', '3.fc7', '3.fc8', '3.fc9' ]
 
 def vercmp((e1, v1, r1), (e2, v2, r2)):
-	rc = rpm.labelCompare((e1, v1, r1), (e2, v2, r2))
-	return rc
+#	print '%s, %s, %s vs %s, %s, %s' % (e1, v1, r1, e2, v2, r2)
+	return rpm.labelCompare((e1, v1, r1), (e2, v2, r2))
 
 def filename(rec):
 	return '%(parent)s/%(name)s-%(version)s-%(release)s.%(arch)s.rpm' % rec
@@ -78,7 +78,7 @@ builderdists.remove(('src','src'))
 
 pkgcur.execute('select parent, name, dist, arch from rpm where builder = "%s" order by parent, name, dist' % builder2)
 for parent, name, dist, arch in pkgcur.fetchall():
-
+#	if parent.find('gno') != 0: continue
 	if parent.find('kernel') == 0: continue
 	if name.rfind('debuginfo') >= 0: continue
 
@@ -95,6 +95,9 @@ for parent, name, dist, arch in pkgcur.fetchall():
 
 	A = {}
 	B = { 'version': '0', 'release': '0' }
+	C = {}
+	D = { 'version': '0', 'release': '0' }
+
 	pkgcur.execute('select version, release, repo from rpm where name = "%s" and arch = "%s" and dist = "%s" and builder = "%s" order by version, release' % (name, arch, dist, builder2))
 	for A['version'], A['release'], A['repo'] in pkgcur.fetchall():
 	        ### Clean up release tag :(
@@ -102,10 +105,8 @@ for parent, name, dist, arch in pkgcur.fetchall():
 			A['release'] = A['release'].replace('.'+disttag+'.'+A['repo'], '')
 			A['release'] = A['release'].replace('.'+A['repo']+'.'+disttag, '')
 		if vercmp(('0', A['version'], A['release']), ('0', B['version'], B['release'])) > 0:
-			B = A
+			B = A.copy()
 
-	C = {}
-	D = { 'version': '0', 'release': '0' }
 	pkgcur.execute('select version, release, repo from rpm where name = "%s" and arch = "%s" and dist = "%s" and builder = "%s" order by version, release' % (name, arch, dist, builder1))
 	for C['version'], C['release'], C['repo'] in pkgcur.fetchall():
 	        ### Clean up release tag :(
@@ -113,8 +114,9 @@ for parent, name, dist, arch in pkgcur.fetchall():
 			C['release'] = C['release'].replace('.'+disttag+'.'+C['repo'], '')
 			C['release'] = C['release'].replace('.'+C['repo']+'.'+disttag, '')
 		if vercmp(('0', C['version'], C['release']), ('0', D['version'], D['release'])) > 0:
-			D = C
+			D = C.copy()
 
+#	print name, '\t', dist, '  dr:', B, '\tda:', D
 	if vercmp(('0', B['version'], B['release']), ('0', D['version'], D['release'])) > 0:
 		missinglist.append(dist+archmap[arch])
 

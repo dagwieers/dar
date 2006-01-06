@@ -102,4 +102,4 @@ if [ "$RSYNC_LIMIT" ]; then
 fi
 #rsync -anvzHL --progress --delete-after $RSYNC_OPTIONS -e /usr/bin/ssh $PACKAGEDIR $FTPDIR $RSYNC_TARGET
 #rsync -avHL --progress --delete-after $RSYNC_OPTIONS -e "/usr/bin/ssh -oCompression=no" $PACKAGEDIR $FTPDIR/ $RSYNC_TARGET
-rsync -avHl --progress --delete-after $RSYNC_OPTIONS -e "/usr/bin/ssh -oCompression=no" $PACKAGEDIR $FTPDIR/ $RSYNC_TARGET
+rsync $RSYNC_OPTIONS -e "/usr/bin/ssh -oCompression=no" $PACKAGEDIR $FTPDIR/ $RSYNC_TARGET

@@ -155,7 +155,7 @@ for arg in $PKGS; do
 #					NEWRPMFILE="$app-$VERSION-$RELEASE.$disttag.$tag.$arch.rpm"
 #					OLDRPMFILE="$app-$VERSION-$RELEASE.$tag.$disttag.$arch.rpm"
 #					for rpmfile in $NEWRPMFILE $OLDRPMFILE; do
-					rpmfile=$RPMFILE
+						rpmfile=$RPMFILE
 						if [ -z "$FORCE_OVERWRITE" -a -f "$PACKAGEDIR/$app/$rpmfile" ]; then
 							warning "Package \"$PACKAGEDIR/$app/$rpmfile\" already exists."
 			
@@ -163,7 +163,8 @@ for arg in $PKGS; do
 								SOURCE_DISTS="$DISTNICK"
 							fi
 			
-							continue 4
+#							continue 4
+							continue
 						fi
 #					done
 #				done

@@ -5,9 +5,11 @@ import glob, sqlite, sys, re, os, string, rpm
 pkgdb = '/dar/tmp/state/pkgdb.sqlite'
 packagedir = '/dar/packages'
 
+try: builder = sys.argv[1]
+except: builder = 'dag'
+
 def vercmp((e1, v1, r1), (e2, v2, r2)):
-	rc = rpm.labelCompare((e1, v1, r1), (e2, v2, r2))
-	return rc
+	return rpm.labelCompare((e1, v1, r1), (e2, v2, r2))
 
 def filename(rec):
 	return '%(parent)s/%(name)s-%(version)s-%(release)s.%(arch)s.rpm' % rec
@@ -17,10 +19,10 @@ sys.stdout = os.fdopen(1, 'w', 0)
 pkgcon = sqlite.connect(pkgdb)
 pkgcur = pkgcon.cursor()
 
-pkgcur.execute('select distinct name, parent from rpm order by parent, name')
-for name, parent in pkgcur.fetchall():
+pkgcur.execute('select distinct name, parent, builder from rpm order by parent, name')
+for name, parent, builder in pkgcur.fetchall():
 	if parent.find('kernel') == 0: continue
-	pkgcur.execute('select name, arch, version, release, dist, repo, parent from rpm where name = "%s" and arch != "src" order by dist, version, release, arch' % name)
+	pkgcur.execute('select name, arch, version, release, dist, repo, parent from rpm where name = "%s" and builder = "%s" and arch != "src" order by dist, version, release, arch' % (name, builder))
 	pkgs = pkgcur.fetchall()
 	A = {}
 	obsoletelist = []

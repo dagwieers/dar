@@ -5,8 +5,9 @@ import darlib
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-speccon, speccur = darlib.opendb('spec')
-pkgcon, pkgcur = darlib.opendb('pkg')
+con = sqlite.connect(darlib.dbase)
+speccur = darlib.opentb(con, 'spec')
+pkgcur = darlib.opentb(con, 'pkg')
 
 print 'General info'
 speccur.execute('select distinct name from spec order by name')

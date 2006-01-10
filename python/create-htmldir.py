@@ -48,7 +48,8 @@ def convgroup(str):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-speccon, speccur = darlib.opendb('spec')
+con = sqlite.connect(darlib.dbase)
+speccur = darlib.opentb(con, 'spec')
 
 speccur.execute('select distinct category from spec order by category')
 

@@ -3,7 +3,6 @@
 import glob, sqlite, sys, re, os, string, rpm
 import darlib
 
-pkgdb = '/dar/tmp/state/pkgdb.sqlite'
 packagedir = '/dar/packages'
 
 try: builder = sys.argv[1]
@@ -17,7 +16,8 @@ def filename(rec):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-pkgcon, pkgcur = darlib.opendb('pkg')
+con = sqlite.connect(darlib.dbase)
+pkgcur = darlib.opentb(con, 'pkg')
 
 pkgcur.execute('select distinct name, parent, builder from pkg order by parent, name')
 for name, parent, builder in pkgcur.fetchall():

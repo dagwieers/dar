@@ -42,7 +42,8 @@ def readspec(file):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-speccon, speccur = darlib.opendb('spec', create=True)
+con = sqlite.connect(darlib.dbase)
+speccur = darlib.opentb(con, 'spec', create=True)
 
 #createsta = 'create table info ( name varchar(10) unique primary key, '
 #for key in spechdr[1:]: createsta += '%s varchar(10), ' % key
@@ -55,7 +56,7 @@ for file in glob.glob(os.path.join(specdir, '*/*.spec')):
 #		print file, 'FAILED'
 		continue
 	try: 
-		darlib.insertdb(speccur, 'spec', specrec)
+		darlib.inserttb(speccur, 'spec', specrec)
 	except: pass
 		
-speccon.commit()
+con.commit()

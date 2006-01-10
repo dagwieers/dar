@@ -86,7 +86,8 @@ def readrpm(file):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-rpmcon, rpmcur = darlib.opendb('rpm', create=True)
+con = sqlite.connect(darlib.dbase)
+rpmcur = darlib.opentb(con, 'rpm', create=True)
 ts = rpm.TransactionSet("", (rpm._RPMVSF_NOSIGNATURES or rpm.RPMVSF_NOHDRCHK or rpm._RPMVSF_NODIGESTS or rpm.RPMVSF_NEEDPAYLOAD))
 
 for file in glob.glob(os.path.join(packagedir, '*/*.rpm')):
@@ -95,6 +96,6 @@ for file in glob.glob(os.path.join(packagedir, '*/*.rpm')):
 	except:
 		print file, 'FAILED'
 		continue
-	darlib.insertdb(rpmcur, 'rpm', rpmrec)
+	darlib.inserttb(rpmcur, 'rpm', rpmrec)
 
-rpmcon.commit()
+con.commit()

@@ -32,8 +32,10 @@ def readrpm(file):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
+con = sqlite.connect(darlib.dbase)
+infocur = darlib.opentb(con, 'info', create=True)
+
 ts = rpm.TransactionSet("", (rpm._RPMVSF_NOSIGNATURES or rpm.RPMVSF_NOHDRCHK or rpm._RPMVSF_NODIGESTS or rpm.RPMVSF_NEEDPAYLOAD))
-infocon, infocur = darlib.opendb('info', create=True)
 
 #createsta = 'create table info ( name varchar(10) unique primary key, '
 #for key in infohdr[1:]: createsta += '%s varchar(10), ' % key
@@ -48,6 +50,6 @@ for file in glob.glob(os.path.join(packagedir, '*/*.rpm')):
 	except:
 		print file, 'FAILED'
 		continue
-	darlib.insertdb(infocur, 'info', inforec)
+	darlib.inserttb(infocur, 'info', inforec)
 
 infocon.commit()

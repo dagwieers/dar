@@ -60,7 +60,8 @@ def readfile(file, builder=None):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-pkgcon, pkgcur = darlib.opendb('pkg', create=True)
+con = sqlite.connect(darlib.dbase)
+pkgcur = darlib.opentb(con, 'pkg', create=True)
 #pkgcon.autocommit = 1
 
 #list = []
@@ -87,5 +88,5 @@ for builder in ('dag', 'dries'):
 		except:
 #			print file, 'FAILED'
 			continue
-		darlib.insertdb(pkgcur, 'pkg', pkgrec)
-pkgcon.commit()
+		darlib.inserttb(pkgcur, 'pkg', pkgrec)
+con.commit()

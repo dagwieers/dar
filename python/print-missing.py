@@ -48,7 +48,8 @@ def filename(rec):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-pkgcon, pkgcur = darlib.opendb('pkg')
+con = sqlite.connect(darlib.dbase)
+pkgcur = darlib.opentb(con, 'pkg')
 
 missinglist = []
 oldname = ''

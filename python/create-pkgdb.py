@@ -43,7 +43,7 @@ def dist(filename):
         if dist in distlist: return dist
 	elif dist in distmap.keys(): return distmap[dist]
         else:   
-                print 'Unknown distribution tag %s in filename %s' % (dist, filename)
+                print 'Unknown distribution tag %s in filename %s' % (dist, filename),
 		raise
 
 def readfile(file, builder=None):
@@ -87,13 +87,18 @@ pkgcur.execute(createsta)
 #	list += glob.glob(os.path.join(packagedir, '*/*.rpm'))
 
 for builder in ('dag', 'dries'):
-	list = open('/dar/pub/rpmforge/persona/packages-'+builder+'.txt', 'r').readlines()
+	try:
+		list = open('/dar/pub/rpmforge/persona/'+builder+'/packagelist-'+builder+'.txt', 'r').readlines()
+	except:
+		import urllib2
+		req = urllib2.Request('http://apt.sw.be/rpmforge/persona/'+builder+'/packagelist-'+builder+'.txt')
+		list = urllib2.urlopen(req).readlines()
 
 	for file in list:
 		try:
 			rec = readfile(file, builder)
 		except:
-			print file, 'FAILED'
+#			print file, 'FAILED'
 			continue
 		pkgcur.execute(insertsta % rec)
 

@@ -14,7 +14,7 @@ specre = {
 	'release':	'^Release: ([\w\.]+)$',
 	'summary':	'^Summary: (.+?)$',
 	'name':		'^Name: ([\w\-\+_]+)$',
-	'parent':	'^Name: ([\w\-\+_]+)$',
+#	'parent':	'^Name: ([\w\-\+_]+)$',
 	'license':	'^License: (.+?)$',
 	'category':	'^Group: (.+?)$',
 	'url':		'^URL: ([^\s]+)$',
@@ -29,21 +29,23 @@ def readspec(file):
 			rec[key] = ''
 		try:
 			rec[key] += re.search(specre[key], data, re.M | re.DOTALL).group(1).replace('"', '\'')
-		except:
+		except Exception, e:
 			if key in ('epoch', 'upstream'):
-				pass
+				continue
 			elif key in ('url', ):
 				print 'Error with key "%s" in "%s"' % (key, file)
 			else:
 				print 'Error with key "%s" in "%s" (FAILED)' % (key, file)
 				raise
 	if not rec['upstream']: rec['upstream'] = 'packagers@list.rpmforge.net'
+	rec['specname'] = os.path.basename(file).replace('.spec','')
+	rec['parent'] = os.path.basename(os.path.dirname(file))
 	return rec
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-con = sqlite.connect(darlib.dbase)
-speccur = darlib.opentb(con, 'spec', create=True)
+con, cur = darlib.opendb()
+darlib.createtb(cur, 'spec')
 
 #createsta = 'create table info ( name varchar(10) unique primary key, '
 #for key in spechdr[1:]: createsta += '%s varchar(10), ' % key
@@ -52,11 +54,14 @@ speccur = darlib.opentb(con, 'spec', create=True)
 for file in glob.glob(os.path.join(specdir, '*/*.spec')):
 	try:
 		specrec = readspec(file)
-	except:
+	except Exception, e:
 #		print file, 'FAILED'
+#		print e
 		continue
+#		pass
 	try: 
-		darlib.inserttb(speccur, 'spec', specrec)
-	except: pass
+		darlib.insertrec(cur, 'spec', specrec)
+	except Exception, e:
+		print 'ERROR', e, specrec['specname'], file
 		
 con.commit()

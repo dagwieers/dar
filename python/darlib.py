@@ -3,14 +3,15 @@ import os, sqlite, types
 dbase = 'darbase.sqlite'
 
 headers = {
-	'spec': ('name', 'authority', 'summary', 'epoch', 'version', 'release', 'license', 'category', 'url', 'description', 'upstream', 'parent'),
-	'pkg': ('name', 'version', 'release', 'arch', 'repo', 'dist', 'parent', 'builder'),
+	'spec': ('name', 'authority', 'summary', 'epoch', 'version', 'release', 'license', 'category', 'url', 'description', 'upstream', 'parent', 'specname'),
+	'pkg': ('name', 'version', 'release', 'arch', 'repo', 'dist', 'parent', 'builder', 'filename'),
 	'info': ('name', 'summary', 'description', 'url', 'license', 'category', 'parent'),
 	'rpm': ('name', 'version', 'release', 'arch', 'repo', 'dist', 'epoch'),
 }
 
 dataset = {
-	'spec': { 'name': 'varchar(10) unique primary key', },
+	'spec': { 'specname': 'varchar(12) unique primary key', },
+#	'pkg' : {'filename': 'varchar(25) unique primary key', },
 	'info': { 'name': 'varchar(10) unique primary key', },
 }
 
@@ -32,16 +33,20 @@ def sqlinsert(name):
 	for key in headers[name]: str += '"%%(%s)s", ' % key
 	return str.rstrip(', ') + ' )'
 
-def opentb(con, name, create=False):
-	'Open a database and return references'
+def opendb():
+	con = sqlite.connect(dbase)
 	cur = con.cursor()
-	if create:
-		try: cur.execute('drop table "%s"' % name)
-		except: pass
-		cur.execute(sqlcreate(name))
-	return cur
+	return (con, cur)
 
-def inserttb(cur, name, rec):
+def createtb(cur, name, create=False):
+	'Open a database and return references'
+	try:
+		cur.execute('drop table "%s"' % name)
+	except Exception ,e:
+		print e
+	cur.execute(sqlcreate(name))
+
+def insertrec(cur, name, rec):
 	'Insert a record in a database'
 	### Convert unicode to UTF-8
 	for key in rec.keys():

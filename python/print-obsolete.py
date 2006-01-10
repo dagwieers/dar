@@ -16,14 +16,13 @@ def filename(rec):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-con = sqlite.connect(darlib.dbase)
-pkgcur = darlib.opentb(con, 'pkg')
+con, cur = darlib.opendb()
 
-pkgcur.execute('select distinct name, parent, builder from pkg order by parent, name')
-for name, parent, builder in pkgcur.fetchall():
+cur.execute('select distinct name, parent, builder from pkg order by parent, name')
+for name, parent, builder in cur.fetchall():
 	if parent.find('kernel') == 0: continue
-	pkgcur.execute('select name, arch, version, release, dist, repo, parent from pkg where name = "%s" and builder = "%s" and arch != "src" order by dist, version, release, arch' % (name, builder))
-	pkgs = pkgcur.fetchall()
+	cur.execute('select name, arch, version, release, dist, repo, parent from pkg where name = "%s" and builder = "%s" and arch != "src" order by dist, version, release, arch' % (name, builder))
+	pkgs = cur.fetchall()
 	A = {}
 	obsoletelist = []
 	for A['name'], A['arch'], A['version'], A['release'], A['dist'], A['repo'], A['parent'] in pkgs:

@@ -48,10 +48,7 @@ def convgroup(str):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-con = sqlite.connect(darlib.dbase)
-speccur = darlib.opentb(con, 'spec')
-
-speccur.execute('select distinct category from spec order by category')
+con, cur = darlib.opendb()
 
 try: os.mkdir(htmldir)
 except: pass
@@ -59,31 +56,39 @@ except: pass
 # FIXME: Create the alphabetic list
 categorylist = ''
 alphabeticlist = 'TBD'
-for cat in speccur.fetchall():
+
+cur.execute('select distinct category from spec order by category')
+for (category,) in cur.fetchall():
+	print category
 	# FIXME: Add license when rpmdb has been improved
-	speccur.execute('select name, version, release, authority, summary, description, category, url, license, parent, upstream from spec where category = "%s" order by name' % cat[0])
+	cur.execute('select name, version, release, authority, summary, description, category, url, license, parent, upstream from spec where category = "%s" order by name' % category)
 
 	rec = {}
 	packagelist = ''
 	categorysize = 0
-	for rec['name'], rec['version'], rec['release'], rec['authority'], rec['summary'], rec['description'], rec['category'], rec['url'], rec['license'], rec['parent'], rec['upstream'] in speccur.fetchall():
+	for rec['name'], rec['version'], rec['release'], rec['authority'], rec['summary'], rec['description'], rec['category'], rec['url'], rec['license'], rec['parent'], rec['upstream'] in cur.fetchall():
 		packagelist += '<a href="%(name)s/">%(name)s</a>: %(summary)s<br>\n' % rec
 		
 		try: os.mkdir(os.path.join(htmldir, rec['name']))
 		except: pass
 
 		# FIXME: Remove license when rpmdb has been improved and get authority fom specdb
-		rec['categoryidx'] = convgroup(cat[0])
+		rec['categoryidx'] = convgroup(category)
 
 		rec['rpmlist'] = '<h2>Package list (TBD)</h2> TBD'
+#		cur.execute('select version, release, filename from pkg where parent = "%s" order by version' % rec['name'])
+		cur.execute('select distinct filename from pkg where parent = "%s" order by version, filename' % rec['name'])
+
+		for (filename, ) in cur.fetchall():
+			rec['rpmlist'] += '  <div>%s</div>\n' % filename
 
 		open(os.path.join(htmldir, rec['name'], 'index.php'), 'w').write(package_template % rec)
 
 		categorysize+=1
 
-	rec = { 'category': cat[0], 'categoryidx': convgroup(cat[0]), 'categorysize': categorysize, 'packagelist': packagelist }
+	rec = { 'category': category, 'categoryidx': convgroup(category), 'categorysize': categorysize, 'packagelist': packagelist }
 	categorylist += '<a href="group-%(categoryidx)s.php">%(category)s</a> (%(categorysize)s)<br>\n' % rec
-	open(os.path.join(htmldir, 'group-' + convgroup(cat[0])) + '.php', 'w').write(category_template % rec)
+	open(os.path.join(htmldir, 'group-' + convgroup(category)) + '.php', 'w').write(category_template % rec)
 
 	# FIXME: Add alphabetic group files + index
 

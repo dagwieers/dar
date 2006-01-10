@@ -46,7 +46,7 @@ def dist(filename):
 
 def readfile(file, builder=None):
 	rec = {
-		'filename': os.path.basename(file),
+		'filename': os.path.basename(file).strip(),
 		'parent': os.path.basename(os.path.dirname(file)),
 		'builder': builder,
 	}
@@ -60,8 +60,8 @@ def readfile(file, builder=None):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-con = sqlite.connect(darlib.dbase)
-pkgcur = darlib.opentb(con, 'pkg', create=True)
+con, cur = darlib.opendb()
+darlib.createtb(cur, 'pkg')
 #pkgcon.autocommit = 1
 
 #list = []
@@ -88,5 +88,5 @@ for builder in ('dag', 'dries'):
 		except:
 #			print file, 'FAILED'
 			continue
-		darlib.inserttb(pkgcur, 'pkg', pkgrec)
+		darlib.insertrec(cur, 'pkg', pkgrec)
 con.commit()

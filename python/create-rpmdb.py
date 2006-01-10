@@ -1,11 +1,12 @@
 #!/usr/bin/python
 
 import glob, sqlite, sys, re, os, string, rpm
+import darlib
+
+print 'This script is obsolete.'
+sys.exit(1)
 
 packagedir = '/dar/packages/'
-rpmdb = '/dar/tmp/state/rpmdb.sqlite'
-
-rpmhdr = ('name', 'version', 'release', 'arch', 'repo', 'dist', 'epoch')
 
 distmap = {
 	'rhfc1': 'fc1',
@@ -85,29 +86,15 @@ def readrpm(file):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
+rpmcon, rpmcur = darlib.opendb('rpm', create=True)
 ts = rpm.TransactionSet("", (rpm._RPMVSF_NOSIGNATURES or rpm.RPMVSF_NOHDRCHK or rpm._RPMVSF_NODIGESTS or rpm.RPMVSF_NEEDPAYLOAD))
-
-createsta = 'create table rpm ( '
-for key in rpmhdr: createsta += '%s varchar(10), ' % key
-createsta = createsta.rstrip(', ') + ' )'
-
-insertsta = 'insert into rpm ( '
-for key in rpmhdr: insertsta += '%s, ' % key
-insertsta = insertsta.rstrip(', ') + ' ) values ( '
-for key in rpmhdr: insertsta += '"%%(%s)s", ' % key
-insertsta = insertsta.rstrip(', ') + ' )'
-
-rpmcon = sqlite.connect(rpmdb + '.tmp')
-rpmcur = rpmcon.cursor()
-rpmcur.execute(createsta)
 
 for file in glob.glob(os.path.join(packagedir, '*/*.rpm')):
 	try:
-		rec = readrpm(file)
+		rpmrec = readrpm(file)
 	except:
 		print file, 'FAILED'
 		continue
-	rpmcur.execute(insertsta % rec)
+	darlib.insertdb(rpmcur, 'rpm', rpmrec)
 
 rpmcon.commit()
-os.rename(rpmdb + '.tmp', rpmdb)

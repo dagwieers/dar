@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import glob, sqlite, sys, re, os, string, rpm
+import darlib
 
 pkgdb = '/dar/tmp/state/pkgdb.sqlite'
 packagedir = '/dar/packages'
@@ -16,13 +17,12 @@ def filename(rec):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-pkgcon = sqlite.connect(pkgdb)
-pkgcur = pkgcon.cursor()
+pkgcon, pkgcur = darlib.opendb('pkg')
 
-pkgcur.execute('select distinct name, parent, builder from rpm order by parent, name')
+pkgcur.execute('select distinct name, parent, builder from pkg order by parent, name')
 for name, parent, builder in pkgcur.fetchall():
 	if parent.find('kernel') == 0: continue
-	pkgcur.execute('select name, arch, version, release, dist, repo, parent from rpm where name = "%s" and builder = "%s" and arch != "src" order by dist, version, release, arch' % (name, builder))
+	pkgcur.execute('select name, arch, version, release, dist, repo, parent from pkg where name = "%s" and builder = "%s" and arch != "src" order by dist, version, release, arch' % (name, builder))
 	pkgs = pkgcur.fetchall()
 	A = {}
 	obsoletelist = []

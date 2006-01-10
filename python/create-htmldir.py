@@ -1,10 +1,9 @@
 #!/usr/bin/python
 
 import glob, sqlite, sys, re, os, string
+import darlib
 
 htmldir = '/dar/tmp/html'
-#infodb = '/dar/tmp/state/infodb.sqlite'
-infodb = '/dar/tmp/state/specdb.sqlite'
 
 index_template = '''
 <?_head('RPM packages for Red Hat / Fedora / Aurora')?>
@@ -33,7 +32,7 @@ package_template = '''
 <pre>%(description)s</pre><br />
 
 <small>
-<b>Latest release:</b> #(version)s-#(release)s<br /><br />
+<b>Latest release:</b> %(version)s-%(release)s<br /><br />
 <b>Website:</b> <a href="%(url)s">%(url)s</a><br />
 <b>License:</b> %(license)s<br />
 <b>Group:</b> <a href="../group-%(categoryidx)s.php">%(category)s</a><br />
@@ -49,10 +48,9 @@ def convgroup(str):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-infocon = sqlite.connect(infodb)
-infocur = infocon.cursor()
+speccon, speccur = darlib.opendb('spec')
 
-infocur.execute('select distinct category from info order by category')
+speccur.execute('select distinct category from spec order by category')
 
 try: os.mkdir(htmldir)
 except: pass
@@ -60,14 +58,14 @@ except: pass
 # FIXME: Create the alphabetic list
 categorylist = ''
 alphabeticlist = 'TBD'
-for cat in infocur.fetchall():
+for cat in speccur.fetchall():
 	# FIXME: Add license when rpmdb has been improved
-	infocur.execute('select name, summary, description, category, url, license, parent, upstream from info where category = "%s" order by name' % cat[0])
+	speccur.execute('select name, version, release, authority, summary, description, category, url, license, parent, upstream from spec where category = "%s" order by name' % cat[0])
 
 	rec = {}
 	packagelist = ''
 	categorysize = 0
-	for rec['name'], rec['summary'], rec['description'], rec['category'], rec['url'], rec['url'], rec['parent'], rec['upstream'] in infocur.fetchall():
+	for rec['name'], rec['version'], rec['release'], rec['authority'], rec['summary'], rec['description'], rec['category'], rec['url'], rec['license'], rec['parent'], rec['upstream'] in speccur.fetchall():
 		packagelist += '<a href="%(name)s/">%(name)s</a>: %(summary)s<br>\n' % rec
 		
 		try: os.mkdir(os.path.join(htmldir, rec['name']))
@@ -75,9 +73,9 @@ for cat in infocur.fetchall():
 
 		# FIXME: Remove license when rpmdb has been improved and get authority fom specdb
 		rec['categoryidx'] = convgroup(cat[0])
-		rec['authority'] = 'dag'
-		rec['license'] = 'GPL'
+
 		rec['rpmlist'] = '<h2>Package list (TBD)</h2> TBD'
+
 		open(os.path.join(htmldir, rec['name'], 'index.php'), 'w').write(package_template % rec)
 
 		categorysize+=1

@@ -3,11 +3,9 @@
 ### create-pkgdb.py <file-list> <packages-dir>
 
 import glob, sqlite, sys, re, os, string, shutil
+import darlib
 
 packagedir = '/dar/packages/'
-pkgdb = '/dar/tmp/state/pkgdb.sqlite'
-
-pkghdr = ('name', 'version', 'release', 'arch', 'repo', 'dist', 'parent', 'builder')
 
 distmap = {
 	'rhfc1': 'fc1',
@@ -50,7 +48,7 @@ def readfile(file, builder=None):
 	rec = {
 		'filename': os.path.basename(file),
 		'parent': os.path.basename(os.path.dirname(file)),
-		'builder': builder
+		'builder': builder,
 	}
 	rec.update(re.search('(?P<name>[^/]+)-(?P<version>[\w\.]+)-(?P<release>[\w\.]+)\.(?P<arch>\w+).rpm$', file).groupdict())
 	rec['repo'] = repo(file)
@@ -62,19 +60,8 @@ def readfile(file, builder=None):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-createsta = 'create table rpm ( '
-for key in pkghdr: createsta += '%s varchar(10), ' % key
-createsta = createsta.rstrip(', ') + ' )'
-
-insertsta = 'insert into rpm ( '
-for key in pkghdr: insertsta += '%s, ' % key
-insertsta = insertsta.rstrip(', ') + ' ) values ( '
-for key in pkghdr: insertsta += '"%%(%s)s", ' % key
-insertsta = insertsta.rstrip(', ') + ' )'
-
-pkgcon = sqlite.connect(pkgdb + '.tmp')
-pkgcur = pkgcon.cursor()
-pkgcur.execute(createsta)
+pkgcon, pkgcur = darlib.opendb('pkg', create=True)
+#pkgcon.autocommit = 1
 
 #list = []
 #for arg in sys.argv[1:]:
@@ -96,11 +83,9 @@ for builder in ('dag', 'dries'):
 
 	for file in list:
 		try:
-			rec = readfile(file, builder)
+			pkgrec = readfile(file, builder)
 		except:
 #			print file, 'FAILED'
 			continue
-		pkgcur.execute(insertsta % rec)
-
+		darlib.insertdb(pkgcur, 'pkg', pkgrec)
 pkgcon.commit()
-os.rename(pkgdb + '.tmp', pkgdb)

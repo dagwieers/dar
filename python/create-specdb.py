@@ -1,22 +1,20 @@
 #!/usr/bin/python
 
 import glob, sqlite, sys, re, os, string, shutil
+import darlib
 
 #specdir = '/dar/packages/'
 specdir = '/dar/rpms/'
-specdb = '/dar/tmp/state/specdb.sqlite'
-
-spechdr = ('name', 'authority', 'summary', 'epoch', 'version', 'release', 'license', 'category', 'url', 'description', 'upstream', 'parent')
 
 specre = {
 	'authority':	'^# Authority: (\w+)$',
 	'upstream':	'^# Upstream: (.+?)$',
+	'epoch':	'^Epoch: (\d+)$',
+	'version':	'^Version: ([\w\.]+)$',
+	'release':	'^Release: ([\w\.]+)$',
 	'summary':	'^Summary: (.+?)$',
 	'name':		'^Name: ([\w\-\+_]+)$',
 	'parent':	'^Name: ([\w\-\+_]+)$',
-	'epoch':	'^Epoch: (\d+)$',
-	'version':	'^Version: ([^\s]+)$',
-	'release':	'^Release: ([^\s]+)$',
 	'license':	'^License: (.+?)$',
 	'category':	'^Group: (.+?)$',
 	'url':		'^URL: ([^\s]+)$',
@@ -26,46 +24,38 @@ specre = {
 def readspec(file):
 	data = open(file, 'r').read(50000)
 	rec = {}
-	try:
-		for key in specre.keys():
+	for key in specre.keys():
+		if not rec.has_key(key):
 			rec[key] = ''
-		for key in specre.keys():
+		try:
 			rec[key] += re.search(specre[key], data, re.M | re.DOTALL).group(1).replace('"', '\'')
-	except:
-		if key in ('upstream', 'epoch'):
-			pass
-		elif key in ('url', ):
-			print 'Error with key "%s" in "%s"' % (key, file)
-		else:
-			print 'Error with key "%s" in "%s" (FAILED)' % (key, file)
-			raise
+		except:
+			if key in ('epoch', 'upstream'):
+				pass
+			elif key in ('url', ):
+				print 'Error with key "%s" in "%s"' % (key, file)
+			else:
+				print 'Error with key "%s" in "%s" (FAILED)' % (key, file)
+				raise
 	if not rec['upstream']: rec['upstream'] = 'packagers@list.rpmforge.net'
 	return rec
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-createsta = 'create table info ( name varchar(10) unique primary key, '
-for key in spechdr[1:]: createsta += '%s varchar(10), ' % key
-createsta = createsta.rstrip(', ') + ' )'
+speccon, speccur = darlib.opendb('spec', create=True)
 
-insertsta = 'insert into info ( '
-for key in spechdr: insertsta += '%s, ' % key
-insertsta = insertsta.rstrip(', ') + ' ) values ( '
-for key in spechdr: insertsta += '"%%(%s)s", ' % key
-insertsta = insertsta.rstrip(', ') + ' )'
-
-speccon = sqlite.connect(specdb + '.tmp')
-speccur = speccon.cursor()
-speccur.execute(createsta)
+#createsta = 'create table info ( name varchar(10) unique primary key, '
+#for key in spechdr[1:]: createsta += '%s varchar(10), ' % key
+#createsta = createsta.rstrip(', ') + ' )'
 
 for file in glob.glob(os.path.join(specdir, '*/*.spec')):
 	try:
-		rec = readspec(file)
+		specrec = readspec(file)
 	except:
 #		print file, 'FAILED'
 		continue
-	try: speccur.execute(insertsta % rec)
+	try: 
+		darlib.insertdb(speccur, 'spec', specrec)
 	except: pass
 		
 speccon.commit()
-os.rename(specdb + '.tmp', specdb)

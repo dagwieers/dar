@@ -1,3 +1,23 @@
+USING DARLIB
+^^^^^^^^^^^^
+To create pkg database (based on filelist), do:
+
+	./create-pkgdb.py
+
+To create spec database (based on SPEC files), do:
+
+	./create-specdb.py
+
+Then the different scripts will work using these.
+
+	./print-info.py		Statistical information
+	./print-missing.py	List missing packages (eg. between dag and dries)
+	./print-obsolete.py	List obsolete packages
+	./create-htmldir.py	Generate HTML directory
+
+
+DATABASE INFORMATION
+^^^^^^^^^^^^^^^^^^^^
 Information about the different databases
 
         infodb  ->      85 sec

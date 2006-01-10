@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
 import glob, sqlite, sys, re, os, string, rpm
+import darlib
 
-pkgdb = '/dar/tmp/state/pkgdb.sqlite'
 packagedir = '/dar/packages'
 
 try: builder1 = sys.argv[1]
@@ -48,19 +48,18 @@ def filename(rec):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-pkgcon = sqlite.connect(pkgdb)
-pkgcur = pkgcon.cursor()
+pkgcon, pkgcur = darlib.opendb('pkg')
 
 missinglist = []
 oldname = ''
 oldarch = ''
 oldparent = ''
 
-pkgcur.execute('select distinct dist, arch from rpm where builder = "%s" order by dist, arch' % builder1)
+pkgcur.execute('select distinct dist, arch from pkg where builder = "%s" order by dist, arch' % builder1)
 builder1dists = []
 for set in pkgcur.fetchall(): builder1dists.append(set)
 
-pkgcur.execute('select distinct dist, arch from rpm where builder = "%s" order by dist, arch' % builder2)
+pkgcur.execute('select distinct dist, arch from pkg where builder = "%s" order by dist, arch' % builder2)
 builder2dists = []
 for set in pkgcur.fetchall(): builder2dists.append(set)
 
@@ -76,7 +75,7 @@ builderdists.remove(('src','src'))
 #	print dist+archmap[arch],
 #print
 
-pkgcur.execute('select parent, name, dist, arch from rpm where builder = "%s" order by parent, name, dist' % builder2)
+pkgcur.execute('select parent, name, dist, arch from pkg where builder = "%s" order by parent, name, dist' % builder2)
 for parent, name, dist, arch in pkgcur.fetchall():
 #	if parent.find('gno') != 0: continue
 	if parent.find('kernel') == 0: continue
@@ -98,7 +97,7 @@ for parent, name, dist, arch in pkgcur.fetchall():
 	C = {}
 	D = { 'version': '0', 'release': '0' }
 
-	pkgcur.execute('select version, release, repo from rpm where name = "%s" and arch = "%s" and dist = "%s" and builder = "%s" order by version, release' % (name, arch, dist, builder2))
+	pkgcur.execute('select version, release, repo from pkg where name = "%s" and arch = "%s" and dist = "%s" and builder = "%s" order by version, release' % (name, arch, dist, builder2))
 	for A['version'], A['release'], A['repo'] in pkgcur.fetchall():
 	        ### Clean up release tag :(
 		for disttag in disttaglist:
@@ -107,7 +106,7 @@ for parent, name, dist, arch in pkgcur.fetchall():
 		if vercmp(('0', A['version'], A['release']), ('0', B['version'], B['release'])) > 0:
 			B = A.copy()
 
-	pkgcur.execute('select version, release, repo from rpm where name = "%s" and arch = "%s" and dist = "%s" and builder = "%s" order by version, release' % (name, arch, dist, builder1))
+	pkgcur.execute('select version, release, repo from pkg where name = "%s" and arch = "%s" and dist = "%s" and builder = "%s" order by version, release' % (name, arch, dist, builder1))
 	for C['version'], C['release'], C['repo'] in pkgcur.fetchall():
 	        ### Clean up release tag :(
 		for disttag in disttaglist:

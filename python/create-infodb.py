@@ -2,12 +2,10 @@
 
 import glob, sqlite, sys, re, os, string, rpm
 
+print 'This script is obsolete.'
+sys.exit(1)
+
 packagedir = '/dar/packages/'
-infodb = '/dar/tmp/state/infodb.sqlite'
-
-infohdr = ('name', 'summary', 'description', 'url', 'license', 'category', 'parent')
-
-ts = rpm.TransactionSet("", (rpm._RPMVSF_NOSIGNATURES or rpm.RPMVSF_NOHDRCHK or rpm._RPMVSF_NODIGESTS or rpm.RPMVSF_NEEDPAYLOAD))
 
 def readfile(file):
 	return re.search('(?P<name>[^/]+)-(?P<version>[\w\.]+)-(?P<release>[\w\.]+)\.(?P<arch>\w+).rpm$', file).groupdict()
@@ -34,29 +32,22 @@ def readrpm(file):
 
 sys.stdout = os.fdopen(1, 'w', 0)
 
-createsta = 'create table info ( name varchar(10) unique primary key, '
-for key in infohdr[1:]: createsta += '%s varchar(10), ' % key
-createsta = createsta.rstrip(', ') + ' )'
+ts = rpm.TransactionSet("", (rpm._RPMVSF_NOSIGNATURES or rpm.RPMVSF_NOHDRCHK or rpm._RPMVSF_NODIGESTS or rpm.RPMVSF_NEEDPAYLOAD))
+infocon, infocur = darlib.opendb('info', create=True)
 
-insertsta = 'insert into info ( '
-for key in infohdr: insertsta += '%s, ' % key
-insertsta = insertsta.rstrip(', ') + ' ) values ( '
-for key in infohdr: insertsta += '"%%(%s)s", ' % key
-insertsta = insertsta.rstrip(', ') + ' )'
-
-infocon = sqlite.connect(infodb + '.tmp')
-infocur = infocon.cursor()
-infocur.execute(createsta)
+#createsta = 'create table info ( name varchar(10) unique primary key, '
+#for key in infohdr[1:]: createsta += '%s varchar(10), ' % key
+#createsta = createsta.rstrip(', ') + ' )'
 
 for file in glob.glob(os.path.join(packagedir, '*/*.rpm')):
-	rec = readfile(file)
-	infocur.execute('select distinct name from info where name = "%(name)s"' % rec)
+	inforec = readfile(file)
+	infocur.execute('select distinct name from info where name = "%(name)s"' % inforec)
 	if infocur.fetchall(): continue
 	try:
-		rec = readrpm(file)
+		inforec = readrpm(file)
 	except:
 		print file, 'FAILED'
 		continue
-	infocur.execute(insertsta % rec)
+	darlib.insertdb(infocur, 'info', inforec)
+
 infocon.commit()
-os.rename(infodb + '.tmp', infodb)

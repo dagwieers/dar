@@ -20,7 +20,7 @@ for distname in $DISTS; do
                 continue
         fi
 
-	if [ "$CREATE_REPO" == "true" ]; then
+	if [ "$CREATE_REPO" ]; then
 		echo "Building $distname repository in $DISTPATH."
 		build_repo_apt "$DISTTAG" "$DISTPATH"
 #		build_repo_yum "$DISTTAG" "$DISTPATH"

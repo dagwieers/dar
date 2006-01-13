@@ -55,15 +55,17 @@ function debug {
 ### Log and put error-boolean on (so die will escalate the problem)
 function error {
 	ERROR="yes"
-	echo -e "ERROR: $*" >&2
+	echo -e "\033[1;31mERROR:\033[0;0m $*" >&2
 #	log "ERROR: $*"
 }
 
 ### Log and put warning-boolean on (so die will escalate the problem)
 function warning {
 	ERROR="yes"
-	echo "WARNING: $*" >&2
-#	log "WARNING: $*"
+	if [ "$FORCE_VERBOSE" == "yes" ]; then
+		echo -e "\033[1;33mWARNING:\033[0;0m $*" >&2
+#		log "WARNING: $*"
+	fi
 }
 
 ### Stop running and escalate if problems
@@ -158,14 +160,14 @@ function daropts {
 		case "$c" in
 			(a)	FORCE_ARCHS="$OPTARG";;
 			(d)	FORCE_DISTS="$OPTARG";;
-			(f)	FORCE_OVERWRITE="true";;
+			(f)	FORCE_OVERWRITE="yes";;
 			(h)	help;;
-			(n)	NOSOURCE="true";;
-			(r)	CREATE_REPO="true";;
+			(n)	NOSOURCE="yes";;
+			(r)	CREATE_REPO="yes";;
 			(s)	FORCE_SOURCE_DISTS="$OPTARG";;
 			(t)	FORCE_TAG="$OPTARG";;
-			(v)	FORCE_VERBOSE="true";;
-			(q)	QUIET="true";;
+			(v)	FORCE_VERBOSE="yes";;
+			(q)	QUIET="yes";;
 #			(-)	c=${OPTARG/#-/}; OPTARG="$(echo $* | cut -d' ' -f$OPTIND)"
 #			case "$c" in
 #				(port) port="$OPTARG"; OPTIND=$((OPTIND+1));;

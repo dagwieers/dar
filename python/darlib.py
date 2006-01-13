@@ -36,7 +36,7 @@ def sqlinsert(name):
 def opendb():
 	con = sqlite.connect(dbase)
 	cur = con.cursor()
-	return (con, cur)
+	return con, cur
 
 def createtb(cur, name, create=False):
 	'Open a database and return references'

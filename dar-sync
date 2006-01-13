@@ -27,7 +27,7 @@ if [ "$GPG_NAME" -a "$GPG_PATH" ]; then
 	fi
 fi
 
-if [ "$CREATE_REPO" == "true" ]; then
+if [ "$CREATE_REPO" ]; then
 	echo "Building SRPM repository."
 	build_repo_srpms "source"
 fi
@@ -40,7 +40,7 @@ for distname in $DISTS; do
 		continue
 	fi
 	
-	if [ "$CREATE_REPO" == "true" ]; then
+	if [ "$CREATE_REPO" ]; then
 		echo "Building $distname repository in $DISTPATH."
 		ln -sf ../../../../source $FTPDIR/$DISTPATH/SRPMS.dag
 		if [ "$REPO_APT" == "yes" ]; then
@@ -76,6 +76,7 @@ echo -e "\t($(wc -l $STATEDIR/packages-src.list))"
 
 echo -n "Building package list."
 cat $STATEDIR/packages-*.list | sort | uniq > $STATEDIR/packages.list
+ln -f $STATEDIR/all-packages.list $STATEDIR/../packagelist-dag.txt
 echo -e "\t($(wc -l $STATEDIR/packages.list))"
 
 echo -n "Building summary list."

@@ -28,7 +28,8 @@ exit 1
 }
 
 daropts "d:hq" $@
-CMD="$OPTS"
+shift $((OPTIND-1))
+CMD=$@
 
 if [ ! -d "$ROOT" ]; then
 	echo "ERROR: probably in chroot jail" >&2
@@ -52,12 +53,14 @@ for distname in $DISTS; do
 	### Check for building as user
 	if [ $AS_ROOT -eq 1 ]; then
 #		DO_SU="/bin/su -l -c"
-		DO_SU="/bin/bash -c"
+		DO_SU="/bin/bash -x -s"
 	else
-		DO_SU="/bin/su -lm $BUILD_USER -c"
+		DO_SU="/bin/su -lm $BUILD_USER -- /bin/bash -x -s"
 	fi
 
-	chroot "$CHROOTDIR/$distname" $DO_SU "$CMD"
+	echo chroot "$CHROOTDIR/$distname" $DO_SU $CMD
+#	chroot "$CHROOTDIR/$distname" $DO_SU $CMD
+	echo "$CMD" | chroot "$CHROOTDIR/$distname" $DO_SU
 	RC=$?
 
 	if [ $RC -ne 0 ]; then

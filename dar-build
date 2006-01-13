@@ -128,6 +128,9 @@ for arg in $PKGS; do
 			fi
 		fi
 
+		### Cleaning up nodebug shit
+		perl -pi -e 's|-O2 -g|-O2|' $CHROOTDIR/$DISTNICK/usr/lib/rpm/{macros,*/macros,rpmrc}
+
 		### Export RPMVER to rpmconf
 		export RPMVER="$(chroot $CHROOTDIR/$DISTNICK /bin/su -lm $BUILD_USER -c "rpm --version" | cut -d' ' -f3)"
 
@@ -283,7 +286,9 @@ for arg in $PKGS; do
 				RPMBUILDOPTS="$RPMBUILDOPTS --target $arch"
 			fi
 
-			echo "Building $dist/$arch [$SPECDIR/_buildlogs/$LOGFILE]."
+			if [ "$FORCE_VERBOSE" == "yes" ]; then
+				echo "Building $dist/$arch [$SPECDIR/_buildlogs/$LOGFILE]."
+			fi
 
 			### Check for Soapbox
 			if [ "$SOAPBOX" == "1" -a -f "/lib/libsoapbox.so" -a -f "$CHROOTDIR/$dist/lib/libsoapbox.so" ]; then
@@ -301,6 +306,7 @@ for arg in $PKGS; do
 					--define \"_sourcedir $SPECDIR\" \
 					--define \"_builddir $BUILDDIR\" \
 					--define \"_tmppath $TEMPDIR\" \
+					--define \"debug_package %nil\" \
 					--define \"dist $DISTNAME\" \
 					--define \"disttag ${DISTTAG// *}\" \
 					--define \"$DISTNAME 1\" \
@@ -321,6 +327,7 @@ for arg in $PKGS; do
 						--define "_sourcedir $SPECDIR" \
 						--define "_builddir $ROOT/build" \
 						--define "_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root" \
+						--define "debug_package %nil" \
 						--define "dist $DISTNAME" \
 						--define "disttag ${DISTTAG// *}" \
 						--define "$DISTNAME 1" \
@@ -336,6 +343,7 @@ for arg in $PKGS; do
 						--define '_builddir $ROOT/build' \
 						--define '_tmppath $TEMPDIR' \
 						--define '_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root' \
+						--define 'debug_package %nil' \
 						--define 'dist $DISTNAME' \
 						--define 'disttag ${DISTTAG// *}' \
 						--define '$DISTNAME 1' \
@@ -377,7 +385,9 @@ for arg in $PKGS; do
 
 			if [ $RC -eq 0 ]; then
 				DARBUILDRC=0
-				echo "OK for $dist/$arch, file eg. \"$PACKAGEDIR/$app/$RPMFILE\"."
+				if [ "$FORCE_VERBOSE" == "yes" ]; then
+					echo -e "\033[1;32mSuccess\033[0;0m $app [$dist/$arch], file in [$PACKAGEDIR/$app/]"
+				fi
 
 				if [ "$RETAIN_LOGS" == "yes" ]; then
 #					bzip2 -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
@@ -392,7 +402,7 @@ for arg in $PKGS; do
 				fi
 			else
 #				log "Failed building package $app for $dist/$arch." >> "$LOGDIR/dar.log"
-				error "Failed building package $app for $dist/$arch, see log. (RC=$RC)"
+				error "\033[1;31mFailed\033[0;0m $app [$dist/$arch], see log [$SPECDIR/_buildlogs/$LOGFILE]"
 #				bzip2 -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
 				gzip -9 --rsyncable -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
 			fi
@@ -401,7 +411,7 @@ for arg in $PKGS; do
 	done
 
 	### Only build when there was a succesful binary build
-	if [ "$DARBUILDRC" -eq 0 -a "$NOSOURCE" != "true" ]; then
+	if [ "$DARBUILDRC" -eq 0 -a -z "$NOSOURCE" ]; then
 
 		if [ -z "$SOURCE_DISTS" ]; then SOURCE_DISTS="$DEFAULT_SOURCE_DISTS"; fi
 
@@ -422,7 +432,9 @@ for arg in $PKGS; do
 				source "$script"
 			done
 
-			echo "Building source package $app using \"$SPECFILE\" for $dist"
+			if [ "$FORCE_VERBOSE" == "yes" ]; then
+				echo "Building source package $app using \"$SPECFILE\" for $dist"
+			fi
 			chroot "$CHROOTDIR/$dist" /usr/bin/rpmbuild -bs \
 				--define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
 				--define "_srcrpmdir $PACKAGEDIR/$app" \
@@ -431,7 +443,15 @@ for arg in $PKGS; do
 				--define "dist $DISTNAME" \
 				--define "disttag ${DISTTAG// *}" \
 				--define "$DISTNAME 1" \
-				"$NEWSPECFILE"
+				"$NEWSPECFILE" &>/dev/null
+			RC=$?
+			if [ $RC -eq 0 ]; then
+				if [ "$FORCE_VERBOSE" == "yes" ]; then
+					echo -e "\033[1;32mSuccess\033[0;0m $app [$dist/src], file in [$PACKAGEDIR/$app/]"
+				fi
+			else
+				error "\033[1;31mFailed\033[0;0m $app [$dist/src], see log [$SPECDIR/_buildlogs/$LOGFILE]"
+			fi
 
 			cp -au "$NEWSPECFILE" "$PACKAGEDIR/$app/"
 		done

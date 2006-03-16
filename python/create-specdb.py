@@ -11,7 +11,7 @@ specre = {
 	'upstream':	'^# Upstream: (.+?)$',
 	'epoch':	'^Epoch: (\d+)$',
 	'version':	'^Version: ([\w\.]+)$',
-	'release':	'^Release: ([\w\.]+)$',
+	'release':	'^Release: (.+)$',
 	'summary':	'^Summary: (.+?)$',
 	'name':		'^Name: ([\w\-\+_]+)$',
 #	'parent':	'^Name: ([\w\-\+_]+)$',
@@ -32,12 +32,14 @@ def readspec(file):
 		except Exception, e:
 			if key in ('epoch', 'upstream'):
 				continue
-			elif key in ('url', ):
+			elif key in ('url', 'version', 'release'):
 				print 'Error with key "%s" in "%s"' % (key, file)
+				rec[key] = None
 			else:
 				print 'Error with key "%s" in "%s" (FAILED)' % (key, file)
 				raise
 	if not rec['upstream']: rec['upstream'] = 'packagers@list.rpmforge.net'
+#	rec['release'] = rec['release']
 	rec['specname'] = os.path.basename(file).replace('.spec','')
 	rec['parent'] = os.path.basename(os.path.dirname(file))
 	return rec

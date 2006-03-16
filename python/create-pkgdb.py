@@ -20,22 +20,24 @@ distmap = {
 
 distlist = ['0', 'rh6', 'rh7', 'rh8', 'rh9', 'el2', 'el3', 'el4', 'fc1', 'fc2', 'fc3', 'fc4', 'fc5', 'au1.91', 'au1.92']
 distlistre = '|'.join(distlist + distmap.keys())
+repolist = ['dag', 'dries', 'rf', 'test']
+repolistre = '|'.join(repolist)
 
 def repo(filename):
         try:
-                return re.search('\.(dag|dries|rf|test)\.\w+\.rpm$', filename).groups()[0]
+                return re.search('\.(%s)\.\w+\.rpm$' % repolistre, filename).groups()[0]
         except: 
                 try:
-                        return re.search('\.(dag|dries|rf|test)\.('+distlistre+')\.\w+\.rpm$', filename).groups()[0]
+                        return re.search('\.(%s)\.(%s)\.\w+\.rpm$' % (repolistre, distlistre), filename).groups()[0]
                 except: 
                         return None
 
 def dist(filename):
         try:
-                dist = re.search('\.('+distlistre+')\.(dag|dries|rf|test)\.\w+\.rpm$', filename).groups()[0]
+                dist = re.search('\.(%s)\.(%s)\.\w+\.rpm$' % (distlistre, repolistre), filename).groups()[0]
         except: 
                 try:
-                        dist = re.search('\.(dag|dries|rf|test)\.(\w+)\.\w+\.rpm$', filename).groups()[1]
+                        dist = re.search('\.(%s)\.(\w+)\.\w+\.rpm$' % repolistre, filename).groups()[1]
                 except: 
                         dist = None
         if dist in distlist: return dist
@@ -86,7 +88,7 @@ for builder in ('dag', 'dries'):
 		try:
 			pkgrec = readfile(file, builder)
 		except:
-#			print file, 'FAILED'
+			print file, 'FAILED'
 			continue
 		darlib.insertrec(cur, 'pkg', pkgrec)
 con.commit()

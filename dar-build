@@ -143,8 +143,8 @@ for arg in $PKGS; do
 			RELEASE="$(rpmconf Release)"
 
 			NEWSPECFILE="$TEMPDIR/$app-$VERSION-$TAG.spec"
-			RPMFILE="$app-$VERSION-$RELEASE.${DISTTAG// *}.$TAG.$arch.rpm"
-			LOGFILE="$app-$VERSION-$RELEASE.${DISTTAG// *}.$TAG.$arch.log"
+			RPMFILE="$app-$VERSION-$RELEASE.$DISTNAME.$TAG.$arch.rpm"
+			LOGFILE="$app-$VERSION-$RELEASE.$DISTNAME.$TAG.$arch.log"
 			export MAKEFLAGS="%nil"
 
 			if [ "$arch" == "nosrc" ]; then
@@ -153,12 +153,12 @@ for arg in $PKGS; do
 			fi
 
 			### Check if already build (2 version schemes, multiple disttags)
-#			for disttag in $DISTTAG; do
-#				for tag in $TAGS; do
-#					NEWRPMFILE="$app-$VERSION-$RELEASE.$disttag.$tag.$arch.rpm"
-#					OLDRPMFILE="$app-$VERSION-$RELEASE.$tag.$disttag.$arch.rpm"
-#					for rpmfile in $NEWRPMFILE $OLDRPMFILE; do
-						rpmfile=$RPMFILE
+			for disttag in $DISTNAME $DISTTAG; do
+				for tag in $TAGS; do
+					NEWRPMFILE="$app-$VERSION-$RELEASE.$disttag.$tag.$arch.rpm"
+					OLDRPMFILE="$app-$VERSION-$RELEASE.$tag.$disttag.$arch.rpm"
+					for rpmfile in $NEWRPMFILE $OLDRPMFILE; do
+#						echo $rpmfile
 						if [ -z "$FORCE_OVERWRITE" -a -f "$PACKAGEDIR/$app/$rpmfile" ]; then
 							warning "Package \"$PACKAGEDIR/$app/$rpmfile\" already exists."
 			
@@ -166,17 +166,16 @@ for arg in $PKGS; do
 								SOURCE_DISTS="$DISTNICK"
 							fi
 			
-#							continue 4
-							continue
+							continue 4
 						fi
-#					done
-#				done
-#			done
+					done
+				done
+			done
 
 			cp -af "$SPECFILE" "$NEWSPECFILE"
 
 			export origspecfile="$SPECFILE" specfile="$NEWSPECFILE" builddir="$BUILDDIR" chrootdir="$CHROOTDIR/$dist"
-			export app buildarch="$arch" distarch="$DISTARCH" disttag="${DISTTAG// *}" repotag="$TAG"
+			export app buildarch="$arch" distarch="$DISTARCH" disttag="$DISTNAME" repotag="$TAG"
 			for script in $CONFIGDIR/scripts/pre-*.sh; do
 				source "$script"
 			done
@@ -186,7 +185,7 @@ for arg in $PKGS; do
 			(	echo "----- Build information -----"
 				echo "Package name: $app"
 				echo "Package version: $VERSION"
-				echo "Package release: $RELEASE.${DISTTAG// *}.$TAG"
+				echo "Package release: $RELEASE.$DISTNAME.$TAG"
 				echo "Packager: $(logname)"
 				echo "Distribution: $DISTNAME/$DISTARCH"
 				echo "Package arch: $arch"
@@ -308,7 +307,7 @@ for arg in $PKGS; do
 					--define \"_tmppath $TEMPDIR\" \
 					--define \"debug_package %nil\" \
 					--define \"dist $DISTNAME\" \
-					--define \"disttag ${DISTTAG// *}\" \
+					--define \"disttag $DISTNAME\" \
 					--define \"$DISTNAME 1\" \
 					--define \"$DISTNICK 1\" \"$NEWSPECFILE\""
 
@@ -329,7 +328,7 @@ for arg in $PKGS; do
 						--define "_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root" \
 						--define "debug_package %nil" \
 						--define "dist $DISTNAME" \
-						--define "disttag ${DISTTAG// *}" \
+						--define "disttag $DISTNAME" \
 						--define "$DISTNAME 1" \
 						--define "$DISTNICK 1" \
 						"$NEWSPECFILE"
@@ -345,7 +344,7 @@ for arg in $PKGS; do
 						--define '_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root' \
 						--define 'debug_package %nil' \
 						--define 'dist $DISTNAME' \
-						--define 'disttag ${DISTTAG// *}' \
+						--define 'disttag $DISTNAME' \
 						--define '$DISTNAME 1' \
 						--define '$DISTNICK 1' \
 						$NEWSPECFILE"
@@ -386,8 +385,10 @@ for arg in $PKGS; do
 			if [ $RC -eq 0 ]; then
 				DARBUILDRC=0
 				if [ "$FORCE_VERBOSE" == "yes" ]; then
-					echo -e "\033[1;32mSuccess\033[0;0m $app [$dist/$arch], file in [$PACKAGEDIR/$app/]"
+					echo -e "${_GR}Success${_DE} $app [$dist/$arch], file in [$PACKAGEDIR/$app/]"
 				fi
+				echo "$app [$dist/$arch] ${SPECFILE/*\/} $LOGFILE" >>/dar/log/dar-build-success.log
+				cp -au "$SPECFILE" "$PACKAGEDIR/$app/"
 
 				if [ "$RETAIN_LOGS" == "yes" ]; then
 #					bzip2 -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
@@ -402,7 +403,8 @@ for arg in $PKGS; do
 				fi
 			else
 #				log "Failed building package $app for $dist/$arch." >> "$LOGDIR/dar.log"
-				error "\033[1;31mFailed\033[0;0m $app [$dist/$arch], see log [$SPECDIR/_buildlogs/$LOGFILE]"
+				error "${_RE}Failed${_DE} $app [$dist/$arch], see log [$SPECDIR/_buildlogs/$LOGFILE]"
+				echo "$app [$dist/$arch] ${SPECFILE/*\/} $LOGFILE" >>/dar/log/dar-build-failed.log
 #				bzip2 -9 -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
 				gzip -9 --rsyncable -f "$PACKAGEDIR/$app/_buildlogs/$LOGFILE"
 			fi
@@ -427,7 +429,7 @@ for arg in $PKGS; do
 
 			NEWSPECFILE="$TEMPDIR/$app.spec"
 			cp -af "$SPECFILE" "$NEWSPECFILE"
-			export buildarch="src" distarch="$DISTARCH" disttag="${DISTTAG// *}" specfile="$NEWSPECFILE" repotag="$TAG"
+			export buildarch="src" distarch="$DISTARCH" disttag="$DISTNAME" specfile="$NEWSPECFILE" repotag="$TAG"
 			for script in $CONFIGDIR/scripts/pre-*.sh; do
 				source "$script"
 			done
@@ -441,19 +443,21 @@ for arg in $PKGS; do
 				--define "_sourcedir $SPECDIR" \
 				--define "$dist 1" \
 				--define "dist $DISTNAME" \
-				--define "disttag ${DISTTAG// *}" \
+				--define "disttag $DISTNAME" \
 				--define "$DISTNAME 1" \
 				"$NEWSPECFILE" &>/dev/null
 			RC=$?
 			if [ $RC -eq 0 ]; then
 				if [ "$FORCE_VERBOSE" == "yes" ]; then
-					echo -e "\033[1;32mSuccess\033[0;0m $app [$dist/src], file in [$PACKAGEDIR/$app/]"
+					echo -e "${_GR}Success${_DE} $app [$dist/src], file in [$PACKAGEDIR/$app/]"
 				fi
+				echo "$app [$dist/src] ${SPECFILE/*\/}" >>/dar/log/dar-build-success.log
 			else
-				error "\033[1;31mFailed\033[0;0m $app [$dist/src], see log [$SPECDIR/_buildlogs/$LOGFILE]"
+				error "${_RE}Failed${_DE} $app [$dist/src], see log [$SPECDIR/_buildlogs/$LOGFILE]"
+				echo "$app [$dist/src] ${SPECFILE/*\/}" >>/dar/log/dar-build-failed.log
 			fi
 
-			cp -au "$NEWSPECFILE" "$PACKAGEDIR/$app/"
+			cp -au "$SPECFILE" "$PACKAGEDIR/$app/"
 		done
 
 	fi

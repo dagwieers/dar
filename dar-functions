@@ -296,7 +296,7 @@ function download_sources {
 				i=$((i+1))
 			done
 			if [ $RC -ne 0 ]; then
-				warning "Problems downloading source [$url]."
+				error "Problems downloading source [$url]."
 				ERC=1
 			fi
 		fi
@@ -443,6 +443,9 @@ function build_repo {
 	local DISTPATH="$1"
 	local REPODATA="$FTPDIR/$DISTPATH/$REPO/repodata/"
 
+	if [ -d "$FTPDIR/$DISTPATH/$REPO/.olddata/" ]; then
+		rm -rf "$FTPDIR/$DISTPATH/$REPO/.olddata/"
+	fi
 	createrepo -q -c "$TEMPDIR/.cache/createrepo/" "$FTPDIR/$DISTPATH/$REPO"
 	echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" >"$REPODATA/repomd.xml"
 	echo "<repomd xmlns=\"http://linux.duke.edu/metadata/repo\">" >>"$REPODATA/repomd.xml"

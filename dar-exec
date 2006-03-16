@@ -53,12 +53,20 @@ for distname in $DISTS; do
 	### Check for building as user
 	if [ $AS_ROOT -eq 1 ]; then
 #		DO_SU="/bin/su -l -c"
-		DO_SU="/bin/bash -x -s"
+		if [ "$FORCE_VERBOSE" ]; then
+			DO_SU="/bin/bash -x -s"
+		else
+			DO_SU="/bin/bash -s"
+		fi
 	else
-		DO_SU="/bin/su -lm $BUILD_USER -- /bin/bash -x -s"
+		if [ "$FORCE_VERBOSE" ]; then
+			DO_SU="/bin/su -lm $BUILD_USER -- /bin/bash -x -s"
+		else
+			DO_SU="/bin/su -lm $BUILD_USER -- /bin/bash -s"
+		fi
 	fi
 
-	echo chroot "$CHROOTDIR/$distname" $DO_SU $CMD
+#	echo chroot "$CHROOTDIR/$distname" $DO_SU $CMD
 #	chroot "$CHROOTDIR/$distname" $DO_SU $CMD
 	echo "$CMD" | chroot "$CHROOTDIR/$distname" $DO_SU
 	RC=$?

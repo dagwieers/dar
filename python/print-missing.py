@@ -117,7 +117,8 @@ for parent, name, dist, arch in cur.fetchall():
 
 #	print name, '\t', dist, '  dr:', B, '\tda:', D
 	if vercmp(('0', B['version'], B['release']), ('0', D['version'], D['release'])) > 0:
-		missinglist.append(dist+archmap[arch])
+		if dist+archmap[arch] not in missinglist:
+			missinglist.append(dist+archmap[arch])
 
 	oldname = name
 	oldparent = parent

@@ -162,9 +162,9 @@ for arg in $PKGS; do
 						if [ -z "$FORCE_OVERWRITE" -a -f "$PACKAGEDIR/$app/$rpmfile" ]; then
 							warning "Package \"$PACKAGEDIR/$app/$rpmfile\" already exists."
 			
-							if [ -z "$SOURCE_DISTS" ]; then
-								SOURCE_DISTS="$DISTNICK"
-							fi
+#							if [ -z "$SOURCE_DISTS" ]; then
+#								SOURCE_DISTS="$DISTNICK"
+#							fi
 			
 							continue 4
 						fi
@@ -175,7 +175,7 @@ for arg in $PKGS; do
 			cp -af "$SPECFILE" "$NEWSPECFILE"
 
 			export origspecfile="$SPECFILE" specfile="$NEWSPECFILE" builddir="$BUILDDIR" chrootdir="$CHROOTDIR/$dist"
-			export app buildarch="$arch" distarch="$DISTARCH" disttag="$DISTNAME" repotag="$TAG"
+			export app buildarch="$arch" distarch="$DISTARCH" disttag="$DISTNAME" repotag="$TAG" release="$RELEASE"
 			for script in $CONFIGDIR/scripts/pre-*.sh; do
 				source "$script"
 			done

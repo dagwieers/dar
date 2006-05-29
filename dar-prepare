@@ -7,6 +7,8 @@ if [ -z "$DEFAULT_DISTS" -o -z "$ROOT" ]; then
 	exit 1
 fi
 
+umount /dar/build 2>/dev/null
+mount -o bind /dev/shm /dar/build/
 
 for distname in $DEFAULT_DISTS; do
 	if [ "${DEFAULT_DISTS// */}" != $distname ]; then

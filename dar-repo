@@ -33,8 +33,10 @@ for dist in $DISTS; do
 	fi
 
 	echo "Building $dist repository in $DISTPATH."
-	build_repo_apt "$DISTTAG" "$DISTPATH"
-	build_repo_yum "$DISTTAG" "$DISTPATH"
+	build_tree_apt "$DISTNAME $DISTTAG" "$DISTPATH"
+	build_tree_yum "$DISTNAME $DISTTAG" "$DISTPATH"
+	build_repo_apt "$DISTPATH"
+	build_repo_yum "$DISTPATH"
 	build_repo "$DISTPATH"
 	build_content "$DISTNAME" "$DISTPATH"
 done

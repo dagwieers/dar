@@ -43,12 +43,23 @@ for distname in $DISTS; do
 	if [ "$CREATE_REPO" ]; then
 		echo "Building $distname repository in $DISTPATH."
 		ln -sf ../../../../source $FTPDIR/$DISTPATH/SRPMS.dag
+
 		if [ "$REPO_APT" == "yes" ]; then
-			build_repo_apt "$DISTTAG" "$DISTPATH"
+			build_tree_apt "$DISTNAME $DISTTAG" "$DISTPATH"
 		fi
+
+		if [ "$REPO_YUM" == "yes" -o "$REPO_CREATEREPO" == "yes" ]; then
+			build_tree_yum "$DISTNAME $DISTTAG" "$DISTPATH"
+		fi
+
+		if [ "$REPO_APT" == "yes" ]; then
+			build_repo_apt "$DISTPATH"
+		fi
+
 		if [ "$REPO_YUM" == "yes" ]; then
-			build_repo_yum "$DISTTAG" "$DISTPATH"
+			build_repo_yum "$DISTPATH"
 		fi
+
 		if [ "$REPO_CREATEREPO" == "yes" ]; then
 			build_repo "$DISTPATH"
 		fi
@@ -77,6 +88,10 @@ echo -e "\t($(wc -l $STATEDIR/packages-src.list))"
 echo -n "Building package list."
 cat $STATEDIR/packages-*.list | sort | uniq > $STATEDIR/packages.list
 ln -f $STATEDIR/all-packages.list $STATEDIR/../packagelist-dag.txt
+for file in $STATEDIR/*.list; do
+	base="$(basename $file .list)"
+	wc -l $file >$STATEDIR/$(basename $file .list).count
+done
 echo -e "\t($(wc -l $STATEDIR/packages.list))"
 
 echo -n "Building summary list."

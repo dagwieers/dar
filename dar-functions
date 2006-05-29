@@ -356,7 +356,7 @@ function build_content {
 	done | sort | uniq >$STATEDIR/packages-$DISTNAME-$DISTARCH.list
 }
 
-function build_repo_apt {
+function build_tree_apt {
 	local DISTTAG="$1"
 	local DISTPATH="$2"
 
@@ -391,6 +391,10 @@ function build_repo_apt {
 
 		done
 	done
+}
+
+function build_repo_apt {
+	local DISTPATH="$1"
 
 	### Build Apt repository
 	genbasedir --flat --bloat --bz2only $FTPDIR/$DISTPATH $REPO
@@ -398,7 +402,7 @@ function build_repo_apt {
 #	genbasedir --progress --hashonly $FTPDIR/$DISTPATH $REPO
 }
 
-function build_repo_yum {
+function build_tree_yum {
 	local DISTTAG="$1"
 	local DISTPATH="$2"
 
@@ -433,6 +437,10 @@ function build_repo_yum {
 		done
 	done
 #	ln -f $PACKAGEDIR/*/*.$TAG.src.rpm $FTPDIR/$DISTPATH/$REPO/SRPMS/ &>/dev/null
+}
+
+function build_repo_yum {
+	local DISTPATH="$1"
 
 	### Build Yum repository
 #	yum-arch -q -z -d -c $FTPDIR/$DISTPATH/$REPO/
@@ -443,10 +451,20 @@ function build_repo {
 	local DISTPATH="$1"
 	local REPODATA="$FTPDIR/$DISTPATH/$REPO/repodata/"
 
+	if [ "$DISTNICK" ]; then
+		local RPMVER="$(chroot $CHROOTDIR/$DISTNICK rpm --version | cut -d' ' -f3)"
+	fi
+
+	local OPTIONS=""
+	if [ "$RPMVER" \< "4.2.1" ]; then
+		OPTIONS="-n"
+	fi
+
 	if [ -d "$FTPDIR/$DISTPATH/$REPO/.olddata/" ]; then
 		rm -rf "$FTPDIR/$DISTPATH/$REPO/.olddata/"
 	fi
-	createrepo -q -c "$TEMPDIR/.cache/createrepo/" "$FTPDIR/$DISTPATH/$REPO"
+	createrepo -q $OPTIONS --update -c "$TEMPDIR/.cache/createrepo/" "$FTPDIR/$DISTPATH/$REPO"
+	sync
 	echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" >"$REPODATA/repomd.xml"
 	echo "<repomd xmlns=\"http://linux.duke.edu/metadata/repo\">" >>"$REPODATA/repomd.xml"
 	for file in other filelists primary; do

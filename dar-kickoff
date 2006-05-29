@@ -53,6 +53,10 @@ echo "PS1=\"[\u@$DIST \W]# \"" >> $ROOT/$DIST/root/.bashrc
 
 cp -avx /etc/{group,fstab,mtab,hosts,passwd,resolv.conf,modules.conf,modprobe.conf,localtime} $ROOT/$DIST/etc/
 
+### Prevent CPAN modules autoinstall
+mkdir -p -m0400 $ROOT/$DIST/home/dag/.cpan/
+chown root.root $ROOT/$DIST/home/dag/.cpan/
+
 ### copy fstab and mtab
 
 ### Customize /etc/rpm/macros

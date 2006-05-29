@@ -4,9 +4,13 @@
 DISTCC_CC="x86_64-redhat-linux-gcc-3.3.3"
 DISTCC_CXX="x86_64-redhat-linux-g++-3.3.3"
 
-INSTALLCMD="up2date -if"
-UPDATECMD="yum -y update"
-INSTALLCMD="yum -y install %p"
+#INSTALLCMD="up2date -if"
+#UPDATECMD="yum -y update"
+#INSTALLCMD="yum -y install %p"
+UPDATECMD="apt-get -qq update"
+UPGRADECMD="apt-get -qq -f -y upgrade"
+INSTALLCMD="apt-get -qq -y -m install %p"
+CLEANCMD="apt-get clean"
 
 RPMBUILDOPTS='--define "fedora 2"'
 

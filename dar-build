@@ -129,7 +129,7 @@ for arg in $PKGS; do
 		fi
 
 		### Cleaning up nodebug shit
-		perl -pi -e 's|-O2 -g|-O2|' $CHROOTDIR/$DISTNICK/usr/lib/rpm/{macros,*/macros,rpmrc}
+#		perl -pi -e 's|-O2 -g|-O2|' $CHROOTDIR/$DISTNICK/usr/lib/rpm/{macros,*/macros,rpmrc}
 
 		### Export RPMVER to rpmconf
 		export RPMVER="$(chroot $CHROOTDIR/$DISTNICK /bin/su -lm $BUILD_USER -c "rpm --version" | cut -d' ' -f3)"
@@ -142,7 +142,7 @@ for arg in $PKGS; do
 			VERSION="$(rpmconf Version)"
 			RELEASE="$(rpmconf Release)"
 
-			NEWSPECFILE="$TEMPDIR/$app-$VERSION-$TAG.spec"
+			NEWSPECFILE="$TEMPDIR/$app-$VERSION-$RELEASE.$TAG.spec"
 			RPMFILE="$app-$VERSION-$RELEASE.$DISTNAME.$TAG.$arch.rpm"
 			LOGFILE="$app-$VERSION-$RELEASE.$DISTNAME.$TAG.$arch.log"
 			export MAKEFLAGS="%nil"

@@ -5,7 +5,7 @@
 script="pre-new-release"
 release_regex="\b\.2$"
 
-if [ "$disttag" != "fc5" ] && echo $release | grep -q -E "$release_regex"; then
+if [ -z "$force" ] && [ "$disttag" != "fc5" -a "$disttag" != "fc6" -a "$disttag" != "el5" ] && echo $release | grep -q -E "$release_regex"; then
 	echo "** $script: Not building $app for $disttag/$arch since $release matches new release scheme."
 	continue 2
 fi

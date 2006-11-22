@@ -13,6 +13,7 @@ CLEANCMD="apt-get clean"
 
 RPMBUILDOPTS='--define "fedora 3"'
 
+DISTDESC="Fedora Core 4 (i386)"
 DISTNAME="fc4"
 DISTNICK="fc4i"
 DISTTAG="2.fc4"

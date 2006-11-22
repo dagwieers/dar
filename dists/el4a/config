@@ -9,6 +9,7 @@ INSTALLCMD="up2date -if"
 
 RPMBUILDOPTS='--define "rhel 4"'
 
+DISTDESC="Red Hat Enterprise Linux 4 (x86_64)"
 DISTNAME="el4"
 DISTNICK="el4a"
 DISTTAG="2.el4"

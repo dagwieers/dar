@@ -11,6 +11,7 @@ CLEANCMD="apt-get clean"
 
 RPMBUILDOPTS='--define "rhl 7"'
 
+DISTDESC="Red Hat Linux 7.3 (i386)"
 DISTNAME="rh7"
 DISTNICK="rh7i"
 DISTTAG="0.rh7 rh73"

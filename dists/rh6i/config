@@ -11,6 +11,7 @@ CLEANCMD="apt-get clean"
 
 RPMBUILDOPTS='--define "rhl 6"'
 
+DISTDESC="Red Hat Linux 6.2 (i386)"
 DISTNAME="rh6"
 DISTNICK="rh6i"
 DISTTAG="0.rh6 rh62"

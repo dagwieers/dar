@@ -61,7 +61,7 @@ for distname in $DISTS; do
 		fi
 
 		if [ "$REPO_CREATEREPO" == "yes" ]; then
-			build_repo "$DISTPATH"
+			build_repo "$DISTPATH" "$DISTDESC"
 		fi
 	fi
 	build_env "$DISTNICK" "$DISTNAME"

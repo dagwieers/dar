@@ -450,6 +450,7 @@ function build_repo_yum {
 function build_repo {
 	local DISTPATH="$1"
 	local REPODATA="$FTPDIR/$DISTPATH/$REPO/repodata/"
+	local DISTDESC="$2"
 
 	if [ "$DISTNICK" ]; then
 		local RPMVER="$(chroot $CHROOTDIR/$DISTNICK rpm --version | cut -d' ' -f3)"
@@ -463,7 +464,10 @@ function build_repo {
 	if [ -d "$FTPDIR/$DISTPATH/$REPO/.olddata/" ]; then
 		rm -rf "$FTPDIR/$DISTPATH/$REPO/.olddata/"
 	fi
-	createrepo -q $OPTIONS --update -c "$TEMPDIR/.cache/createrepo/" "$FTPDIR/$DISTPATH/$REPO"
+	if [ ! -d "$TEMPDIR/.cache/createrepo/$DISTNICK/$REPO" ]; then
+		mkdir -p "$TEMPDIR/.cache/createrepo/$DISTNICK/$REPO"
+	fi
+	createrepo -q $OPTIONS --checkts -c "$TEMPDIR/.cache/createrepo/$DISTNICK/$REPO" "$FTPDIR/$DISTPATH/$REPO"
 	sync
 	echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" >"$REPODATA/repomd.xml"
 	echo "<repomd xmlns=\"http://linux.duke.edu/metadata/repo\">" >>"$REPODATA/repomd.xml"
@@ -479,6 +483,9 @@ function build_repo {
 		echo "  </data>" >>"$REPODATA/repomd.xml"
 	done
 	echo "</repomd>" >>"$REPODATA/repomd.xml"
+
+	repoview --quiet --title="RPMforge: $DISTDESC" "$FTPDIR/$DISTPATH/$REPO"
+	repoview --quiet --url="http://apt.sw.be/$DISTPATH/" "$FTPDIR/$DISTPATH/$REPO"
 }
 
 function build_repo_srpms {

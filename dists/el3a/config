@@ -9,6 +9,7 @@ INSTALLCMD="up2date -if"
 
 RPMBUILDOPTS='--define "rhel 3"'
 
+DISTDESC="Red Hat Enterprise Linux 3 (x86_64)"
 DISTNAME="el3"
 DISTNICK="el3a"
 DISTTAG="1.el3 rhel3"

@@ -11,6 +11,7 @@ CLEANCMD="apt-get clean"
 
 RPMBUILDOPTS='--define "fedora 3"'
 
+DISTDESC="Fedora Core 3 (i386)"
 DISTNAME="fc3"
 DISTNICK="fc3i"
 DISTTAG="1.fc3"

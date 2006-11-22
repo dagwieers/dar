@@ -13,6 +13,7 @@ CLEANCMD="apt-get clean"
 
 RPMBUILDOPTS='--define "rhl 9"'
 
+DISTDESC="Red Hat Linux 9 (i386)"
 DISTNAME="rh9"
 DISTNICK="rh9i"
 DISTTAG="0.rh9 rh90"

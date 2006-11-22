@@ -11,6 +11,7 @@ CLEANCMD="apt-get clean"
 
 RPMBUILDOPTS='--define "fedora 2"'
 
+DISTDESC="Fedora Core 2 (i386)"
 DISTNAME="fc2"
 DISTNICK="fc2i"
 DISTTAG="1.fc2"

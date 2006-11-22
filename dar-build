@@ -176,6 +176,7 @@ for arg in $PKGS; do
 
 			export origspecfile="$SPECFILE" specfile="$NEWSPECFILE" builddir="$BUILDDIR" chrootdir="$CHROOTDIR/$dist"
 			export app buildarch="$arch" distarch="$DISTARCH" disttag="$DISTNAME" repotag="$TAG" release="$RELEASE"
+			export force="$FORCE_OVERWRITE"
 			for script in $CONFIGDIR/scripts/pre-*.sh; do
 				source "$script"
 			done
@@ -274,6 +275,9 @@ for arg in $PKGS; do
 			else
 				unset SETARCH
 			fi
+
+			### Disable ExtUtils::AutoInstall in perl packages
+			export PERL_EXTUTILS_AUTOINSTALL="--skipdeps --skip"
 
 			### Remove buildroot
 			rm -rf "$TEMPDIR/root-$app-$VERSION"

@@ -9,6 +9,7 @@ INSTALLCMD="up2date -if"
 
 RPMBUILDOPTS='--define "rhel 2"'
 
+DISTDESC="Red Hat Enterprise Linux 2.1 (i386)"
 DISTNAME="el2"
 DISTNICK="el2i"
 DISTTAG="0.el2 rhel2.1"
@@ -16,7 +17,7 @@ DISTPATH="redhat/el2.1/en/i386"
 DISTARCH="i386"
 
 REPO_APT="yes"
-REPO_YUM="no"
+REPO_YUM="yes"
 REPO_CREATEREPO="yes"
 
 export LD_ASSUME_KERNEL="2.4.1"

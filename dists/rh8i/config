@@ -11,6 +11,7 @@ CLEANCMD="apt-get clean"
 
 RPMBUILDOPTS='--define "rhl 8"'
 
+DISTDESC="Red Hat Linux 8.0 (i386)"
 DISTNAME="rh8"
 DISTNICK="rh8i"
 DISTTAG="0.rh8 rh80"

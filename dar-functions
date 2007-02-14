@@ -288,7 +288,7 @@ function download_sources {
 			RC=1
 			while [ $RC -ne 0 -a $i -lt 4 ]; do
 #				wget -v -t5 -T2 -O "$filename" "$url"
-				wget -q -t5 -T2 -O "$filename" "$url"
+				wget -q -t30 -T2 --user-agent="Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" -O "$filename" "$url"
 #				wget -q -T1 -O "$filename" "$url"
 #				lftpget "$url" -c -o "$filename"
 #				lftpget "$url" -c -O "$(dirname $filename)" -o "$(basename $filename)"
@@ -360,6 +360,8 @@ function build_tree_apt {
 	local DISTTAG="$1"
 	local DISTPATH="$2"
 
+	echo "Building Apt tree."
+
 	### Creating directories
 	mkdir -p $FTPDIR/$DISTPATH/{base,RPMS.$REPO}/
 
@@ -376,16 +378,35 @@ function build_tree_apt {
 		
 		case "$DISTARCH" in
 			i386)
-				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
+				find $PACKAGEDIR -type f -a \( \
+						-name "*.$tag.$disttag.noarch.rpm" \
+						-o -name "*.$tag.$disttag.i?86.rpm" \
+						-o -name "*.$tag.$disttag.athlon.rpm" \
+						-o -name "*.$disttag.$tag.noarch.rpm" \
+						-o -name "*.$disttag.$tag.i?86.rpm" \
+						-o -name "*.$disttag.$tag.athlon.rpm" \
+						-o -name "*.0.$tag.noarch.rpm" \
+						-o -name "*.0.$tag.i?86.rpm" \
+						-o -name "*.0.$tag.athlon.rpm" \) \
+					-exec ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ \;
+#				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
+#				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
 				;;
 #			x86_64)
 #				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
 #				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
 #				;;
 			*)
-				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
+				find $PACKAGEDIR -type f -a \( \
+						-name "*.$tag.$disttag.noarch.rpm" \
+						-o -name "*.$tag.$disttag.$DISTARCH.rpm" \
+						-o -name "*.$disttag.$tag.noarch.rpm" \
+						-o -name "*.$disttag.$tag.$DISTARCH.rpm" \
+						-o -name "*.0.$tag.noarch.rpm" \
+						-o -name "*.0.$tag.$DISTARCH.rpm" \) \
+					-exec ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ \;
+#				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
+#				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
 				;;
 		esac
 
@@ -396,8 +417,10 @@ function build_tree_apt {
 function build_repo_apt {
 	local DISTPATH="$1"
 
+	echo "Building Apt repo."
+
 	### Build Apt repository
-	genbasedir --flat --bloat --bz2only $FTPDIR/$DISTPATH $REPO
+	genbasedir --flat --bloat --bz2only $FTPDIR/$DISTPATH $REPO >/dev/null
 #	genbasedir --progress --flat --bloat $FTPDIR/$DISTPATH $REPO
 #	genbasedir --progress --hashonly $FTPDIR/$DISTPATH $REPO
 }
@@ -405,6 +428,8 @@ function build_repo_apt {
 function build_tree_yum {
 	local DISTTAG="$1"
 	local DISTPATH="$2"
+
+	echo "Building Yum tree."
 
 	### Creating directories
 	mkdir -p $FTPDIR/$DISTPATH/$REPO/{RPMS,headers}/
@@ -421,16 +446,35 @@ function build_tree_yum {
 
 		case "$DISTARCH" in
 			i386)
-				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
+				find $PACKAGEDIR -type f -a \( \
+						-name "*.$tag.$disttag.noarch.rpm" \
+						-o -name "*.$tag.$disttag.i?86.rpm" \
+						-o -name "*.$tag.$disttag.athlon.rpm" \
+						-o -name "*.$disttag.$tag.noarch.rpm" \
+						-o -name "*.$disttag.$tag.i?86.rpm" \
+						-o -name "*.$disttag.$tag.athlon.rpm" \
+						-o -name "*.0.$tag.noarch.rpm" \
+						-o -name "*.0.$tag.i?86.rpm" \
+						-o -name "*.0.$tag.athlon.rpm" \) \
+					-exec ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ \;
+#				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
+#				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
 				;;
 #			x86_64)
 #				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
 #				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon,x86_64}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
 #				;;
 			*)
-				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
-				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
+				find $PACKAGEDIR -type f -a \( \
+						-name "*.$tag.$disttag.noarch.rpm" \
+						-o -name "*.$tag.$disttag.$DISTARCH.rpm" \
+						-o -name "*.$disttag.$tag.noarch.rpm" \
+						-o -name "*.$disttag.$tag.$DISTARCH.rpm" \
+						-o -name "*.0.$tag.noarch.rpm" \
+						-o -name "*.0.$tag.$DISTARCH.rpm" \) \
+					-exec ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ \;
+#				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
+#				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
 				;;
 		esac
 
@@ -442,6 +486,8 @@ function build_tree_yum {
 function build_repo_yum {
 	local DISTPATH="$1"
 
+	echo "Building Yum repo."
+
 	### Build Yum repository
 #	yum-arch -q -z -d -c $FTPDIR/$DISTPATH/$REPO/
 	yum-arch -q -z $FTPDIR/$DISTPATH/$REPO/ &>/dev/null
@@ -452,6 +498,7 @@ function build_repo {
 	local REPODATA="$FTPDIR/$DISTPATH/$REPO/repodata/"
 	local DISTDESC="$2"
 
+	echo "Building repomd."
 	if [ "$DISTNICK" ]; then
 		local RPMVER="$(chroot $CHROOTDIR/$DISTNICK rpm --version | cut -d' ' -f3)"
 	fi
@@ -484,6 +531,7 @@ function build_repo {
 	done
 	echo "</repomd>" >>"$REPODATA/repomd.xml"
 
+	echo "Building repoview."
 	repoview --quiet --title="RPMforge: $DISTDESC" "$FTPDIR/$DISTPATH/$REPO"
 	repoview --quiet --url="http://apt.sw.be/$DISTPATH/" "$FTPDIR/$DISTPATH/$REPO"
 }

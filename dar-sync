@@ -13,12 +13,12 @@ set_tag
 if [ "$GPG_NAME" -a "$GPG_PATH" ]; then
 	echo "Signing (new) packages."
 	touch "$STATEDIR/rpmfind"
-	pushd $PACKAGEDIR >/dev/null
+	cd $PACKAGEDIR
 	find . -newer $STATEDIR/rpmsign -name "*.rpm" -type f | xargs rpm --resign  \
 		--define "_signature gpg" \
 		--define "_gpg_path $GPG_PATH" \
 		--define "_gpg_name $GPG_NAME"
-	popd
+	cd -
 	if [ $? -eq 0 ]; then
 		touch -r "$STATEDIR/rpmfind" "$STATEDIR/rpmsign"
 	elif [ $? -gt 1 ]; then

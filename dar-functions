@@ -206,7 +206,7 @@ function set_dists {
 	fi
 	if [ "$(metaconf Dist)" == "nodist" ]; then
 		NODIST="nodist"
-		DISTS="$(echo "$DISTS" | cut -f1)"
+		DISTS="$(echo $DISTS | cut -f1)"
 	fi
 	if [ -z "$DISTS" ]; then DISTS="$DEFAULT_DISTS"; fi
 }
@@ -373,7 +373,7 @@ function build_tree_apt {
 
 	### FIXME: This should not be done hardcoded, rather have a list of archs inside the dist-config
 	### FIXME: And iterate through that list
-	for disttag in $DISTTAG; do
+	for disttag in $DISTTAG nodist 0; do
 		for tag in $TAGS; do
 		
 		case "$DISTARCH" in
@@ -384,10 +384,7 @@ function build_tree_apt {
 						-o -name "*.$tag.$disttag.athlon.rpm" \
 						-o -name "*.$disttag.$tag.noarch.rpm" \
 						-o -name "*.$disttag.$tag.i?86.rpm" \
-						-o -name "*.$disttag.$tag.athlon.rpm" \
-						-o -name "*.0.$tag.noarch.rpm" \
-						-o -name "*.0.$tag.i?86.rpm" \
-						-o -name "*.0.$tag.athlon.rpm" \) \
+						-o -name "*.$disttag.$tag.athlon.rpm" \) \
 					-exec ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ \;
 #				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
 #				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
@@ -401,9 +398,7 @@ function build_tree_apt {
 						-name "*.$tag.$disttag.noarch.rpm" \
 						-o -name "*.$tag.$disttag.$DISTARCH.rpm" \
 						-o -name "*.$disttag.$tag.noarch.rpm" \
-						-o -name "*.$disttag.$tag.$DISTARCH.rpm" \
-						-o -name "*.0.$tag.noarch.rpm" \
-						-o -name "*.0.$tag.$DISTARCH.rpm" \) \
+						-o -name "*.$disttag.$tag.$DISTARCH.rpm" \) \
 					-exec ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ \;
 #				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null # Backward compatibility
 #				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/RPMS.$REPO/ &>/dev/null
@@ -419,8 +414,12 @@ function build_repo_apt {
 
 	echo "Building Apt repo."
 
+	if [ ! -d "$TEMPDIR/.cache/genbasedir/$DISTNICK/$REPO" ]; then
+		mkdir -p "$TEMPDIR/.cache/genbasedir/$DISTNICK/$REPO"
+	fi
+
 	### Build Apt repository
-	genbasedir --flat --bloat --bz2only $FTPDIR/$DISTPATH $REPO >/dev/null
+	genbasedir --flat --bloat --cachedir="$TEMPDIR/.cache/genbasedir/$DISTNICK/$REPO" --bz2only $FTPDIR/$DISTPATH $REPO >/dev/null
 #	genbasedir --progress --flat --bloat $FTPDIR/$DISTPATH $REPO
 #	genbasedir --progress --hashonly $FTPDIR/$DISTPATH $REPO
 }
@@ -441,7 +440,7 @@ function build_tree_yum {
 	### FIXME: This should not be done hardcoded, rather have a list of archs inside the dist-config
 	### FIXME: And iterate through that list
 	### Hardlink files
-	for disttag in $DISTTAG; do
+	for disttag in $DISTTAG nodist 0; do
 		for tag in $TAGS; do
 
 		case "$DISTARCH" in
@@ -452,10 +451,7 @@ function build_tree_yum {
 						-o -name "*.$tag.$disttag.athlon.rpm" \
 						-o -name "*.$disttag.$tag.noarch.rpm" \
 						-o -name "*.$disttag.$tag.i?86.rpm" \
-						-o -name "*.$disttag.$tag.athlon.rpm" \
-						-o -name "*.0.$tag.noarch.rpm" \
-						-o -name "*.0.$tag.i?86.rpm" \
-						-o -name "*.0.$tag.athlon.rpm" \) \
+						-o -name "*.$disttag.$tag.athlon.rpm" \) \
 					-exec ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ \;
 #				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
 #				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,i386,i586,i686,athlon}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null
@@ -469,9 +465,7 @@ function build_tree_yum {
 						-name "*.$tag.$disttag.noarch.rpm" \
 						-o -name "*.$tag.$disttag.$DISTARCH.rpm" \
 						-o -name "*.$disttag.$tag.noarch.rpm" \
-						-o -name "*.$disttag.$tag.$DISTARCH.rpm" \
-						-o -name "*.0.$tag.noarch.rpm" \
-						-o -name "*.0.$tag.$DISTARCH.rpm" \) \
+						-o -name "*.$disttag.$tag.$DISTARCH.rpm" \) \
 					-exec ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ \;
 #				echo $PACKAGEDIR/*/*.$tag.$disttag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null # Backward compatibility
 #				echo $PACKAGEDIR/*/*.{$disttag,0}.$tag.{noarch,$DISTARCH}.rpm | xargs -n 1 | xargs -i ln -f {} $FTPDIR/$DISTPATH/$REPO/RPMS/ &>/dev/null

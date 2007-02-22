@@ -109,7 +109,7 @@ for arg in $PKGS; do
 		fi
 
 		for exclude_dist in $EXCLUDE_DIST; do
-			if [ "$exclude_dist" == "$DISTNAME" -o "$exclude_dist" == "$DISTNICK" ]; then
+			if [ "$exclude_dist" == "$DISTNAME" -o "$exclude_dist" == "$DISTNICK" -o "$DISTNAME" == "nodist" ]; then
 				warning "Distribution $DISTNAME/$DISTARCH is excluded for package $app. Aborting."
 				continue 2
 			fi
@@ -118,7 +118,7 @@ for arg in $PKGS; do
 		if [ "$EXCLUSIVE_DIST" ]; then
 			EXCLUSIVE=0
 			for exclusive_dist in $EXCLUSIVE_DIST; do
-				if [ "$exclusive_dist" == "$DISTNAME" -o "$exclusive_dist" == "$DISTNICK" ]; then
+				if [ "$exclusive_dist" == "$DISTNAME" -o "$exclusive_dist" == "$DISTNICK" -o "$DISTNAME" == "nodist" ]; then
 					EXCLUSIVE=1
 				fi
 			done

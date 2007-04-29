@@ -1,13 +1,12 @@
 #!/usr/bin/python
 
-import sys, os, time
+import sys, os, time, getopt, urllib2, gzip
 
 args = sys.argv[1:]
 logname = os.getlogin()
 noarch = False
 
 try:
-	import getopt
 	opts, args = getopt.getopt (args, 'hnv',
 		['help', 'noarch', 'version'])
 except getopt.error, exc:
@@ -27,34 +26,61 @@ if args:
 else:
 	module = 'RPMforge-Template'
 
-modparts = module.split('-')
+if module.startswith('perl-'):
+	l = module.split('-')
+	module = '-'.join(l[1:])
 
-#os.mkdir("/dar/rpms/%s" % module, "0755")
+modparts = module.split('-')
+pmodule = '::'.join(modparts)
+
+if not os.path.exists('/dar/tmp/02packages.details.txt.gz'):
+	req = urllib2.Request('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/modules/02packages.details.txt.gz')
+	fdin = urllib2.urlopen(req)
+	fdout = open('/dar/tmp/02packages.details.txt.gz', 'w')
+	fdout.write(fdin.read())
+	fdout.close()
+
+fd = gzip.open('/dar/tmp/02packages.details.txt.gz', 'r')
+
+for line in fd.readlines():
+	pinfo = line.split()
+	if len(pinfo) > 2 and pmodule == pinfo[0]:
+		break
+else:
+	print 'Module not found in CPAN.'
+	sys.exit(1)
+	
+version = pinfo[1]
+location = pinfo[2]
+
+print >>sys.stderr, module, version
+print >>sys.stderr, "http://search.cpan.org/dist/%s/" % module
 
 print '# $Id$'
 print '# Authority:', logname
 
-### FIXME: Get Author from CPAN
+### FIXME: Link module/02packages info with authors/00whois.xml for name and email
 print '# Upstream:'
 print
-print '%define perl_vendorlib %(eval "`perl -V:installvendorlib`"; echo $installvendorlib)'
-print '%define perl_vendorarch %(eval "`perl -V:installvendorarch`"; echo $installvendorarch)'
+print '%define perl_vendorlib %(eval "`%{__perl} -V:installvendorlib`"; echo $installvendorlib)'
+print '%define perl_vendorarch %(eval "`%{__perl} -V:installvendorarch`"; echo $installvendorarch)'
 print
-print '%define real_name ', module
+print '%define real_name', module
 print
 
-### FIXME: Get Summary from CPAN
-print 'Summary: '
+### FIXME: Get Summary from CPAN or Archive
+print "Summary: %s module for perl" % module
 print "Name: perl-%s" % module
-print 'Version: '
+print 'Version:', version
 print 'Release: 1'
 
-### FIXME: Get License from CPAN
+### FIXME: Get License from CPAN or Archive
 print 'License: Artistic'
 print 'Group: Applications/CPAN'
 print "URL: http://search.cpan.org/dist/%s/" % module
 print
 print "Source: http://www.cpan.org/modules/by-module/%s/%s-%%{version}.tar.gz" % (modparts[0], module)
+print "#Source: http://www.cpan.org/authors/id/%s" % location
 print 'BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root'
 print
 if noarch:
@@ -63,16 +89,16 @@ print "BuildRequires: perl"
 print "Requires: perl"
 print
 
-### FIXME: Get Description from CPAN
+### FIXME: Get Description from CPAN or Archive
 print "%description"
-print "%s" % module
+print "%s module for perl." % module
 print
 print "%prep"
 print "%setup -n %{real_name}-%{version}"
 print
 print "%build"
 if noarch:
-	print '%{__perl} Makefile.PL PREFIX="%{buildroot}%{_prefix}" \ INSTALLDIRS="vendor"'
+	print '%{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"'
 	print '%{__make} %{?_smp_mflags}'
 else:
 	print 'CFLAGS="%{optflags}" %{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"'
@@ -95,7 +121,9 @@ print
 ### FIXME: Create filelist based on test-build or source-tree ?
 print '%files'
 print '%defattr(-, root, root, 0755)'
-print '%doc Changes MANIFEST README TODO'
+### Check DOCS in archive from "grep -h '^%doc' /dar/rpms/perl*/perl*.spec | grep -v mandir | xargs -n 1 | sort | uniq"
+print '%doc Changes LICENSE MANIFEST META.yml README'
+print "#%%doc %%{_mandir}/man3/%s.3pm*" % pmodule
 print '%doc %{_mandir}/man3/*.3pm*'
 #print '%{_bindir}/dave'
 
@@ -129,9 +157,9 @@ else:
 
 	### Print module directory
 	str = '%{perl_vendorarch}/'
-	for nr, part in enumerate(modparts):
+	for nr, part in enumerate(modparts[:-1]):
 		str = str + "%s/" % modparts[nr]
-	print str
+	print str + "%s.pm" % modparts[-1]
 
 	### Print auto directory entries (if any)
 	if modparts[:-1]:
@@ -148,7 +176,7 @@ else:
 
 print
 print '%changelog'
-print '%s Dag Wieers <dag@wieers.com> -' % time.strftime('%a %b %d %Y', time.localtime())
+print '* %s Dag Wieers <dag@wieers.com> - %s-1' % (time.strftime('%a %b %d %Y', time.localtime()), version)
 print '- Initial package. (using DAR)'
 
 sys.exit(0)

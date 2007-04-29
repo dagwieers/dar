@@ -2,13 +2,13 @@
 ### """"""""
 
 ### Install build environment
-old=fc3-i386; new=el4-i386; chr=el4i; diff -u <(cut -d"$(echo -e '\t')" -f1 /dar/pub/rpmforge/persona/dag/state/rpmqa-$old.list) <(cut -d"$(echo -e '\t')" -f1 /dar/pub/rpmforge/persona/dag/state/rpmqa-$new.list) | grep "^-" | sed -e 's|^-||' | xargs dar-update
+old=fc3-i386; new=el4-i386; chr=el4i; diff -u <(cut -f1 /dar/pub/rpmforge/persona/dag/state/rpmqa-$old.list) <(cut -f1 /dar/pub/rpmforge/persona/dag/state/rpmqa-$new.list) | grep "^-" | sed -e 's|^-||' | xargs dar-update -d $chr
 
 ### Build missing packages compared to other dist
-old=fc3-i386; new=el4-i386; chr=el4i; diff -u <(cut -d"$(echo -e '\t')" -f1 /dar/pub/rpmforge/persona/dag/state/packages-$old.list) <(cut -d"$(echo -e '\t')" -f1 /dar/pub/rpmforge/persona/dag/state/packages-$new.list) | grep "^-" | sed -e 's|^-||' | xargs dar-build -n -d $chr
+old=fc3-i386; new=el4-i386; chr=el4i; diff -u <(cut -f1 /dar/pub/rpmforge/persona/dag/state/packages-$old.list) <(cut -f1 /dar/pub/rpmforge/persona/dag/state/packages-$new.list) | grep "^-" | sed -e 's|^-||' | xargs dar-build -n -d $chr
 
 ### Build library packages first
-old=fc3; chr=fc4i; for pkg in $(echo /dar/packages/*/*-devel-*.$old.rf.i386.rpm); do pkg="$(basename $pkg)"; echo ${pkg%-*-*-*}; done | xargs dar-build -n -d $chr
+old=fc3; chr=fc4i; for pkg in $(echo /dar/packages/*/*-devel-*.$old.rf.i386.rpm); do pkg="$(basename $pkg)"; echo ${pkg%-*-*-*}; done | sort | uniq | xargs dar-build -n -d $chr
 
 ### Clean up chroots
 #dar-exec

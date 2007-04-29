@@ -37,10 +37,10 @@ print 'Dist stats:'
 cur.execute('select distinct dist from pkg order by dist')
 for dist, in cur.fetchall():
 	if dist in ('0', 'nosrc', 'src'): continue
-	if dist in ('rh6', 'rh7', 'rh8', 'rh9', 'el2', 'el3', 'el4', 'fc1', 'fc2', 'fc3', 'fc4', 'fc5'):
+	if dist in ('rh6', 'rh7', 'rh8', 'rh9', 'el2', 'el3', 'el4', 'el5', 'fc1', 'fc2', 'fc3', 'fc4', 'fc5', 'fc6', 'fc7'):
 		cur.execute('select distinct name from pkg where (dist = "%s" or dist = "0") and ( repo = "rf" or repo = "dag" or repo = "dries" ) and ( arch = "i386" or arch = "i586" or arch = "i686" or arch = "athlon" or arch = "noarch" or arch = "nosrc" )' % dist)
 		print '  %s-i386 has %d packages' % (dist, len(cur.fetchall()))
-	if dist in ('el3', 'el4', 'fc2', 'fc3', 'fc4', 'fc5'):
+	if dist in ('el3', 'el4', 'el5', 'fc2', 'fc3', 'fc4', 'fc5', 'fc6', 'fc7'):
 		cur.execute('select distinct name from pkg where (dist = "%s" or dist = "0") and ( repo = "rf" or repo = "dag" or repo = "dries" ) and ( arch = "x86_64" or arch = "noarch" or arch = "nosrc" )' % dist)
 		print '  %s-x86_64 has %d packages' % (dist, len(cur.fetchall()))
 	if dist in ('au1.91', 'au1.92'):

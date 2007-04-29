@@ -18,7 +18,7 @@ distmap = {
 	'rh62': 'rh6',
 }
 
-distlist = ['0', 'rh6', 'rh7', 'rh8', 'rh9', 'el2', 'el3', 'el4', 'fc1', 'fc2', 'fc3', 'fc4', 'fc5', 'au1.91', 'au1.92']
+distlist = ['0', 'rh6', 'rh7', 'rh8', 'rh9', 'el2', 'el3', 'el4', 'el5', 'fc1', 'fc2', 'fc3', 'fc4', 'fc5', 'fc6', 'fc7', 'au1.91', 'au1.92', 'nodist']
 distlistre = '|'.join(distlist + distmap.keys())
 repolist = ['dag', 'dries', 'rf', 'test']
 repolistre = '|'.join(repolist)

@@ -27,7 +27,7 @@ for distname in $DISTS; do
 #		build_repo_yum "$DISTTAG" "$DISTPATH"
 	fi
 
-	if [ -z "$PKGS" -a "$UPDATECMD" ]; then
+	if [ "$UPDATECMD" ]; then
 		chroot $CHROOTDIR/$distname $UPDATECMD
 	fi
 

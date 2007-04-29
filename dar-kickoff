@@ -15,33 +15,6 @@ fi
 mkdir -p "$ROOT/logs" "$ROOT/home-made" "$ROOT/$DIST"
 rpm --initdb --root "$ROOT/$DIST"
 
-: -<<EOF
-adduser dag
-
-chown dag.dag -R /usr/src/redhat/BUILD /dar/packages/ /dar/logs/
-
-rpm --root -ihvU %
-Install 
-	util-linux (start)
-	
-	basesystem-7.0-2.noarch.rpm
-	bash-2.05a-13.i386.rpm
-	filesystem-2.1.6-2.noarch.rpm
-	glibc-2.2.5-42.i686.rpm
-	glibc-common-2.2.5-42.i386.rpm
-	libtermcap-2.0.8-28.i386.rpm
-	mktemp-1.5-14.i386.rpm
-	termcap-11.0.1-10.noarch.rpm
-EOF
-
-: -<<EOF #$ROOT$DIST/etc/apt/sources.list
-### Dag Apt Repository for Red Hat 8.0
-rpm file:///dar/apt redhat/8.0/en/i386 dag
-
-### Red Hat Linux 8.0
-rpm http://apt.ccl.kuleuven.ac.be redhat/8.0/en/i386 os updates
-EOF
-
 ### Disable symbols in builds (for rh90) -g
 # perl -pi.orig -e 's|-O2 -g|-O2|' /dar/chroot/*/usr/lib/rpm/{*/macros,macros,rpmrc}
 
@@ -73,6 +46,33 @@ mknod -m0666 $ROOT/$DIST/dev/ptmx c 5 2
 ln -sf ../proc/self/fd $ROOT/$DIST/dev/fd
 mkdir $ROOT/$DIST/dev/shm/
 chmod 1777 $ROOT/$DIST/dev/shm/
+
+: -<<EOF
+adduser dag
+
+chown dag.dag -R /usr/src/redhat/BUILD /dar/packages/ /dar/logs/
+
+rpm --root -ihvU %
+Install 
+	util-linux (start)
+	
+	basesystem-7.0-2.noarch.rpm
+	bash-2.05a-13.i386.rpm
+	filesystem-2.1.6-2.noarch.rpm
+	glibc-2.2.5-42.i686.rpm
+	glibc-common-2.2.5-42.i386.rpm
+	libtermcap-2.0.8-28.i386.rpm
+	mktemp-1.5-14.i386.rpm
+	termcap-11.0.1-10.noarch.rpm
+EOF
+
+: -<<EOF #$ROOT$DIST/etc/apt/sources.list
+### Dag Apt Repository for Red Hat 8.0
+rpm file:///dar/apt redhat/8.0/en/i386 dag
+
+### Red Hat Linux 8.0
+rpm http://apt.ccl.kuleuven.ac.be redhat/8.0/en/i386 os updates
+EOF
 
 #chroot $ROOT/$DIST /bin/nice /usr/bin/apt install
 

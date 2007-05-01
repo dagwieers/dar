@@ -19,10 +19,14 @@ authorities = {
 def download(url):
 	filename = os.path.join('/dar/tmp', os.path.basename(url))
 	if not os.path.exists(filename):
-		req = urllib2.Request(url)
-		fdin = urllib2.urlopen(req)
+		try:
+			req = urllib2.Request(url)
+			fdin = urllib2.urlopen(req)
+		except:
+			return
 		fdout = open(filename, 'w')
 		fdout.write(fdin.read())
+		fdin.close()
 		fdout.close()
 
 try:
@@ -65,7 +69,7 @@ for line in fd.readlines():
 	if len(pinfo) > 2 and pmodule == pinfo[0]:
 		break
 else:
-	print 'Module not found in CPAN.'
+	print >>sys.stderr, 'Module %s not found in CPAN.' % module
 	sys.exit(1)
 	
 version = pinfo[1]
@@ -79,12 +83,18 @@ tree = ElementTree.ElementTree(file='/dar/tmp/00whois.xml')
 root = tree.getroot()
 for elem in root.getiterator('{http://www.cpan.org/xmlns/whois}cpanid'):
 	if mnemo == elem.find('{http://www.cpan.org/xmlns/whois}id').text:
-		author = elem.find('{http://www.cpan.org/xmlns/whois}fullname').text
-		email = elem.find('{http://www.cpan.org/xmlns/whois}email').text.replace('@','$').replace('.',',')
-		break
+		authorel = elem.find('{http://www.cpan.org/xmlns/whois}fullname')
+		try:
+			author = authorel.text
+		except:
+			author = ''
 
-if not author: author = ''
-if not email: email = ''
+		emailel = elem.find('{http://www.cpan.org/xmlns/whois}email')
+		try:
+			email = emailel.text.replace('@','$').replace('.',',')
+		except:
+			email = ''
+		break
 
 ### Try to download distribution
 distname = os.path.basename(location)
@@ -99,7 +109,7 @@ if not os.path.exists(archive):
 distfd = tarfile.open(archive, 'r:gz')
 docs = []
 for file in distfd.getnames():
-	if file.endswith('.c') or file.endswith('.h') or file.endswith('.cc'):
+	if file.endswith('.c') or file.endswith('.h') or file.endswith('.cc') or file.endswith('.xs'):
 		noarch = False
 	for docfile in docfiles:
 		if file.endswith(docfile):
@@ -115,9 +125,9 @@ docs.sort()
 if debug:
 	print >>sys.stderr, module, version, "perl-%s/perl-%s.spec" % (module, module)
 	if noarch:
-		print >>sys.stderr, 'noarch package'
+		print >>sys.stderr, 'noarch package by %s <%s>' % (author, email)
 	else:
-		print >>sys.stderr, 'arch package'
+		print >>sys.stderr, 'arch package by %s <%s>' % (author, email)
 	print >>sys.stderr, 'Found following docs:', ' '.join(docs)
 	print >>sys.stderr, 'Distribution archive %s contains:' % distname
 	for file in distfd.getnames():
@@ -128,8 +138,10 @@ if debug:
 print '# $Id$'
 print '# Authority:', logname
 
-### FIXME: Link module/02packages info with authors/00whois.xml for name and email
-print '# Upstream:', author, "<%s>" % email
+### FIXME: Make unicode characters work
+#author.encode('latin-1', errors='replace') 
+author = author.encode('latin-1', 'replace') 
+print "# Upstream: %s <%s>" % (author, email)
 print
 print '%define perl_vendorlib %(eval "`%{__perl} -V:installvendorlib`"; echo $installvendorlib)'
 print '%define perl_vendorarch %(eval "`%{__perl} -V:installvendorarch`"; echo $installvendorarch)'

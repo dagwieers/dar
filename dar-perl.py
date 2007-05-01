@@ -6,9 +6,15 @@ import tarfile
 
 args = sys.argv[1:]
 logname = os.getlogin()
-noarch = False
+debug = False
+noarch = True
 
 docfiles = ('Announce', 'ANNOUNCE', 'Artistic', 'ARTISTIC', 'Artistic.txt', 'AUTHORS', 'Bugs', 'BUGS', 'Changelog', 'ChangeLog', 'CHANGELOG', 'Changes', 'CHANGES', 'Changes.pod', 'CHANGES.TXT', 'Copying', 'COPYING', 'COPYRIGHT', 'Credits', 'CREDITS', 'CREDITS.txt', 'FAQ', 'GNU_GPL.txt', 'GNU_LGPL.txt', 'GNU_LICENSE', 'HACKING', 'HISTORY', 'INFO', 'INSTALL', 'INSTALLING', 'INSTALL.txt', 'LICENCE', 'LICENSE', 'MANIFEST', 'META.yml', 'NEWS', 'NOTES', 'NOTICE', 'PORTING', 'readme', 'README', 'readme.txt', 'README.txt', 'README.TXT', 'RELEASE_NOTES', 'SIGNATURE', 'THANKS', 'TODO', 'UPGRADE', 'VERSION', '.txt')
+
+authorities = {
+	'dag': 'Dag Wieers <dag@wieers.com>',
+	'dries': 'Dries Verachtert <dries@ulyssis.org>',
+}
 
 def download(url):
 	filename = os.path.join('/dar/tmp', os.path.basename(url))
@@ -20,8 +26,8 @@ def download(url):
 		fdout.close()
 
 try:
-	opts, args = getopt.getopt (args, 'hnv',
-		['help', 'noarch', 'version'])
+	opts, args = getopt.getopt (args, 'dhnv',
+		['debug', 'help', 'version'])
 except getopt.error, exc:
 	print 'dar-perl: %s, try dstat -h for a list of all the options' % str(exc)
 	sys.exit(1)
@@ -31,8 +37,8 @@ for opt, arg in opts:
 		pass
 	elif opt in ['-v', '--version']:
 		pass
-	elif opt in ['-n', '--noarch']:
-		noarch = True
+	elif opt in ['-d', '--debug']:
+		debug = True
 
 if args:
 	module = args[0]
@@ -81,24 +87,42 @@ if not author: author = ''
 if not email: email = ''
 
 ### Try to download distribution
-filename = os.path.basename(location)
-archive = os.path.join('/dar/tmp', filename)
-download("http://www.cpan.org/modules/by-module/%s/%s" % (modparts[0], filename))
+distname = os.path.basename(location)
+archive = os.path.join('/dar/tmp', distname)
+download("http://www.cpan.org/modules/by-module/%s/%s" % (modparts[0], distname))
 bymodule = True
 if not os.path.exists(archive):
 	download(location)
 	bymodule = False
 
 ### Inspect distribution and extract information (%doc, META.yml, arch/noarch)
-fd = tarfile.open(archive, 'r:gz')
+distfd = tarfile.open(archive, 'r:gz')
 docs = []
-for file in fd.getnames():
+for file in distfd.getnames():
+	if file.endswith('.c') or file.endswith('.h') or file.endswith('.cc'):
+		noarch = False
 	for docfile in docfiles:
 		if file.endswith(docfile):
-			docs.append(os.path.basename(file))
+			l = file.split('/')
+			docs.append('/'.join(l[1:]))
+#	if file.endswith('META.yml'):
+#		member = distfd.getmember(file)
+#		meta = distfd.extractfile(member)
+#		for line in meta.readlines():
+#			print >>sys.stderr, line
 docs.sort()
 
-print >>sys.stderr, module, version, "perl-%s/perl-%s.spec" % (module, module)
+if debug:
+	print >>sys.stderr, module, version, "perl-%s/perl-%s.spec" % (module, module)
+	if noarch:
+		print >>sys.stderr, 'noarch package'
+	else:
+		print >>sys.stderr, 'arch package'
+	print >>sys.stderr, 'Found following docs:', ' '.join(docs)
+	print >>sys.stderr, 'Distribution archive %s contains:' % distname
+	for file in distfd.getnames():
+		print >>sys.stderr, '  ', file
+
 #print >>sys.stderr, "http://search.cpan.org/dist/%s/" % module
 
 print '# $Id$'
@@ -176,7 +200,6 @@ print '%defattr(-, root, root, 0755)'
 print '%doc', ' '.join(docs)
 print "%%doc %%{_mandir}/man3/%s.3pm*" % pmodule
 print '#%doc %{_mandir}/man3/*.3pm*'
-#print '%{_bindir}/dave'
 
 if noarch:
 	### Print directory entries (if any)
@@ -227,7 +250,7 @@ else:
 
 print
 print '%changelog'
-print '* %s Dag Wieers <dag@wieers.com> - %s-1' % (time.strftime('%a %b %d %Y', time.localtime()), version)
+print '* %s %s - %s-1' % (time.strftime('%a %b %d %Y', time.localtime()), authorities[logname], version)
 print '- Initial package. (using DAR)'
 
 sys.exit(0)

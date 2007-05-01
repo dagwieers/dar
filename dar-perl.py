@@ -1,10 +1,23 @@
 #!/usr/bin/python
 
 import sys, os, time, getopt, urllib2, gzip
+import cElementTree as ElementTree
+import tarfile
 
 args = sys.argv[1:]
 logname = os.getlogin()
 noarch = False
+
+docfiles = ('Announce', 'ANNOUNCE', 'Artistic', 'ARTISTIC', 'Artistic.txt', 'AUTHORS', 'Bugs', 'BUGS', 'Changelog', 'ChangeLog', 'CHANGELOG', 'Changes', 'CHANGES', 'Changes.pod', 'CHANGES.TXT', 'Copying', 'COPYING', 'COPYRIGHT', 'Credits', 'CREDITS', 'CREDITS.txt', 'FAQ', 'GNU_GPL.txt', 'GNU_LGPL.txt', 'GNU_LICENSE', 'HACKING', 'HISTORY', 'INFO', 'INSTALL', 'INSTALLING', 'INSTALL.txt', 'LICENCE', 'LICENSE', 'MANIFEST', 'META.yml', 'NEWS', 'NOTES', 'NOTICE', 'PORTING', 'readme', 'README', 'readme.txt', 'README.txt', 'README.TXT', 'RELEASE_NOTES', 'SIGNATURE', 'THANKS', 'TODO', 'UPGRADE', 'VERSION', '.txt')
+
+def download(url):
+	filename = os.path.join('/dar/tmp', os.path.basename(url))
+	if not os.path.exists(filename):
+		req = urllib2.Request(url)
+		fdin = urllib2.urlopen(req)
+		fdout = open(filename, 'w')
+		fdout.write(fdin.read())
+		fdout.close()
 
 try:
 	opts, args = getopt.getopt (args, 'hnv',
@@ -33,15 +46,14 @@ if module.startswith('perl-'):
 modparts = module.split('-')
 pmodule = '::'.join(modparts)
 
-if not os.path.exists('/dar/tmp/02packages.details.txt.gz'):
-	req = urllib2.Request('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/modules/02packages.details.txt.gz')
-	fdin = urllib2.urlopen(req)
-	fdout = open('/dar/tmp/02packages.details.txt.gz', 'w')
-	fdout.write(fdin.read())
-	fdout.close()
+### Download latest package list from CPAN
+download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/modules/02packages.details.txt.gz')
 
+### Download latest authors list from CPAN
+download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/authors/00whois.xml')
+
+### Find specific package in CPAN package list
 fd = gzip.open('/dar/tmp/02packages.details.txt.gz', 'r')
-
 for line in fd.readlines():
 	pinfo = line.split()
 	if len(pinfo) > 2 and pmodule == pinfo[0]:
@@ -53,14 +65,47 @@ else:
 version = pinfo[1]
 location = pinfo[2]
 
-print >>sys.stderr, module, version
-print >>sys.stderr, "http://search.cpan.org/dist/%s/" % module
+ppath = pinfo[2].split('/')
+mnemo = ppath[2]
+
+### Find specific author in CPAN authors list
+tree = ElementTree.ElementTree(file='/dar/tmp/00whois.xml')
+root = tree.getroot()
+for elem in root.getiterator('{http://www.cpan.org/xmlns/whois}cpanid'):
+	if mnemo == elem.find('{http://www.cpan.org/xmlns/whois}id').text:
+		author = elem.find('{http://www.cpan.org/xmlns/whois}fullname').text
+		email = elem.find('{http://www.cpan.org/xmlns/whois}email').text.replace('@','$').replace('.',',')
+		break
+
+if not author: author = ''
+if not email: email = ''
+
+### Try to download distribution
+filename = os.path.basename(location)
+archive = os.path.join('/dar/tmp', filename)
+download("http://www.cpan.org/modules/by-module/%s/%s" % (modparts[0], filename))
+bymodule = True
+if not os.path.exists(archive):
+	download(location)
+	bymodule = False
+
+### Inspect distribution and extract information (%doc, META.yml, arch/noarch)
+fd = tarfile.open(archive, 'r:gz')
+docs = []
+for file in fd.getnames():
+	for docfile in docfiles:
+		if file.endswith(docfile):
+			docs.append(os.path.basename(file))
+docs.sort()
+
+print >>sys.stderr, module, version, "perl-%s/perl-%s.spec" % (module, module)
+#print >>sys.stderr, "http://search.cpan.org/dist/%s/" % module
 
 print '# $Id$'
 print '# Authority:', logname
 
 ### FIXME: Link module/02packages info with authors/00whois.xml for name and email
-print '# Upstream:'
+print '# Upstream:', author, "<%s>" % email
 print
 print '%define perl_vendorlib %(eval "`%{__perl} -V:installvendorlib`"; echo $installvendorlib)'
 print '%define perl_vendorarch %(eval "`%{__perl} -V:installvendorarch`"; echo $installvendorarch)'
@@ -79,12 +124,18 @@ print 'License: Artistic'
 print 'Group: Applications/CPAN'
 print "URL: http://search.cpan.org/dist/%s/" % module
 print
-print "Source: http://www.cpan.org/modules/by-module/%s/%s-%%{version}.tar.gz" % (modparts[0], module)
-print "#Source: http://www.cpan.org/authors/id/%s" % location
+
+if bymodule:
+	print "Source: http://www.cpan.org/modules/by-module/%s/%s-%%{version}.tar.gz" % (modparts[0], module)
+else:
+	print "Source: http://www.cpan.org/authors/id/%s" % location
+
 print 'BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root'
 print
+
 if noarch:
 	print "BuildArch: noarch"
+
 print "BuildRequires: perl"
 print "Requires: perl"
 print
@@ -122,9 +173,9 @@ print
 print '%files'
 print '%defattr(-, root, root, 0755)'
 ### Check DOCS in archive from "grep -h '^%doc' /dar/rpms/perl*/perl*.spec | grep -v mandir | xargs -n 1 | sort | uniq"
-print '%doc Changes LICENSE MANIFEST META.yml README'
-print "#%%doc %%{_mandir}/man3/%s.3pm*" % pmodule
-print '%doc %{_mandir}/man3/*.3pm*'
+print '%doc', ' '.join(docs)
+print "%%doc %%{_mandir}/man3/%s.3pm*" % pmodule
+print '#%doc %{_mandir}/man3/*.3pm*'
 #print '%{_bindir}/dave'
 
 if noarch:
@@ -136,7 +187,7 @@ if noarch:
 			print str
 
 	### Print module directory
-	str = '%{perl_vendorlib}/'
+	str = '#%{perl_vendorlib}/'
 	for nr, part in enumerate(modparts):
 		str = str + "%s/" % modparts[nr]
 	print str

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, os, time, getopt, urllib2, gzip
+import sys, os, time, getopt, urllib2, gzip, re
 import cElementTree as ElementTree
 import tarfile
 
@@ -8,6 +8,7 @@ args = sys.argv[1:]
 logname = os.getlogin()
 debug = False
 noarch = True
+realversion = None
 
 docfiles = ('Announce', 'ANNOUNCE', 'Artistic', 'ARTISTIC', 'Artistic.txt', 'AUTHORS', 'Bugs', 'BUGS', 'Changelog', 'ChangeLog', 'CHANGELOG', 'Changes', 'CHANGES', 'Changes.pod', 'CHANGES.TXT', 'Copying', 'COPYING', 'COPYRIGHT', 'Credits', 'CREDITS', 'CREDITS.txt', 'FAQ', 'GNU_GPL.txt', 'GNU_LGPL.txt', 'GNU_LICENSE', 'HACKING', 'HISTORY', 'INFO', 'INSTALL', 'INSTALLING', 'INSTALL.txt', 'LICENCE', 'LICENSE', 'MANIFEST', 'META.yml', 'NEWS', 'NOTES', 'NOTICE', 'PORTING', 'readme', 'README', 'readme.txt', 'README.txt', 'README.TXT', 'RELEASE_NOTES', 'SIGNATURE', 'THANKS', 'TODO', 'UPGRADE', 'VERSION', '.txt')
 
@@ -96,10 +97,21 @@ for elem in root.getiterator('{http://www.cpan.org/xmlns/whois}cpanid'):
 			email = ''
 		break
 
+### Get the correct version from the source distribution
+sdistname = "%s-%s.tar.gz" % (module, version)
+cdistname = os.path.basename(location)
+if sdistname != cdistname:
+	realversion = version
+	### FIXME: Get the version from the cdistname
+	m = re.match('.+-([\d\.]+).tar.gz', cdistname)
+	if m:
+	        l = m.groups()
+		version = l[0]
+#	print >>sys.stdout, "sdistname != cdistname"
+
 ### Try to download distribution
-distname = os.path.basename(location)
-archive = os.path.join('/dar/tmp', distname)
-download("http://www.cpan.org/modules/by-module/%s/%s" % (modparts[0], distname))
+archive = os.path.join('/dar/tmp', cdistname)
+download("http://www.cpan.org/modules/by-module/%s/%s" % (modparts[0], cdistname))
 bymodule = True
 if not os.path.exists(archive):
 	download(location)
@@ -107,15 +119,28 @@ if not os.path.exists(archive):
 
 ### Inspect distribution and extract information (%doc, META.yml, arch/noarch)
 distfd = tarfile.open(archive, 'r:gz')
+### Remove .tar.gz from base (Name-Version)
+base = os.path.basename(archive)
+l = base.split('.tar.gz')
+base = l[0]
 docs = []
 for file in distfd.getnames():
+	### Remove Name-Version/ from filename
+	l = file.split(base+'/')
+	shortfile = l[1]
 	if file.endswith('.c') or file.endswith('.h') or file.endswith('.cc') or file.endswith('.xs'):
 		noarch = False
 	for docfile in docfiles:
-		if file.endswith(docfile):
-			l = file.split('/')
-			docs.append('/'.join(l[1:]))
-#	if file.endswith('META.yml'):
+		if shortfile == docfile:
+			docs.append(shortfile)
+	### Parse META.yml
+#	if shortfile == 'META.yml':
+#		member = distfd.getmember(file)
+#		meta = distfd.extractfile(member)
+#		for line in meta.readlines():
+#			print >>sys.stderr, line
+	### Parse README
+#	if shortfile == 'README':
 #		member = distfd.getmember(file)
 #		meta = distfd.extractfile(member)
 #		for line in meta.readlines():
@@ -128,8 +153,10 @@ if debug:
 		print >>sys.stderr, 'noarch package by %s <%s>' % (author, email)
 	else:
 		print >>sys.stderr, 'arch package by %s <%s>' % (author, email)
+	if realversion:
+		print >>sys.stderr, 'source has different version format than CPAN (%s vs %s)' % (version, realversion)
 	print >>sys.stderr, 'Found following docs:', ' '.join(docs)
-	print >>sys.stderr, 'Distribution archive %s contains:' % distname
+	print >>sys.stderr, 'Distribution archive %s contains:' % cdistname
 	for file in distfd.getnames():
 		print >>sys.stderr, '  ', file
 
@@ -138,7 +165,7 @@ if debug:
 print '# $Id$'
 print '# Authority:', logname
 
-### FIXME: Make unicode characters work
+### FIXME: Make unicode characters work, instead of removing them
 #author.encode('latin-1', errors='replace') 
 author = author.encode('latin-1', 'replace') 
 print "# Upstream: %s <%s>" % (author, email)
@@ -147,15 +174,19 @@ print '%define perl_vendorlib %(eval "`%{__perl} -V:installvendorlib`"; echo $in
 print '%define perl_vendorarch %(eval "`%{__perl} -V:installvendorarch`"; echo $installvendorarch)'
 print
 print '%define real_name', module
+
+if realversion:
+	print '%define real_version', realversion
+	
 print
 
-### FIXME: Get Summary from CPAN or Archive
+### FIXME: Get Summary from README in Archive
 print "Summary: %s module for perl" % module
 print "Name: perl-%s" % module
 print 'Version:', version
 print 'Release: 1'
 
-### FIXME: Get License from CPAN or Archive
+### FIXME: Get License from Archive
 print 'License: Artistic'
 print 'Group: Applications/CPAN'
 print "URL: http://search.cpan.org/dist/%s/" % module
@@ -173,14 +204,16 @@ if noarch:
 	print "BuildArch: noarch"
 
 print "BuildRequires: perl"
-print "Requires: perl"
+#print "Requires: perl"
 print
 
-### FIXME: Get Description from CPAN or Archive
+### FIXME: Get Description from README in Archive
 print "%description"
 print "%s module for perl." % module
 print
 print "%prep"
+#if realversion:
+#	print "%setup -n %{real_name}-%{real_version}"
 print "%setup -n %{real_name}-%{version}"
 print
 print "%build"

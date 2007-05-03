@@ -165,10 +165,11 @@ if debug:
 print '# $Id$'
 print '# Authority:', logname
 
-### FIXME: Make unicode characters work, instead of removing them
-#author.encode('latin-1', errors='replace') 
-author = author.encode('latin-1', 'replace') 
-print "# Upstream: %s <%s>" % (author, email)
+author = author.encode('utf8', 'replace') 
+if email:
+	print "# Upstream: %s <%s>" % (author, email)
+else:
+	print "# Upstream: %s" % author
 print
 print '%define perl_vendorlib %(eval "`%{__perl} -V:installvendorlib`"; echo $installvendorlib)'
 print '%define perl_vendorarch %(eval "`%{__perl} -V:installvendorarch`"; echo $installvendorarch)'

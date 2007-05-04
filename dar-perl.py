@@ -6,26 +6,36 @@
 ### TODO:
 ###	- Check that module name is distribution !!
 ###	- Improve docfiles handling (case-insensitive matching, deflates list)
-###	- Get License based on availability of files (LICENSE, Artistic)
-###	- Get dependencies from META.yml if available
-###	- Get author, license, abstract from META.yml if available
+###	- Get build dependencies from META.yml if available
 ###	- Compare name and version with META.yml
 
-import sys, os, time, getopt, urllib2, gzip, re
+import sys, os, time, getopt, urllib2, gzip, re, syck
 import cElementTree as ElementTree
 import tarfile
 
+tmppath = '/dar/tmp'
+
 args = sys.argv[1:]
-logname = os.getlogin()
+try:
+	logname = os.getlogin()
+except:
+	logname = 'unknown'
 debug = False
 noarch = True
 realversion = None
+author = ''
+email = ''
 
 docfiles = ('Announce', 'ANNOUNCE', 'Artistic', 'ARTISTIC', 'Artistic.txt', 'AUTHORS', 'Bugs', 'BUGS', 'Changelog', 'ChangeLog', 'CHANGELOG', 'Changes', 'CHANGES', 'Changes.pod', 'CHANGES.TXT', 'Copying', 'COPYING', 'COPYRIGHT', 'Credits', 'CREDITS', 'CREDITS.txt', 'FAQ', 'GNU_GPL.txt', 'GNU_LGPL.txt', 'GNU_LICENSE', 'HACKING', 'HISTORY', 'INFO', 'INSTALL', 'INSTALLING', 'INSTALL.txt', 'LICENCE', 'LICENSE', 'MANIFEST', 'META.yml', 'NEWS', 'NOTES', 'NOTICE', 'PORTING', 'readme', 'README', 'readme.txt', 'README.txt', 'README.TXT', 'RELEASE_NOTES', 'SIGNATURE', 'THANKS', 'TODO', 'UPGRADE', 'VERSION', '.txt')
 
 authorities = {
 	'dag': 'Dag Wieers <dag@wieers.com>',
 	'dries': 'Dries Verachtert <dries@ulyssis.org>',
+	'unknown': 'Name Unknown <name@unknown.foo>',
+}
+
+licenses = {
+	'perl': 'GPL or Artistic',
 }
 
 def download(url):
@@ -77,7 +87,7 @@ download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/modules/02packages.det
 download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/authors/00whois.xml')
 
 ### Find specific package in CPAN package list
-fd = gzip.open('/dar/tmp/02packages.details.txt.gz', 'r')
+fd = gzip.open(os.path.join(tmppath, '02packages.details.txt.gz'), 'r')
 for line in fd.readlines():
 	pinfo = line.split()
 	if len(pinfo) > 2 and pmodule == pinfo[0]:
@@ -93,7 +103,7 @@ ppath = pinfo[2].split('/')
 mnemo = ppath[2]
 
 ### Find specific author in CPAN authors list
-tree = ElementTree.ElementTree(file='/dar/tmp/00whois.xml')
+tree = ElementTree.ElementTree(file=os.path.join(tmppath, '00whois.xml'))
 root = tree.getroot()
 for elem in root.getiterator('{http://www.cpan.org/xmlns/whois}cpanid'):
 	if mnemo == elem.find('{http://www.cpan.org/xmlns/whois}id').text:
@@ -109,6 +119,8 @@ for elem in root.getiterator('{http://www.cpan.org/xmlns/whois}cpanid'):
 		except:
 			email = ''
 		break
+if email:
+	author = "%s <%s>" % (author, email)
 
 ### Get the correct version from the source distribution
 sdistname = "%s-%s.tar.gz" % (module, version)
@@ -122,9 +134,9 @@ if sdistname != cdistname:
 		version = l[0]
 
 ### Try to download distribution
-archive = os.path.join('/dar/tmp', cdistname)
+archive = os.path.join(tmppath, cdistname)
 if os.path.isfile(archive):
-	os.remove(archive)
+	 os.remove(archive)
 source = "http://www.cpan.org/modules/by-module/%s/%s" % (modparts[0], cdistname)
 download(source)
 if not os.path.isfile(archive):
@@ -150,6 +162,7 @@ base = os.path.basename(archive)
 l = base.split('.tar.gz')
 base = l[0]
 docs = []
+meta = {}
 for file in distfd.getnames():
 	### Remove Name-Version/ from filename
 	l = file.split(base+'/')
@@ -159,35 +172,65 @@ for file in distfd.getnames():
 	for docfile in docfiles:
 		if shortfile == docfile:
 			docs.append(shortfile)
-	### Parse META.yml
+	### Parse META.yml (http://module-build.sourceforge.net/META-spec-v1.2.html)
 ### Example:
-#name: IO-Digest
-#version: 0.10
-#abstract: Calculate digests while reading or writing
-#author: Chia-liang Kao <clkao@clkao.org>
-#license: perl
-#distribution_type: module
-#requires:
-#  PerlIO::via::dynamic: 0.10
-#  Digest: 0.0
-#no_index:
-#  directory:
-#    - inc
-#generated_by: Module::Install version 0.35
+#name -> SVN-Notify-Mirror
+#license -> perl
+#author -> ['John Peacock <jpeacock@cpan.org>']
+#meta-spec -> {'url': 'http://module-build.sourceforge.net/META-spec-v1.2.html', 'version': 1.2}
+#abstract -> Keep a mirrored working copy of a repository path
+#generated_by -> Module::Build version 0.2806
+#version -> 0.036
+#provides -> {'SVN::Notify::Mirror::Rsync': {'version': '', 'file': 'lib/SVN/Notify/Mirror/Rsync.pm'}, 'SVN::Notify::Mirror::SSH': {'version': '', 'file': 'lib/SVN/Notify/Mirror/SSH.pm'}, 'SVN::Notify::Mirror': {'version': 0.035999999999999997, 'file': 'lib/SVN/Notify/Mirror.pm'}}
+#requires -> {'Module::Build': 0.28050000000000003, 'SVN::Notify': 2.6200000000000001}
+#resources -> {'license': 'http://dev.perl.org/licenses/'}
 
-#	if shortfile == 'META.yml':
-#		member = distfd.getmember(file)
-#		meta = distfd.extractfile(member)
-#		for line in meta.readlines():
-#			print >>sys.stderr, line
+	if shortfile == 'META.yml':
+		member = distfd.getmember(file)
+		meta = syck.load(distfd.extractfile(member).read())
+
+		for key in meta.keys():
+		        print >>sys.stderr, key, '->', meta[key]
+
 	### Parse README
 #	if shortfile == 'README':
 #		member = distfd.getmember(file)
 #		meta = distfd.extractfile(member)
 #		for line in meta.readlines():
 #			print >>sys.stderr, line
+
 docs.sort()
 
+#if os.path.isfile(archive):
+#	os.remove(archive)
+
+if meta.has_key('author') and not email or not author:
+	author = meta['author']
+
+if meta.has_key('license') and meta['license'] in licenses.keys():
+	license = licenses[meta['license']]
+else:
+	gpl = 'LICENSE' in docs
+	artistic = 'Artistic' in docs
+	if gpl and artistic:
+		license = 'GPL or Artistic'
+	elif gpl:
+		license = 'GPL'
+	elif artistic:
+		license = 'Artistic'
+	else:
+		license = 'Artistic'
+		print >>sys.stderr, 'License could not be determined.'
+
+if meta.has_key('abstract'):
+	meta['abstract'] = meta['abstract'][0].lower() + meta['abstract'][1:]
+	summary = "Perl module to %s" % meta['abstract']
+	description = "perl-%s is a Perl module to %s." % (module, meta['abstract'])
+else:
+	summary = "Perl module named %s" % module
+	description = "perl-%s is a Perl module." % module
+	print >>sys.stderr, 'No abstract found.'
+	
 if debug:
 	print >>sys.stderr, module, version, "perl-%s/perl-%s.spec" % (module, module)
 	if noarch:
@@ -207,10 +250,7 @@ print '# $Id$'
 print '# Authority:', logname
 
 author = author.encode('utf8', 'replace') 
-if email:
-	print "# Upstream: %s <%s>" % (author, email)
-else:
-	print "# Upstream: %s" % author
+print "# Upstream: %s" % author
 print
 print '%define perl_vendorlib %(eval "`%{__perl} -V:installvendorlib`"; echo $installvendorlib)'
 print '%define perl_vendorarch %(eval "`%{__perl} -V:installvendorarch`"; echo $installvendorarch)'
@@ -222,14 +262,12 @@ if realversion:
 	
 print
 
-### FIXME: Get Summary from README in Archive
-print "Summary: Perl module named %s" % module
+print "Summary: %s" % summary
 print "Name: perl-%s" % module
 print 'Version:', version
 print 'Release: 1'
 
-### FIXME: Get License from Archive
-print 'License: Artistic'
+print 'License: %s' % license
 print 'Group: Applications/CPAN'
 print "URL: http://search.cpan.org/dist/%s/" % module
 print
@@ -240,13 +278,21 @@ print
 if noarch:
 	print "BuildArch: noarch"
 
+### FIXME: Add BuildRequires from Makefile.PL
 print "BuildRequires: perl"
 #print "Requires: perl"
+
+### Requires are extracted by RPM itself
+#if meta.has_key('requires'):
+#	for key in meta['requires']:
+#		if meta['requires'][key]:
+#			print "Requires: perl(%s) >= %s" % (key, meta['requires'][key])
+#		else:
+#			print "Requires: perl(%s)" % key
 print
 
-### FIXME: Get Description from README in Archive
 print "%description"
-print "perl-%s is a Perl module." % module
+print description
 print
 print "%prep"
 print "%%setup -n %s" % basedir

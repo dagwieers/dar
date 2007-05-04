@@ -4,6 +4,7 @@
 ### for Perl modules.
 
 ### TODO:
+###	- Check that module name is distribution !!
 ###	- Improve docfiles handling (case-insensitive matching, deflates list)
 ###	- Get License based on availability of files (LICENSE, Artistic)
 ###	- Get dependencies from META.yml if available
@@ -119,7 +120,6 @@ if sdistname != cdistname:
 	if m:
 	        l = m.groups()
 		version = l[0]
-#	print >>sys.stdout, "sdistname != cdistname"
 
 ### Try to download distribution
 archive = os.path.join('/dar/tmp', cdistname)

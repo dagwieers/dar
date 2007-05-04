@@ -1,5 +1,11 @@
 #!/usr/bin/python
 
+### This python scripts automatically generates an RPMforge SPEC files
+### for Perl modules.
+
+### Failed examples:
+###	perl-Moose		- problem with single component modules
+
 import sys, os, time, getopt, urllib2, gzip, re
 import cElementTree as ElementTree
 import tarfile
@@ -103,7 +109,7 @@ cdistname = os.path.basename(location)
 if sdistname != cdistname:
 	realversion = version
 	### FIXME: Get the version from the cdistname
-	m = re.match('.+-([\d\.]+).tar.gz', cdistname)
+	m = re.match('[^\d]+([\d\.]+).tar.gz', cdistname)
 	if m:
 	        l = m.groups()
 		version = l[0]
@@ -111,11 +117,25 @@ if sdistname != cdistname:
 
 ### Try to download distribution
 archive = os.path.join('/dar/tmp', cdistname)
-download("http://www.cpan.org/modules/by-module/%s/%s" % (modparts[0], cdistname))
-bymodule = True
-if not os.path.exists(archive):
-	download(location)
-	bymodule = False
+if os.path.isfile(archive):
+	os.remove(archive)
+source = "http://www.cpan.org/modules/by-module/%s/%s" % (modparts[0], cdistname)
+download(source)
+if not os.path.isfile(archive):
+	source = "http://www.cpan.org/authors/id/%s" % location
+	download(source)
+
+### Add %{version} and %{real_version} to source and basedir
+source = source.replace(version, '%{version}')
+if realversion:
+	source = source.replace(realversion, '%{real_version}')
+
+### Create basedir out of cdistname
+basedir = cdistname.replace('.tar.gz', '')
+basedir = basedir.replace(version, '%{version}')
+if realversion:
+	basedir = basedir.replace(realversion, '%{real_version}')
+basedir = basedir.replace(module, '%{real_name}')
 
 ### Inspect distribution and extract information (%doc, META.yml, arch/noarch)
 distfd = tarfile.open(archive, 'r:gz')
@@ -182,7 +202,7 @@ if realversion:
 print
 
 ### FIXME: Get Summary from README in Archive
-print "Summary: %s module for perl" % module
+print "Summary: Perl module named %s" % module
 print "Name: perl-%s" % module
 print 'Version:', version
 print 'Release: 1'
@@ -192,12 +212,7 @@ print 'License: Artistic'
 print 'Group: Applications/CPAN'
 print "URL: http://search.cpan.org/dist/%s/" % module
 print
-
-if bymodule:
-	print "Source: http://www.cpan.org/modules/by-module/%s/%s-%%{version}.tar.gz" % (modparts[0], module)
-else:
-	print "Source: http://www.cpan.org/authors/id/%s" % location
-
+print "Source: %s" % source
 print 'BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root'
 print
 
@@ -210,12 +225,10 @@ print
 
 ### FIXME: Get Description from README in Archive
 print "%description"
-print "%s module for perl." % module
+print "perl-%s is a Perl module." % module
 print
 print "%prep"
-#if realversion:
-#	print "%setup -n %{real_name}-%{real_version}"
-print "%setup -n %{real_name}-%{version}"
+print "%%setup -n %s" % basedir
 print
 print "%build"
 if noarch:

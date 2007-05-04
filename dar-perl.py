@@ -3,8 +3,12 @@
 ### This python scripts automatically generates an RPMforge SPEC files
 ### for Perl modules.
 
-### Failed examples:
-###	perl-Moose		- problem with single component modules
+### TODO:
+###	- Improve docfiles handling (case-insensitive matching, deflates list)
+###	- Get License based on availability of files (LICENSE, Artistic)
+###	- Get dependencies from META.yml if available
+###	- Get author, license, abstract from META.yml if available
+###	- Compare name and version with META.yml
 
 import sys, os, time, getopt, urllib2, gzip, re
 import cElementTree as ElementTree
@@ -51,17 +55,19 @@ for opt, arg in opts:
 	elif opt in ['-d', '--debug']:
 		debug = True
 
-if args:
-	module = args[0]
-else:
-	module = 'RPMforge-Template'
+if not args:
+	print >>sys.stderr, 'You have to provide a module name.'
+	sys.exit(1)
+
+module = args[0]
+module = module.replace('::', '-')
+modparts = module.split('-')
 
 if module.startswith('perl-'):
-	l = module.split('-')
-	module = '-'.join(l[1:])
+	modparts = modparts[1:]
+	module = '-'.join(modparts)
 
-modparts = module.split('-')
-pmodule = '::'.join(modparts)
+pmodule = module.replace('-', '::')
 
 ### Download latest package list from CPAN
 download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/modules/02packages.details.txt.gz')
@@ -125,7 +131,7 @@ if not os.path.isfile(archive):
 	source = "http://www.cpan.org/authors/id/%s" % location
 	download(source)
 
-### Add %{version} and %{real_version} to source and basedir
+### Add %{version} and %{real_version} to source
 source = source.replace(version, '%{version}')
 if realversion:
 	source = source.replace(realversion, '%{real_version}')
@@ -154,6 +160,21 @@ for file in distfd.getnames():
 		if shortfile == docfile:
 			docs.append(shortfile)
 	### Parse META.yml
+### Example:
+#name: IO-Digest
+#version: 0.10
+#abstract: Calculate digests while reading or writing
+#author: Chia-liang Kao <clkao@clkao.org>
+#license: perl
+#distribution_type: module
+#requires:
+#  PerlIO::via::dynamic: 0.10
+#  Digest: 0.0
+#no_index:
+#  directory:
+#    - inc
+#generated_by: Module::Install version 0.35
+
 #	if shortfile == 'META.yml':
 #		member = distfd.getmember(file)
 #		meta = distfd.extractfile(member)
@@ -280,6 +301,8 @@ if noarch:
 		for nr, part in enumerate(modparts[:-1]):
 			str = str + "%s/" % modparts[nr]
 		print str + "%s.pm" % modparts[-1]
+	else:
+		print '%%{perl_vendorlib}/%s.pm' % modparts[0]
 else:
 	### Print directory entries (if any)
 	if modparts[:-1]:

@@ -1,42 +1,59 @@
 #!/usr/bin/python
 
-### This python scripts automatically generates an RPMforge SPEC files
-### for Perl modules.
+### This python scripts automatically generates an RPMforge SPEC file
+### for Perl modules based on CPAN information.
 
 ### Example modules:
 ###	perl-Tree-Simple		tests META.yml
 ###	perl-Tree-Simple-Visitor	tests sub-modules
+###	perl-Kwiki			tests perl Buildrequires epoch
 
-### TODO:
-###	- Improve docfiles handling (case-insensitive matching, deflates list)
+### More documentation about:
+###	META.yml			http://module-build.source-forge.net/META-spec-current.html
 
-import sys, os, time, getopt, urllib2, gzip, re, syck
+import sys, os, time, getopt, urllib2, gzip, re, yaml, tarfile, rpm, types
 import cElementTree as ElementTree
-import tarfile
 
 args = sys.argv[1:]
 try:
 	logname = os.getlogin()
 except:
-	logname = 'unknown'
+	logname = 'dag'
 debug = False
 noarch = True
 realversion = None
-author = ''
+authors = []
 email = ''
 tmppath = '/var/tmp'
+license = ''
 
-docfiles = ('Announce', 'ANNOUNCE', 'Artistic', 'ARTISTIC', 'Artistic.txt', 'AUTHORS', 'Bugs', 'BUGS', 'Changelog', 'ChangeLog', 'CHANGELOG', 'Changes', 'CHANGES', 'Changes.pod', 'CHANGES.TXT', 'Copying', 'COPYING', 'COPYRIGHT', 'Credits', 'CREDITS', 'CREDITS.txt', 'FAQ', 'GNU_GPL.txt', 'GNU_LGPL.txt', 'GNU_LICENSE', 'HACKING', 'HISTORY', 'INFO', 'INSTALL', 'INSTALLING', 'INSTALL.txt', 'LICENCE', 'LICENSE', 'MANIFEST', 'META.yml', 'NEWS', 'NOTES', 'NOTICE', 'PORTING', 'readme', 'README', 'readme.txt', 'README.txt', 'README.TXT', 'RELEASE_NOTES', 'SIGNATURE', 'THANKS', 'TODO', 'UPGRADE', 'VERSION', '.txt')
+### Files considered a document:
+### Announce ANNOUNCE Artistic ARTISTIC Artistic.txt AUTHORS Bugs BUGS
+### Changelog ChangeLog CHANGELOG Changes CHANGES Changes.pod CHANGES.TXT
+### Copying COPYING COPYRIGHT Credits CREDITS CREDITS.txt FAQ GNU_GPL.txt
+### GNU_LGPL.txt GNU_LICENSE HACKING HISTORY INFO INSTALL INSTALLING
+### INSTALL.txt LICENCE LICENSE MANIFEST META.yml NEWS NOTES NOTICE
+### PORTING readme README readme.txt README.txt README.TXT RELEASE_NOTES
+### SIGNATURE THANKS TODO UPGRADE VERSION *.txt  
+
+docfiles = ('^ANNOUNCE', '^Artistic', '^AUTHORS', '^BUGS', '^ChangeLog',
+	 '^Changes', '^Changes.pod', '^COPYING', '^COPYRIGHT', '^CREDITS',
+	'^FAQ', '^GNU_LICENSE', '^HACKING', '^HISTORY', '^INFO', '^INSTALL',
+	'^INSTALLING', '^LICENCE', '^LICENSE', '^MANIFEST', '^META.yml',
+	'^NEWS', '^NOTES', '^NOTICE', '^PORTING', '^README', '^RELEASE_NOTES',
+	'^SIGNATURE', '^THANKS', '^TODO', '^UPGRADE', '^VERSION', '^[^/]+.txt$')
 
 authorities = {
 	'dag': 'Dag Wieers <dag@wieers.com>',
 	'dries': 'Dries Verachtert <dries@ulyssis.org>',
-	'unknown': 'Name Unknown <name@unknown.foo>',
 }
 
 licenses = {
-	'perl': 'GPL or Artistic',
+	'perl': 'Artistic/GPL',
 }
+
+### FIXME: Add proper epochs to perl-dependencies
+epochs = ( '5.0.0', '5.6.1', '5.8.0', '5.8.5', '5.8.8' )
 
 def download(url):
 	filename = os.path.join(tmppath, os.path.basename(url))
@@ -51,11 +68,22 @@ def download(url):
 		fdin.close()
 		fdout.close()
 
+### FIXME: Create own version comparison instead of using RPM's
+def vercmp(v1, v2):
+        return rpm.labelCompare((None, v1, None), (None, v2, None))
+
+def epochify(version):
+	epoch = 0
+	for e, v in enumerate(epochs):
+		if vercmp(str(version), v) >= 0:
+			epoch = e
+	return '%s:%s' % (epoch, version)
+
 try:
 	opts, args = getopt.getopt (args, 'dhnv',
 		['debug', 'help', 'version'])
 except getopt.error, exc:
-	print 'dar-perl: %s, try dar-perl.py -h for a list of all the options' % str(exc)
+	print >>sys.stderr, 'dar-perl: %s, try dar-perl.py -h for a list of all the options' % str(exc)
 	sys.exit(1)
 
 for opt, arg in opts:
@@ -108,19 +136,14 @@ root = tree.getroot()
 for elem in root.getiterator('{http://www.cpan.org/xmlns/whois}cpanid'):
 	if mnemo == elem.find('{http://www.cpan.org/xmlns/whois}id').text:
 		authorel = elem.find('{http://www.cpan.org/xmlns/whois}fullname')
-		try:
-			author = authorel.text
-		except:
-			author = ''
-
 		emailel = elem.find('{http://www.cpan.org/xmlns/whois}email')
 		try:
-			email = emailel.text.replace('@','$').replace('.',',')
+			author = "%s <%s>" % (authorel.text, emailel.text.replace('@','$').replace('.',','))
 		except:
-			email = ''
+			break
+
+		authors.append(author.encode('utf8', 'replace'))
 		break
-if email:
-	author = "%s <%s>" % (author, email)
 
 ### Get the correct version from the source distribution
 sdistname = "%s-%s.tar.gz" % (module, version)
@@ -155,6 +178,10 @@ if realversion:
 	basedir = basedir.replace(realversion, '%{real_version}')
 basedir = basedir.replace(module, '%{real_name}')
 
+if realversion == 'undef':
+	print >>sys.stderr, 'Version is undefined. Distribution %s is not a module.' % module
+	sys.exit(1)
+
 ### Inspect distribution and extract information (%doc, META.yml, arch/noarch)
 distfd = tarfile.open(archive, 'r:gz')
 ### Remove .tar.gz from base (Name-Version)
@@ -173,14 +200,14 @@ for file in distfd.getnames():
 		noarch = False
 
 	### Create %docs list
-	for docfile in docfiles:
-		if shortfile == docfile:
+	for docre in docfiles:
+		if re.search(docre, shortfile, re.I):
 			docs.append(shortfile)
 
-	### Parse META.yml (http://module-build.sourceforge.net/META-spec-v1.2.html)
+	### Parse META.yml (http://module-build.source-forge.net/META-spec-current.html)
 	if shortfile == 'META.yml':
 		member = distfd.getmember(file)
-		meta = syck.load(distfd.extractfile(member).read())
+		meta = yaml.load(distfd.extractfile(member).read())
 		if debug:
 			print >>sys.stderr, 'META.yml contains the following info:'
 			for key in meta.keys():
@@ -191,30 +218,51 @@ docs.sort()
 if os.path.isfile(archive):
 	os.remove(archive)
 
+### Compare deducted information with META.yml
 if meta.has_key('name') and meta['name'] != module:
 	print >>sys.stderr, 'Module %s is part of distribution %s. Please us that instead.' % (module, meta['name'])
 	sys.exit(1)
 
 if meta.has_key('version') and str(meta['version']) != version:
 	print >>sys.stderr, 'Module %s has version mismatch between archive (%s) and META.yml (%s).' % (module, version, meta['version'])
-	print repr(version), repr(meta['version'])
 
-if meta.has_key('author') and not email or not author:
-	author = meta['author']
+if meta.has_key('type') and meta['type'] != 'module':
+	print >>sys.stderr, 'Distribution %s is not a module.' % module
+	sys.exit(1)
+
+if meta.has_key('author'):
+	authors = []
+        if isinstance(meta['author'], types.StringType):
+		author = meta['author'].replace('@','$').replace('.',',')
+		authors.append(meta['author'].encode('utf8', 'replace'))
+	elif isinstance(meta['author'], types.ListType):
+		for author in meta['author']:
+			author = author.replace('@','$').replace('.',',')
+			authors.append(author.encode('utf8', 'replace'))
 
 if meta.has_key('license') and meta['license'] in licenses.keys():
 	license = licenses[meta['license']]
 else:
-	gpl = 'LICENSE' in docs
-	artistic = 'Artistic' in docs
-	if gpl and artistic:
-		license = 'GPL or Artistic'
-	elif gpl:
-		license = 'GPL'
-	elif artistic:
+	artistic = False
+	gpl = False
+	lgpl = False
+	for doc in docs:
+		if doc in ('Artistic', 'ARTISTIC', 'Artistic.txt'):
+			artistic = True
+		if doc in ('Copying', 'COPYING', 'GNU_GPL.txt', 'GNU_LICENSE'):
+			gpl = True
+		if doc in ('GNU_LGPL.txt'):
+			lgpl = True
+	if artistic:
 		license = 'Artistic'
-	else:
-		license = 'Artistic'
+	if gpl:
+		if license: license = license + '/'
+		license = license + 'GPL'
+	if lgpl:
+		if license: license = license + '/'
+		license = license + 'LGPL'
+	if not license:
+		license = 'Artistic/GPL'
 		print >>sys.stderr, 'License could not be determined.'
 
 if meta.has_key('abstract'):
@@ -224,13 +272,18 @@ else:
 	summary = "Perl module named %s" % module
 	description = "perl-%s is a Perl module." % module
 	print >>sys.stderr, 'No abstract found.'
-	
+
+if meta.has_key('build_requires') and meta['build_requires'] and meta['build_requires'].has_key('perl-Inline'):
+	noarch = False
+if meta.has_key('requires') and meta['requires'] and meta['requires'].has_key('perl-Inline'):
+	noarch = False
+
 if debug:
 	print >>sys.stderr, module, version, "perl-%s/perl-%s.spec" % (module, module)
 	if noarch:
-		print >>sys.stderr, 'noarch package by %s <%s>' % (author, email)
+		print >>sys.stderr, 'noarch package'
 	else:
-		print >>sys.stderr, 'arch package by %s <%s>' % (author, email)
+		print >>sys.stderr, 'arch package'
 	if realversion:
 		print >>sys.stderr, 'source has different version format than CPAN (%s vs %s)' % (version, realversion)
 	print >>sys.stderr, 'Found following docs:', ' '.join(docs)
@@ -241,8 +294,8 @@ if debug:
 print '# $Id$'
 print '# Authority:', logname
 
-author = author.encode('utf8', 'replace') 
-print "# Upstream: %s" % author
+for author in authors:
+	print "# Upstream: %s" % author
 print
 print '%define perl_vendorlib %(eval "`%{__perl} -V:installvendorlib`"; echo $installvendorlib)'
 print '%define perl_vendorarch %(eval "`%{__perl} -V:installvendorarch`"; echo $installvendorarch)'
@@ -271,8 +324,8 @@ if noarch:
 	print "BuildArch: noarch"
 
 ### FIXME: Add BuildRequires from Makefile.PL
-if meta.has_key('requires') and meta['requires'].has_key('perl'):
-	print "BuildRequires: perl >= %s " % meta['requires']['perl']
+if meta.has_key('requires') and meta['requires'] and meta['requires'].has_key('perl'):
+	print "BuildRequires: perl >= %s " % epochify(meta['requires']['perl'])
 else:
 	print "BuildRequires: perl"
 
@@ -291,6 +344,9 @@ if meta.has_key('build_requires'):
 			print "BuildRequires: perl(%s) >= %s" % (key, meta['build_requires'][key])
 		else:
 			print "BuildRequires: perl(%s)" % key
+if meta.has_key('conflicts'):
+	for key in meta['conflicts']:
+		print "Conflict: perl(%s)" % key
 print
 
 print "%description"

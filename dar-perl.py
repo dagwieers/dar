@@ -57,7 +57,9 @@ epochs = ( '5.0.0', '5.6.1', '5.8.0', '5.8.5', '5.8.8' )
 
 def download(url):
 	filename = os.path.join(tmppath, os.path.basename(url))
-	if not os.path.exists(filename):
+	### FIXME: Check if the files on disk are older than 1 day
+#	if not os.path.exists(filename):
+	if True:
 		try:
 			req = urllib2.Request(url)
 			fdin = urllib2.urlopen(req)
@@ -80,7 +82,7 @@ def epochify(version):
 	return '%s:%s' % (epoch, version)
 
 try:
-	opts, args = getopt.getopt (args, 'dhnv',
+	opts, args = getopt.getopt (args, 'adhnv',
 		['debug', 'help', 'version'])
 except getopt.error, exc:
 	print >>sys.stderr, 'dar-perl: %s, try dar-perl.py -h for a list of all the options' % str(exc)
@@ -93,6 +95,8 @@ for opt, arg in opts:
 		pass
 	elif opt in ['-d', '--debug']:
 		debug = True
+	elif opt in ['-a', '--arch']:
+		noarch = False
 
 if not args:
 	print >>sys.stderr, 'You have to provide a module name.'
@@ -207,11 +211,14 @@ for file in distfd.getnames():
 	### Parse META.yml (http://module-build.source-forge.net/META-spec-current.html)
 	if shortfile == 'META.yml':
 		member = distfd.getmember(file)
-		meta = yaml.load(distfd.extractfile(member).read())
-		if debug:
-			print >>sys.stderr, 'META.yml contains the following info:'
-			for key in meta.keys():
-				print >>sys.stderr, '   %s: %s' % (key, meta[key])
+		try:
+			meta = yaml.load(distfd.extractfile(member).read())
+			if debug:
+				print >>sys.stderr, 'META.yml contains the following info:'
+				for key in meta.keys():
+					print >>sys.stderr, '   %s: %s' % (key, meta[key])
+		except:
+			pass
 
 docs.sort()
 

@@ -318,6 +318,10 @@ for arg in $PKGS; do
 			(
 				echo "Build command:" $BUILDCMD
 				echo "Build path: $PATH"
+
+				echo -e "\n----- Spec file -----"
+				cat "$NEWSPECFILE"
+
 				echo -e "\n----- Build log -----"
 
 				### Check for building as user
@@ -353,6 +357,7 @@ for arg in $PKGS; do
 						--define '$DISTNICK 1' \
 						$NEWSPECFILE"
 				fi
+
 			) >>"$PACKAGEDIR/$app/_buildlogs/$LOGFILE" 2>&1
 #			CHROOT="/usr/bin/compartment --chroot $CHROOTDIR/$dist --user $BUILD_USER --group $BUILD_USER --init /usr/lib/dar/compartment.sh --quiet"
 
@@ -365,8 +370,6 @@ for arg in $PKGS; do
 			### Finish logging
 			(	echo -e "\n----- Return code -----"
 				echo "$RC"
-				echo -e "\n----- Spec file -----"
-				cat "$NEWSPECFILE"
 				if [ -d "$TEMPDIR/$app-$VERSION-$RELEASE-root" ]; then
 					echo -e "\n----- Buildroot content -----"
 					find "$TEMPDIR/$app-$VERSION-$RELEASE-root" 2>/dev/null
@@ -416,8 +419,10 @@ for arg in $PKGS; do
 		done
 	done
 
+	RPMFILE="$app-$VERSION-$RELEASE.$TAG.src.rpm"
 	### Only build when there was a succesful binary build
-	if [ "$DARBUILDRC" -eq 0 -a -z "$NOSOURCE" ]; then
+#	if [ -z "$NOSOURCE" -a "$DARBUILDRC" -eq 0 -o ! -f "$PACKAGEDIR/$app/$RPMFILE" ]; then
+	if [ -z "$NOSOURCE" -a "$DARBUILDRC" -eq 0 ]; then
 
 		if [ -z "$SOURCE_DISTS" ]; then SOURCE_DISTS="$DEFAULT_SOURCE_DISTS"; fi
 

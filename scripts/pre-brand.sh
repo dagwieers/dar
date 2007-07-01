@@ -20,6 +20,8 @@ case "$author" in
 		packager="Dries Verachtert <dries\@ulyssis.org>" ;;
 	(bert)
 		packager="Bert de Bruijn <bert\@debruijn.be>" ;;
+    (hadams)
+        packager="Heiko Adams <info\@fedora-blog.de>" ;;
 	(dag|thias|matthias|*)
 		packager="Dag Wieers <dag\@wieers.com>" ;;
 esac

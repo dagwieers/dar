@@ -41,7 +41,7 @@ for distname in $DISTS; do
 		export arch="$DISTARCH" dist="${DISTNAME// *}" nick="$DISTNICK" path="$DISTPATH" repo="$REPO" tag="${DISTTAG// *}"
 	fi
 
-	chroot $CHROOTDIR/$distname
+	setarch $DISTARCH chroot $CHROOTDIR/$distname
 done
 if [ -z "$QUIET" ]; then
 	echo -en "$_BL_$_WH= Returning to parent shell. Press ENTER.$_DE"

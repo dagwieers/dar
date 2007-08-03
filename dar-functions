@@ -95,21 +95,7 @@ function rpmconf {
 			local RPMVER="$(chroot $CHROOTDIR/$DISTNICK rpm --version | cut -d' ' -f3)"
 		fi
 
-                                                --define "_smp_mflags $MAKEFLAGS" \
-                                                --define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
-                                                --define "_initrddir %{_sysconfdir}/rc.d/init.d" \
-                                                --define "_rpmdir $PACKAGEDIR/$app" \
-                                                --define "_sourcedir $SPECDIR" \
-                                                --define "_builddir $ROOT/build" \
-                                                --define "_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root" \
-                                                --define "debug_package %nil" \
-                                                --define "dist $DISTNAME" \
-                                                --define "disttag $DISTNAME" \
-                                                --define "$DISTNAME 1" \
-                                                --define "$DISTNICK 1" \
-
-
-	
+    (
 	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su -lm $BUILD_USER -c "rpmdb -D \"dist $DISTNAME\" -D \"disttag $DISTNAME\" -D \"$DISTNICK 1\" -D \"$DISTNAME 1\" -E \"%{expand:%(head -n128 $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
 		if ! grep -i "^ *$CONFIG *:" $SPECFILE | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
 			debug "Config $CONFIG not found in $SPECFILE"

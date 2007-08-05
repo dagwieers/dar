@@ -21,6 +21,7 @@ except:
     logname = 'dag'
 debug = False
 noarch = True
+module_build = False
 output = False
 realversion = None
 authors = []
@@ -56,7 +57,7 @@ licenses = {
     'perl': 'Artistic/GPL',
 }
 
-### FIXME: Add proper epochs to perl-dependencies
+### Add proper epochs to perl-dependencies
 epochs = ( '5.0.0', '5.6.1', '5.8.0', '5.8.5', '5.8.8' )
 
 def download(url):
@@ -160,11 +161,14 @@ sdistname = "%s-%s.tar.gz" % (module, version)
 cdistname = os.path.basename(location)
 if sdistname != cdistname:
     realversion = version
-    ### FIXME: Get the version from the cdistname
+    ### Get the version from the cdistname
     m = re.match('[^\d]+([\d\.]+).tar.gz', cdistname)
     if m:
         l = m.groups()
-    version = l[0]
+        version = l[0]
+    else:
+        print >>sys.stderr, 'Problem retrieving version from %s for module %s.' % (cdistname, module)
+        sys.exit(1)
 
 if realversion == 'undef':
     print >>sys.stderr, 'Version is undefined. Distribution %s is not a module.' % module
@@ -199,6 +203,7 @@ base = os.path.basename(archive)
 l = base.split('.tar.gz')
 base = l[0]
 docs = []
+docsdirs = []
 meta = {}
 for file in distfd.getnames():
     ### Remove Name-Version/ from filename
@@ -216,11 +221,12 @@ for file in distfd.getnames():
     for docre in docfiles:
         if re.search(docre, shortfile, re.I):
             docs.append(shortfile)
+            break
 
     ### Create %docs directorylist
     for dir in docdirs:
         if shortfile == dir:
-            docs.append(shortfile)
+            docsdirs.append(shortfile)
 
     ### Parse META.yml (http://module-build.source-forge.net/META-spec-current.html)
     if shortfile == 'META.yml':
@@ -234,7 +240,12 @@ for file in distfd.getnames():
         except:
             pass
 
+    ### Check whether we need to use perl(Module::Build)
+#    if shortfile == 'Build.PL':
+#        module_build = True
+
 docs.sort()
+docsdirs.sort()
 
 if os.path.isfile(archive):
     os.remove(archive)
@@ -366,7 +377,17 @@ if noarch:
 if meta.has_key('requires') and meta['requires'] and meta['requires'].has_key('perl'):
     print >>out, "BuildRequires: perl >= %s " % epochify(meta['requires']['perl'])
 else:
-    print >>out, "BuildRequires: perl"
+    print >>out, 'BuildRequires: perl'
+
+if module_build:
+    print >>out, 'BuildRequires: perl(Module::Build)'
+
+if meta.has_key('build_requires'):
+    for key in meta['build_requires']:
+        if meta['build_requires'][key]:
+            print >>out, "BuildRequires: perl(%s) >= %s" % (key, meta['build_requires'][key])
+        else:
+            print >>out, "BuildRequires: perl(%s)" % key
 
 ### Requires are extracted by RPM itself
 #print "Requires: perl"
@@ -377,12 +398,6 @@ else:
 #       else:
 #           print >>out, "Requires: perl(%s)" % key
 
-if meta.has_key('build_requires'):
-    for key in meta['build_requires']:
-        if meta['build_requires'][key]:
-            print >>out, "BuildRequires: perl(%s) >= %s" % (key, meta['build_requires'][key])
-        else:
-            print >>out, "BuildRequires: perl(%s)" % key
 if meta.has_key('conflicts'):
     for key in meta['conflicts']:
         print >>out, "Conflict: perl(%s)" % key
@@ -398,17 +413,27 @@ print >>out
 
 print >>out, "%build"
 if noarch:
-    print >>out, '%{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"'
+    if module_build:
+        print >>out, '%{__perl} Makefile.PL INSTALLDIRS="vendor" destdir="%{buildroot}"'
+    else:
+        print >>out, '%{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"'
     print >>out, '%{__make} %{?_smp_mflags}'
 else:
-    print >>out, 'CFLAGS="%{optflags}" %{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"'
+    if module_build:
+        print >>out, 'CFLAGS="%{optflags}" %{__perl} Makefile.PL INSTALLDIRS="vendor" destdir="%{buildroot}"'
+    else:
+        print >>out, 'CFLAGS="%{optflags}" %{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"'
     print >>out, '%{__make} %{?_smp_mflags} OPTIMIZE="%{optflags}"'
 print >>out
 
 print >>out, '%install'
 print >>out, '%{__rm} -rf %{buildroot}'
-print >>out, '%{__make} pure_install'
+if module_build:
+    print >>out, '%{__make} install'
+else:
+    print >>out, '%{__make} pure_install'
 print >>out
+
 print >>out, '### Clean up buildroot'
 #if noarch:
 #   print >>out, '%{__rm} -rf %{buildroot}%{perl_archlib} %{buildroot}%{perl_vendorarch}'
@@ -416,6 +441,11 @@ print >>out, '### Clean up buildroot'
 #   print >>out, '%{__rm} -rf %{buildroot}%{perl_archlib} %{buildroot}%{perl_vendorarch}/auto/*{,/*{,/*}}/.packlist'
 print >>out, 'find %{buildroot} -name .packlist -exec %{__rm} {} \;'
 print >>out
+
+if docsdirs:
+    print >>out, '### Clean up docs'
+    print >>out, 'find', ' '.join(docsdirs), '-type f -exec %{__chmod} a-x {} \;'
+    print >>out
 
 print >>out, '%clean'
 print >>out, '%{__rm} -rf %{buildroot}'
@@ -425,9 +455,12 @@ print >>out
 print >>out, '%files'
 print >>out, '%defattr(-, root, root, 0755)'
 ### Check DOCS in archive from "grep -h '^%doc' /dar/rpms/perl*/perl*.spec | grep -v mandir | xargs -n 1 | sort | uniq"
-print >>out, '%doc', ' '.join(docs)
+if not docsdirs:
+    print >>out, '%doc', ' '.join(docs)
+else:
+    print >>out, '%doc', ' '.join(docs), ' '.join(docsdirs)
 print >>out, "%%doc %%{_mandir}/man3/%s.3pm*" % pmodule
-print >>out, "#%%doc %%{_mandir}/man3/*.3pm*"
+print >>out, '#%doc %{_mandir}/man3/*.3pm*'
 
 if noarch:
     ### Print directory entries (if any)
@@ -477,6 +510,7 @@ else:
     for nr, part in enumerate(modparts):
         str = str + "%s/" % modparts[nr]
     print >>out, str
+
 print >>out
 
 print >>out, '%changelog'

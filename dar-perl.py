@@ -349,8 +349,8 @@ else:
 
 ### FIXME: Get description from website
 if meta.has_key('abstract') and meta['abstract']:
-    summary = rstrip(meta['abstract'])
-    description = rstrip(meta['abstract']) + ".\n"
+    summary = meta['abstract'].rstrip('.')
+    description = meta['abstract'].rstrip('.') + ".\n"
 else:
     summary = "Perl module named %s" % package
     description = "perl-%s is a Perl module.\n" % package

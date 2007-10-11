@@ -63,32 +63,6 @@ licenses = {
 ### Add proper epochs to perl-dependencies
 epochs = ( '5.0.0', '5.6.1', '5.8.0', '5.8.5', '5.8.8' )
 
-class PackageDB:
-    def __init__(self):
-        self.db = []
-
-    def addpackage(self, name, version, path):
-        pkg = Package(name, version, path)
-        self.db.append(pkg)
-        return pkg
-
-    def searchpackage(self, name):
-        for pkg in self.db:
-            if name == pkg.name:
-                return pkg
-        else:
-            return None
-
-class Package:
-    def __init__(self, name, version, path):
-        self.modules = []
-        self.name = name
-        self.version = version
-        self.path = path
-
-    def addmodule(self, module):
-        self.module.append(module)
-
 def download(url):
     filename = os.path.join(tmppath, os.path.basename(url))
     try:
@@ -182,6 +156,7 @@ for line in fd.readlines():
     if pkgversion != 'undef' and package == pkgname:
         version = pkgversion
         module = pkgmodule
+        module_orig = pkgmodule
         path = pkgpath
         modules.append(pkgmodule)
         found = True
@@ -195,6 +170,8 @@ for line in fd.readlines():
 if not found:
     print >>sys.stderr, 'Error: Module', module, 'or package', package, 'not found in CPAN.'
     sys.exit(1)
+
+modules.sort()
 
 if package_version:
     version = package_version
@@ -370,13 +347,21 @@ else:
         license = 'Artistic/GPL'
         print >>sys.stderr, 'Warning: License could not be determined.'
 
-if meta.has_key('abstract'):
-    summary = "%s" % meta['abstract']
-    description = "%s." % meta['abstract']
+### FIXME: Get description from website
+if meta.has_key('abstract') and meta['abstract']:
+    summary = rstrip(meta['abstract'])
+    description = rstrip(meta['abstract']) + ".\n"
 else:
     summary = "Perl module named %s" % package
-    description = "perl-%s is a Perl module." % package
+    description = "perl-%s is a Perl module.\n" % package
     print >>sys.stderr, 'Warning: No abstract found.'
+
+if len(modules) == 1:
+    description = description + "\nThis package contains the following Perl module:\n\n    " + module + "\n"
+else:
+    description = description + "\nThis package contains the following Perl modules:\n\n"
+    for module in modules:
+        description = description + '    ' + module + "\n"
 
 if meta.has_key('build_requires') and meta['build_requires'] and meta['build_requires'].has_key('perl-Inline'):
     noarch = False
@@ -446,7 +431,7 @@ print >>out
 if noarch:
     print >>out, "BuildArch: noarch"
 
-### FIXME: Add BuildRequires from Makefile.PL
+### FIXME: Add BuildRequires from Makefile.PL ?
 if meta.has_key('requires') and meta['requires'] and meta['requires'].has_key('perl'):
     ### FIXME: lstrip 'v' from version if it is a string
     print >>out, "BuildRequires: perl >= %s " % epochify(meta['requires']['perl'])
@@ -482,7 +467,6 @@ print >>out
 
 print >>out, "%description"
 print >>out, description
-print >>out
 
 print >>out, "%prep"
 print >>out, "%%setup -n %s" % basedir
@@ -528,7 +512,7 @@ print >>out, '%clean'
 print >>out, '%{__rm} -rf %{buildroot}'
 print >>out
 
-### FIXME: Create filelist based on test-build or source-tree ?
+### FIXME: Create %files list based on test-build or source-tree ?
 print >>out, '%files'
 print >>out, '%defattr(-, root, root, 0755)'
 ### Check DOCS in archive from "grep -h '^%doc' /dar/rpms/perl*/perl*.spec | grep -v mandir | xargs -n 1 | sort | uniq"
@@ -537,10 +521,13 @@ if not docsdirs:
 else:
     print >>out, '%doc', ' '.join(docs), ' '.join(docsdirs)
 
-#print >>out, '#%doc %{_mandir}/man3/*.3pm*'
-for module in modules:
-    print >>out, "%%doc %%{_mandir}/man3/%s.3pm*" % module
+if len(modules) > 4:
+    print >>out, '%doc %{_mandir}/man3/*.3pm*'
+else:
+    for module in modules:
+        print >>out, "%%doc %%{_mandir}/man3/%s.3pm*" % module
 
+### FIXME: Use modules and module_orig to create %files list
 if noarch:
     ### Print directory entries (if any)
     if modparts[:-1]:
@@ -554,7 +541,7 @@ if noarch:
     for nr, part in enumerate(modparts):
         str = str + "%s/" % modparts[nr]
     print >>out, str
-    
+
     ### Print module
     if modparts[:-1]:
         str = '%{perl_vendorlib}/'

@@ -21,13 +21,15 @@ except:
     logname = 'dag'
 debug = False
 noarch = True
-module_build = False
+package_make = False
+package_build = False
 output = False
 realversion = None
 authors = []
 email = ''
 tmppath = '/var/tmp'
 license = ''
+package_version = None
 
 ### Files considered a document:
 ### Announce ANNOUNCE Artistic ARTISTIC Artistic.txt AUTHORS Bugs BUGS
@@ -43,7 +45,8 @@ docfiles = ('^ANNOUNCE', '^Artistic', '^AUTHORS', '^BUGS', '^ChangeLog',
     '^FAQ', '^GNU_LICENSE', '^HACKING', '^HISTORY', '^INFO', '^INSTALL',
     '^INSTALLING', '^LICENCE', '^LICENSE', '^MANIFEST', '^META.yml',
     '^NEWS', '^NOTES', '^NOTICE', '^PORTING', '^README', '^RELEASE_NOTES',
-    '^SIGNATURE', '^THANKS', '^TODO', '^UPGRADE', '^VERSION', '^[^/]+.txt$')
+    '^ROADMAP', '^SIGNATURE', '^THANKS', '^TODO', '^UPGRADE', '^VERSION',
+    '^[^/]+.txt$')
 
 docdirs = ('contrib/', 'doc/', 'docs/', 'eg/', 'example/', 'examples/',
     'htdocs/', 'notes/', 'samples/', 'tutorial/')
@@ -60,11 +63,40 @@ licenses = {
 ### Add proper epochs to perl-dependencies
 epochs = ( '5.0.0', '5.6.1', '5.8.0', '5.8.5', '5.8.8' )
 
+class PackageDB:
+    def __init__(self):
+        self.db = []
+
+    def addpackage(self, name, version, path):
+        pkg = Package(name, version, path)
+        self.db.append(pkg)
+        return pkg
+
+    def searchpackage(self, name):
+        for pkg in self.db:
+            if name == pkg.name:
+                return pkg
+        else:
+            return None
+
+class Package:
+    def __init__(self, name, version, path):
+        self.modules = []
+        self.name = name
+        self.version = version
+        self.path = path
+
+    def addmodule(self, module):
+        self.module.append(module)
+
 def download(url):
     filename = os.path.join(tmppath, os.path.basename(url))
-    ### FIXME: Check if the files on disk are older than 1 day
-#   if not os.path.exists(filename):
-    if True:
+    try:
+        st = os.stat(filename)
+        if st and st.st_mtime + 1800 > time.time():
+#            print >>sys.stderr, "File %s is recent, skip download." % os.path.basename(url)
+            return
+    except:
         try:
             req = urllib2.Request(url)
             fdin = urllib2.urlopen(req)
@@ -105,19 +137,22 @@ for opt, arg in opts:
     elif opt in ['-o', '--output']:
         output = arg
 
-if not args:
-    print >>sys.stderr, 'You have to provide a module name.'
+if len(args) < 1:
+    print >>sys.stderr, 'Error: You have to provide a package name.'
     sys.exit(1)
 
-module = args[0]
-module = module.replace('::', '-')
-modparts = module.split('-')
+package_name = args[0]
+package = package_name.replace('::', '-')
+modparts = package.split('-')
 
-if module.startswith('perl-'):
+if len(args) > 1:
+    package_version = args[1]
+
+if package.startswith('perl-'):
     modparts = modparts[1:]
-    module = '-'.join(modparts)
+    package = '-'.join(modparts)
 
-pmodule = module.replace('-', '::')
+module = package.replace('-', '::')
 
 ### Download latest package list from CPAN
 download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/modules/02packages.details.txt.gz')
@@ -126,19 +161,49 @@ download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/modules/02packages.det
 download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/authors/00whois.xml')
 
 ### Find specific package in CPAN package list
+modules = []
+found = False
 fd = gzip.open(os.path.join(tmppath, '02packages.details.txt.gz'), 'r')
 for line in fd.readlines():
-    pinfo = line.split()
-    if len(pinfo) > 2 and pmodule == pinfo[0]:
-        break
-else:
-    print >>sys.stderr, 'Module %s not found in CPAN.' % module
+    pkginfo = line.split()
+
+    ### Skip incorrect lines
+    if len(pkginfo) <= 2:
+        continue
+
+    pkgmodule = pkginfo[0]
+    pkgversion = pkginfo[1]
+    pkgpath = pkginfo[2]
+
+    temp = pkgpath.split('/')
+    temp = temp[-1].split('-')
+    pkgname = '-'.join(temp[0:-1])
+
+    if pkgversion != 'undef' and package == pkgname:
+        version = pkgversion
+        module = pkgmodule
+        path = pkgpath
+        modules.append(pkgmodule)
+        found = True
+    elif module == pkgmodule:
+        print >>sys.stderr, 'Module', module, 'found in package', pkgname
+        package = pkgname
+        path = pkgpath
+        modules.append(module)
+        found = True
+
+if not found:
+    print >>sys.stderr, 'Error: Module', module, 'or package', package, 'not found in CPAN.'
     sys.exit(1)
 
-version = pinfo[1]
-location = pinfo[2]
+if package_version:
+    version = package_version
+location = path
 
-ppath = pinfo[2].split('/')
+#print >>sys.stderr, 'We found package %s with version %s with modules:' % (package, version)
+#print >>sys.stderr, pkgmodules
+
+ppath = path.split('/')
 mnemo = ppath[2]
 
 ### Find specific author in CPAN authors list
@@ -157,22 +222,25 @@ for elem in root.getiterator('{http://www.cpan.org/xmlns/whois}cpanid'):
         break
 
 ### Get the correct version from the source distribution
-sdistname = "%s-%s.tar.gz" % (module, version)
+sdistname = "%s-%s.tar.gz" % (package, version)
 cdistname = os.path.basename(location)
-if sdistname != cdistname:
+if not package_version and sdistname != cdistname:
     realversion = version
+    ### FIXME: take care of file like Acme-6502-v0.0.6 or something.tgz
     ### Get the version from the cdistname
     m = re.match('[^\d]+([\d\.]+).tar.gz', cdistname)
     if m:
         l = m.groups()
         version = l[0]
     else:
-        print >>sys.stderr, 'Problem retrieving version from %s for module %s.' % (cdistname, module)
-        sys.exit(1)
+        print >>sys.stderr, 'Warning: Problem retrieving version from %s for package %s.' % (cdistname, package)
+#       sys.exit(1)
 
 if realversion == 'undef':
-    print >>sys.stderr, 'Version is undefined. Distribution %s is not a module.' % module
+    print >>sys.stderr, 'Error: Version is undefined. Distribution %s is not a package.' % package
     sys.exit(1)
+elif realversion == version:
+    realversion = None
 
 ### Try to download distribution
 archive = os.path.join(tmppath, cdistname)
@@ -194,7 +262,7 @@ basedir = cdistname.replace('.tar.gz', '')
 basedir = basedir.replace(version, '%{version}')
 if realversion:
     basedir = basedir.replace(realversion, '%{real_version}')
-basedir = basedir.replace(module, '%{real_name}')
+basedir = basedir.replace(package, '%{real_name}')
 
 ### Inspect distribution and extract information (%doc, META.yml, arch/noarch)
 distfd = tarfile.open(archive, 'r:gz')
@@ -216,6 +284,7 @@ for file in distfd.getnames():
     ### Check if this is a noarch or arch package
     if file.endswith('.c') or file.endswith('.h') or file.endswith('.cc') or file.endswith('.xs'):
         noarch = False
+        continue
 
     ### Create %docs filelist
     for docre in docfiles:
@@ -224,9 +293,9 @@ for file in distfd.getnames():
             break
 
     ### Create %docs directorylist
-    for dir in docdirs:
-        if shortfile == dir:
-            docsdirs.append(shortfile)
+    if shortfile in docdirs:
+        docsdirs.append(shortfile)
+        continue
 
     ### Parse META.yml (http://module-build.source-forge.net/META-spec-current.html)
     if shortfile == 'META.yml':
@@ -234,15 +303,19 @@ for file in distfd.getnames():
         try:
             meta = yaml.load(distfd.extractfile(member).read())
             if debug:
-                print >>sys.stderr, 'META.yml contains the following info:'
+                print >>sys.stderr, 'Debug: META.yml contains the following info:'
                 for key in meta.keys():
                     print >>sys.stderr, '   %s: %s' % (key, meta[key])
         except:
             pass
+        continue
 
     ### Check whether we need to use perl(Module::Build)
-#    if shortfile == 'Build.PL':
-#        module_build = True
+    elif shortfile == 'Makefile.PL':
+        package_make = True
+
+    elif shortfile == 'Build.PL':
+        package_build = True
 
 docs.sort()
 docsdirs.sort()
@@ -251,15 +324,15 @@ if os.path.isfile(archive):
     os.remove(archive)
 
 ### Compare deducted information with META.yml
-if meta.has_key('name') and meta['name'] != module:
-    print >>sys.stderr, 'Module %s is part of distribution %s. Please us that instead.' % (module, meta['name'])
-    sys.exit(1)
+if meta.has_key('name') and meta['name'] != package:
+    print >>sys.stderr, 'Warning: Module %s is part of distribution %s. Please use that instead.' % (package, meta['name'])
+#   sys.exit(1)
 
 if meta.has_key('version') and str(meta['version']) != version:
-    print >>sys.stderr, 'Module %s has version mismatch between archive (%s) and META.yml (%s).' % (module, version, meta['version'])
+    print >>sys.stderr, 'Warning: Module %s has version mismatch between archive (%s) and META.yml (%s).' % (package, version, meta['version'])
 
 if meta.has_key('type') and meta['type'] != 'module':
-    print >>sys.stderr, 'Distribution %s is not a module.' % module
+    print >>sys.stderr, 'Error: Distribution %s is not a package.' % package
     sys.exit(1)
 
 if meta.has_key('author'):
@@ -295,15 +368,15 @@ else:
         license = license + 'LGPL'
     if not license:
         license = 'Artistic/GPL'
-        print >>sys.stderr, 'License could not be determined.'
+        print >>sys.stderr, 'Warning: License could not be determined.'
 
 if meta.has_key('abstract'):
     summary = "%s" % meta['abstract']
     description = "%s." % meta['abstract']
 else:
-    summary = "Perl module named %s" % module
-    description = "perl-%s is a Perl module." % module
-    print >>sys.stderr, 'No abstract found.'
+    summary = "Perl module named %s" % package
+    description = "perl-%s is a Perl module." % package
+    print >>sys.stderr, 'Warning: No abstract found.'
 
 if meta.has_key('build_requires') and meta['build_requires'] and meta['build_requires'].has_key('perl-Inline'):
     noarch = False
@@ -311,7 +384,7 @@ if meta.has_key('requires') and meta['requires'] and meta['requires'].has_key('p
     noarch = False
 
 if debug:
-    print >>sys.stderr, module, version, "perl-%s/perl-%s.spec" % (module, module)
+    print >>sys.stderr, package, version, "perl-%s/perl-%s.spec" % (package, package)
     if noarch:
         print >>sys.stderr, 'noarch package'
     else:
@@ -326,7 +399,7 @@ if debug:
 ### See if we have to write a file or write to stdout
 if output:
     if os.path.exists(output):
-        print >>sys.stderr, 'File %s already exists.' % output
+        print >>sys.stderr, 'Error: File %s already exists.' % output
         sys.exit(1)
 
     outputdir = os.path.dirname(output)
@@ -336,7 +409,7 @@ if output:
     try:
         out = open(output, 'w')
     except:
-        print >>sys.stderr, 'Cannot write %s' % output
+        print >>sys.stderr, 'Error: Cannot write %s' % output
         sys.exit(1)
 else:
     out = sys.stdout
@@ -350,7 +423,7 @@ print >>out
 print >>out, '%define perl_vendorlib %(eval "`%{__perl} -V:installvendorlib`"; echo $installvendorlib)'
 print >>out, '%define perl_vendorarch %(eval "`%{__perl} -V:installvendorarch`"; echo $installvendorarch)'
 print >>out
-print >>out, '%define real_name', module
+print >>out, '%define real_name', package
 
 if realversion:
     print >>out, '%define real_version', realversion
@@ -358,12 +431,12 @@ if realversion:
 print >>out
 
 print >>out, "Summary: %s" % summary
-print >>out, "Name: perl-%s" % module
+print >>out, "Name: perl-%s" % package
 print >>out, 'Version:', version
 print >>out, 'Release: 1'
 print >>out, 'License: %s' % license
 print >>out, 'Group: Applications/CPAN'
-print >>out, "URL: http://search.cpan.org/dist/%s/" % module
+print >>out, "URL: http://search.cpan.org/dist/%s/" % package
 print >>out
 
 print >>out, "Source: %s" % source
@@ -375,16 +448,20 @@ if noarch:
 
 ### FIXME: Add BuildRequires from Makefile.PL
 if meta.has_key('requires') and meta['requires'] and meta['requires'].has_key('perl'):
+    ### FIXME: lstrip 'v' from version if it is a string
     print >>out, "BuildRequires: perl >= %s " % epochify(meta['requires']['perl'])
 else:
     print >>out, 'BuildRequires: perl'
 
-if module_build:
+if not package_make and package_build:
     print >>out, 'BuildRequires: perl(Module::Build)'
 
 if meta.has_key('build_requires'):
-    for key in meta['build_requires']:
+    buildrequires = meta['build_requires'].keys()
+    buildrequires.sort()
+    for key in buildrequires:
         if meta['build_requires'][key]:
+            ### FIXME: lstrip 'v' from version if it is a string
             print >>out, "BuildRequires: perl(%s) >= %s" % (key, meta['build_requires'][key])
         else:
             print >>out, "BuildRequires: perl(%s)" % key
@@ -413,13 +490,13 @@ print >>out
 
 print >>out, "%build"
 if noarch:
-    if module_build:
+    if not package_make and package_build:
         print >>out, '%{__perl} Makefile.PL INSTALLDIRS="vendor" destdir="%{buildroot}"'
     else:
         print >>out, '%{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"'
     print >>out, '%{__make} %{?_smp_mflags}'
 else:
-    if module_build:
+    if not package_make and package_build:
         print >>out, 'CFLAGS="%{optflags}" %{__perl} Makefile.PL INSTALLDIRS="vendor" destdir="%{buildroot}"'
     else:
         print >>out, 'CFLAGS="%{optflags}" %{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"'
@@ -428,7 +505,7 @@ print >>out
 
 print >>out, '%install'
 print >>out, '%{__rm} -rf %{buildroot}'
-if module_build:
+if not package_make and package_build:
     print >>out, '%{__make} install'
 else:
     print >>out, '%{__make} pure_install'
@@ -459,8 +536,10 @@ if not docsdirs:
     print >>out, '%doc', ' '.join(docs)
 else:
     print >>out, '%doc', ' '.join(docs), ' '.join(docsdirs)
-print >>out, "%%doc %%{_mandir}/man3/%s.3pm*" % pmodule
-print >>out, '#%doc %{_mandir}/man3/*.3pm*'
+
+#print >>out, '#%doc %{_mandir}/man3/*.3pm*'
+for module in modules:
+    print >>out, "%%doc %%{_mandir}/man3/%s.3pm*" % module
 
 if noarch:
     ### Print directory entries (if any)
@@ -475,7 +554,7 @@ if noarch:
     for nr, part in enumerate(modparts):
         str = str + "%s/" % modparts[nr]
     print >>out, str
-
+    
     ### Print module
     if modparts[:-1]:
         str = '%{perl_vendorlib}/'

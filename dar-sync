@@ -110,6 +110,8 @@ echo -n "Building all package list."
 find $PACKAGEDIR/ -name "*.rpm" -printf "%P\n" | sort > $STATEDIR/all-packages.list
 echo -e "\t($(wc -l $STATEDIR/all-packages.list))"
 
+echo -n "$(date)" >$FTPDIR/TIMESTAMP
+
 echo -n "Press enter to start remote synchronisation."
 read
 echo "Starting remote synchronisation."

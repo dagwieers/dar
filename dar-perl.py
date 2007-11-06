@@ -9,7 +9,7 @@
 ###     perl-Kwiki                  tests perl Buildrequires epoch
 
 ### More documentation about:
-###     META.yml    http://module-build.source-forge.net/META-spec-current.html
+###     META.yml    http://module-build.sourceforge.net/META-spec-current.html
 
 import sys, os, time, getopt, urllib2, gzip, re, yaml, tarfile, rpm, types
 import cElementTree as ElementTree
@@ -19,6 +19,18 @@ try:
     logname = os.getlogin()
 except:
     logname = 'dag'
+
+### Chown files if possible
+try:
+    os.umask(0022)
+    import pwd
+    pw = pwd.getpwnam(logname)
+    os.setuid(pw.pw_uid)
+    os.seteuid(pw.pw_uid)
+except:
+    pass
+
+create = False
 debug = False
 noarch = True
 package_make = False
@@ -69,17 +81,19 @@ def download(url):
         st = os.stat(filename)
         if st and st.st_mtime + 1800 > time.time():
 #            print >>sys.stderr, "File %s is recent, skip download." % os.path.basename(url)
-            return
+            return True
     except:
         try:
             req = urllib2.Request(url)
             fdin = urllib2.urlopen(req)
         except:
-            return
+#            print >>sys.stderr, "Failed to download file from %s" % url
+            return False
         fdout = open(filename, 'w')
         fdout.write(fdin.read())
         fdin.close()
         fdout.close()
+    return True
 
 ### FIXME: Create own version comparison instead of using RPM's
 def vercmp(v1, v2):
@@ -92,9 +106,31 @@ def epochify(version):
             epoch = e
     return '%s:%s' % (epoch, version)
 
+### WriteMakefile
+###    NAME => "cpan2rpm",
+###    VERSION_FROM => "cpan2rpm",
+###    $] < 5.005 ? () : (
+###        AUTHOR => 'Erick Calder <ecalder@cpan.org>',
+###        ABSTRACT_FROM => "cpan2rpm",
+###        ),
+###    EXE_FILES => [ "cpan2rpm" ],
+###    PREREQ_PM => { # e.g., Module::Name => 1.1
+###        'ExtUtils::MakeMaker' => 5.4302,
+###        'LWP::UserAgent' => 0,
+###        'HTTP::Request' => 0,
+###        },
+###    dist => {
+###        COMPRESS => "gzip -9 -vf",
+###        },
+###    ;
+def parse_makefile(data):
+    makefile = {}
+
+    return makefile
+
 try:
-    opts, args = getopt.getopt (args, 'adhno:v',
-        ['debug', 'help', 'output=', 'version'])
+    opts, args = getopt.getopt (args, 'acdhno:v',
+        ['create', 'debug', 'help', 'output=', 'version'])
 except getopt.error, exc:
     print >>sys.stderr, 'dar-perl: %s, try dar-perl.py -h for a list of all the options' % str(exc)
     sys.exit(1)
@@ -110,6 +146,8 @@ for opt, arg in opts:
         noarch = False
     elif opt in ['-o', '--output']:
         output = arg
+    elif opt in ['-c', '--create']:
+        create = True
 
 if len(args) < 1:
     print >>sys.stderr, 'Error: You have to provide a package name.'
@@ -129,25 +167,24 @@ if package.startswith('perl-'):
 module = package.replace('-', '::')
 
 ### Download latest package list from CPAN
-download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/modules/02packages.details.txt.gz')
+if not download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/modules/02packages.details.txt.gz'):
+    print >>sys.stderr, "Error: Failed to download 02packages.details.txt.gz"
+    sys.exit(1)
 
 ### Download latest authors list from CPAN
-download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/authors/00whois.xml')
+if not download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/authors/00whois.xml'):
+    print >>sys.stderr, "Error: Failed to download 00whois.xml"
+    sys.exit(1)
 
 ### Find specific package in CPAN package list
 modules = []
 found = False
 fd = gzip.open(os.path.join(tmppath, '02packages.details.txt.gz'), 'r')
 for line in fd.readlines():
-    pkginfo = line.split()
-
-    ### Skip incorrect lines
-    if len(pkginfo) <= 2:
+    try:
+        (pkgmodule, pkgversion, pkgpath) = line.split()
+    except:
         continue
-
-    pkgmodule = pkginfo[0]
-    pkgversion = pkginfo[1]
-    pkgpath = pkginfo[2]
 
     temp = pkgpath.split('/')
     temp = temp[-1].split('-')
@@ -160,8 +197,10 @@ for line in fd.readlines():
         path = pkgpath
         modules.append(pkgmodule)
         found = True
+        break
     elif module == pkgmodule:
         print >>sys.stderr, 'Module', module, 'found in package', pkgname
+        version = None
         package = pkgname
         path = pkgpath
         modules.append(module)
@@ -199,7 +238,10 @@ for elem in root.getiterator('{http://www.cpan.org/xmlns/whois}cpanid'):
         break
 
 ### Get the correct version from the source distribution
-sdistname = "%s-%s.tar.gz" % (package, version)
+if version:
+    sdistname = "%s-%s.tar.gz" % (package, version)
+else:
+    sdistname = None
 cdistname = os.path.basename(location)
 if not package_version and sdistname != cdistname:
     realversion = version
@@ -224,10 +266,11 @@ archive = os.path.join(tmppath, cdistname)
 if os.path.isfile(archive):
     os.remove(archive)
 source = "http://www.cpan.org/modules/by-module/%s/%s" % (modparts[0], cdistname)
-download(source)
-if not os.path.isfile(archive):
+#if not os.path.isfile(archive):
+if not download(source):
     source = "http://www.cpan.org/authors/id/%s" % location
-    download(source)
+    if not download(source):
+        print >>sys.stderr, "Error: Failed to download %s" % (source)
 
 ### Add %{version} and %{real_version} to source
 source = source.replace(version, '%{version}')
@@ -274,7 +317,7 @@ for file in distfd.getnames():
         docsdirs.append(shortfile)
         continue
 
-    ### Parse META.yml (http://module-build.source-forge.net/META-spec-current.html)
+    ### Parse META.yml (http://module-build.sourceforge.net/META-spec-current.html)
     if shortfile == 'META.yml':
         member = distfd.getmember(file)
         try:
@@ -290,6 +333,15 @@ for file in distfd.getnames():
     ### Check whether we need to use perl(Module::Build)
     elif shortfile == 'Makefile.PL':
         package_make = True
+        member = distfd.getmember(file)
+        try:
+            makefile = parse_makefile_pl(distfd.extractfile(member).read())
+            if debug:
+                print >>sys.stderr, 'Debug: Makefile.PL contains the following info:'
+                for key in makefile.keys():
+                    print >>sys.stderr, '   %s: %s' % (key, makefile[key])
+        except:
+            pass
 
     elif shortfile == 'Build.PL':
         package_build = True
@@ -356,12 +408,12 @@ else:
     description = "perl-%s is a Perl module.\n" % package
     print >>sys.stderr, 'Warning: No abstract found.'
 
-if len(modules) == 1:
-    description = description + "\nThis package contains the following Perl module:\n\n    " + module + "\n"
-else:
-    description = description + "\nThis package contains the following Perl modules:\n\n"
-    for module in modules:
-        description = description + '    ' + module + "\n"
+#if len(modules) == 1:
+#    description = description + "\nThis package contains the following Perl module:\n\n    " + module + "\n"
+#else:
+#    description = description + "\nThis package contains the following Perl modules:\n\n"
+#    for module in modules:
+#        description = description + '    ' + module + "\n"
 
 if meta.has_key('build_requires') and meta['build_requires'] and meta['build_requires'].has_key('perl-Inline'):
     noarch = False
@@ -381,6 +433,9 @@ if debug:
     for file in distfd.getnames():
         print >>sys.stderr, '  ', file
 
+if create:
+    output = "perl-%s/perl-%s.spec" % (package, package)
+
 ### See if we have to write a file or write to stdout
 if output:
     if os.path.exists(output):
@@ -390,7 +445,6 @@ if output:
     outputdir = os.path.dirname(output)
     if outputdir and not os.path.exists(outputdir):
         os.mkdir(outputdir)
-
     try:
         out = open(output, 'w')
     except:

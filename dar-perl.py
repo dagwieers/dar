@@ -50,7 +50,7 @@ package_version = None
 ### GNU_LGPL.txt GNU_LICENSE HACKING HISTORY INFO INSTALL INSTALLING
 ### INSTALL.txt LICENCE LICENSE MANIFEST META.yml NEWS NOTES NOTICE
 ### PORTING readme README readme.txt README.txt README.TXT RELEASE_NOTES
-### SIGNATURE THANKS TODO UPGRADE VERSION *.txt  
+### SIGNATURE THANKS TODO UPGRADE VERSION *.txt
 
 docfiles = ('^ANNOUNCE', '^Artistic', '^AUTHORS', '^BUGS', '^ChangeLog',
     '^Changes', '^Changes.pod', '^COPYING', '^COPYRIGHT', '^CREDITS',
@@ -58,7 +58,7 @@ docfiles = ('^ANNOUNCE', '^Artistic', '^AUTHORS', '^BUGS', '^ChangeLog',
     '^INSTALLING', '^LICENCE', '^LICENSE', '^MANIFEST', '^META.yml',
     '^NEWS', '^NOTES', '^NOTICE', '^PORTING', '^README', '^RELEASE_NOTES',
     '^ROADMAP', '^SIGNATURE', '^THANKS', '^TODO', '^UPGRADE', '^VERSION',
-    '^[^/]+.txt$')
+    '^[^/]+.txt$', '^[^/]+.html$')
 
 docdirs = ('contrib/', 'doc/', 'docs/', 'eg/', 'example/', 'examples/',
     'htdocs/', 'notes/', 'samples/', 'tutorial/')
@@ -97,7 +97,17 @@ def download(url):
 
 ### FIXME: Create own version comparison instead of using RPM's
 def vercmp(v1, v2):
-        return rpm.labelCompare((None, v1, None), (None, v2, None))
+    return rpm.labelCompare((None, v1, None), (None, v2, None))
+
+def rcut(text, *str):
+    for s in str:
+        text = ''.join(text.split(s)[0:-1])
+    return text
+
+def lcut(text, *str):
+    for s in str:
+        text = ''.join(text.split(s)[1:])
+    return text
 
 def epochify(version):
     epoch = 0
@@ -227,14 +237,14 @@ tree = ElementTree.ElementTree(file=os.path.join(tmppath, '00whois.xml'))
 root = tree.getroot()
 for elem in root.getiterator('{http://www.cpan.org/xmlns/whois}cpanid'):
     if mnemo == elem.find('{http://www.cpan.org/xmlns/whois}id').text:
-        authorel = elem.find('{http://www.cpan.org/xmlns/whois}fullname')
-        emailel = elem.find('{http://www.cpan.org/xmlns/whois}email')
         try:
-            author = "%s <%s>" % (authorel.text, emailel.text.replace('@','$').replace('.',','))
+            authorel = elem.find('{http://www.cpan.org/xmlns/whois}fullname')
+            emailel = elem.find('{http://www.cpan.org/xmlns/whois}email')
+            email = emailel.text.replace('@','$').replace('.',',').replace(' at ','$').replace(' dot ',',').replace(' [at] ','$').replace('_dot_',',')
+            author = "%s <%s>" % (authorel.text, email)
+            authors.append(author.encode('utf8', 'replace'))
         except:
-            break
-
-        authors.append(author.encode('utf8', 'replace'))
+            pass
         break
 
 ### Get the correct version from the source distribution
@@ -278,28 +288,43 @@ if realversion:
     source = source.replace(realversion, '%{real_version}')
 
 ### Create basedir out of cdistname
-basedir = cdistname.replace('.tar.gz', '')
-basedir = basedir.replace(version, '%{version}')
-if realversion:
-    basedir = basedir.replace(realversion, '%{real_version}')
-basedir = basedir.replace(package, '%{real_name}')
+#basedir = cdistname.rstrip('.tar.gz')
+#basedir = basedir.replace(version, '%{version}').replace(package, '%{real_name}')
+#if realversion:
+#    basedir = basedir.replace(realversion, '%{real_version}')
 
 ### Inspect distribution and extract information (%doc, META.yml, arch/noarch)
 distfd = tarfile.open(archive, 'r:gz')
 ### Remove .tar.gz from base (Name-Version)
 base = os.path.basename(archive)
-l = base.split('.tar.gz')
-base = l[0]
+base = rcut(base, '.tar', '.zip', '.gz')
 docs = []
 docsdirs = []
 meta = {}
+basedir = False
 for file in distfd.getnames():
+
+    ### We assume the first entry is the base directory ?
+    if not basedir:
+        if file.endswith('/'):
+            basedir = file
+        else:
+            basedir = base + '/'
+
     ### Remove Name-Version/ from filename
-    l = file.split(base+'/')
-    if len(l) == 2:
-        shortfile = l[1]
-    else:
-        shortfile = file
+    shortfile = lcut(file, basedir)
+    if file == shortfile:
+        print >>sys.stderr, 'Error: Basedir cannot be determined for archive %s.' % archive
+        sys.exit(1)
+
+    ### Create %docs directorylist
+    if shortfile in docdirs:
+        docsdirs.append(shortfile)
+        continue
+
+    ### Drop directories and test files
+    if file.endswith('/') or file.endswith('.t'):
+        continue
 
     ### Check if this is a noarch or arch package
     if file.endswith('.c') or file.endswith('.h') or file.endswith('.cc') or file.endswith('.xs'):
@@ -311,11 +336,6 @@ for file in distfd.getnames():
         if re.search(docre, shortfile, re.I):
             docs.append(shortfile)
             break
-
-    ### Create %docs directorylist
-    if shortfile in docdirs:
-        docsdirs.append(shortfile)
-        continue
 
     ### Parse META.yml (http://module-build.sourceforge.net/META-spec-current.html)
     if shortfile == 'META.yml':
@@ -349,6 +369,12 @@ for file in distfd.getnames():
 docs.sort()
 docsdirs.sort()
 
+### Now macrofy the basedir for use in the SPEC file and remove trailing /
+basedir = basedir.replace(version, '%{version}').replace(package, '%{real_name}')
+if realversion:
+    basedir = basedir.replace(realversion, '%{real_version}')
+basedir = rcut(basedir, '/')
+
 if os.path.isfile(archive):
     os.remove(archive)
 
@@ -367,11 +393,11 @@ if meta.has_key('type') and meta['type'] != 'module':
 if meta.has_key('author'):
     authors = []
     if isinstance(meta['author'], types.StringType):
-        author = meta['author'].replace('@','$').replace('.',',')
+        author = meta['author'].replace('@','$').replace('.',',').replace(' at ','$').replace(' dot ',',').replace(' [at] ','$').replace('_dot_',',')
         authors.append(meta['author'].encode('utf8', 'replace'))
     elif isinstance(meta['author'], types.ListType):
         for author in meta['author']:
-            author = author.replace('@','$').replace('.',',')
+            author = author.replace('@','$').replace('.',',').replace(' at ','$').replace(' dot ',',').replace(' [at] ','$').replace('_dot_',',')
             authors.append(author.encode('utf8', 'replace'))
 
 if meta.has_key('license') and meta['license'] in licenses.keys():
@@ -605,19 +631,6 @@ if noarch:
     else:
         print >>out, '%%{perl_vendorlib}/%s.pm' % modparts[0]
 else:
-    ### Print directory entries (if any)
-    if modparts[:-1]:
-        str = '%dir %{perl_vendorarch}/'
-        for nr, part in enumerate(modparts[:-1]):
-            str = str + "%s/" % modparts[nr]
-            print >>out, str
-
-    ### Print module directory
-    str = '%{perl_vendorarch}/'
-    for nr, part in enumerate(modparts[:-1]):
-        str = str + "%s/" % modparts[nr]
-    print >>out, str + "%s.pm" % modparts[-1]
-
     ### Print auto directory entries (if any)
     if modparts[:-1]:
         str = '%dir %{perl_vendorarch}/auto/'
@@ -630,6 +643,19 @@ else:
     for nr, part in enumerate(modparts):
         str = str + "%s/" % modparts[nr]
     print >>out, str
+
+    ### Print directory entries (if any)
+    if modparts[:-1]:
+        str = '%dir %{perl_vendorarch}/'
+        for nr, part in enumerate(modparts[:-1]):
+            str = str + "%s/" % modparts[nr]
+            print >>out, str
+
+    ### Print module directory
+    str = '%{perl_vendorarch}/'
+    for nr, part in enumerate(modparts[:-1]):
+        str = str + "%s/" % modparts[nr]
+    print >>out, str + "%s.pm" % modparts[-1]
 
 print >>out
 

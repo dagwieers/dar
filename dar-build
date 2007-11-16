@@ -310,7 +310,7 @@ for arg in $PKGS; do
 					--define \"_builddir $BUILDDIR\" \
 					--define \"_tmppath $TEMPDIR\" \
 					--define \"debug_package %nil\" \
-					--define \"dist $DISTNAME\" \
+					--define \"dtag $DISTNAME\" \
 					--define \"disttag $DISTNAME\" \
 					--define \"$DISTNAME 1\" \
 					--define \"$DISTNICK 1\" \"$NEWSPECFILE\""
@@ -335,7 +335,7 @@ for arg in $PKGS; do
 						--define "_builddir $ROOT/build" \
 						--define "_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root" \
 						--define "debug_package %nil" \
-						--define "dist $DISTNAME" \
+						--define "dtag $DISTNAME" \
 						--define "disttag $DISTNAME" \
 						--define "$DISTNAME 1" \
 						--define "$DISTNICK 1" \

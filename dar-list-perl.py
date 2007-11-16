@@ -20,16 +20,17 @@ def download(url):
 #            print >>sys.stderr, "File %s is recent, skip download." % os.path.basename(url)
             return True
     except:
-        try:
-            req = urllib2.Request(url)
-            fdin = urllib2.urlopen(req)
-        except:
-#            print >>sys.stderr, "Failed to download file from %s" % url
-            return False
-        fdout = open(filename, 'w')
-        fdout.write(fdin.read())
-        fdin.close()
-        fdout.close()
+        pass
+    try:
+        req = urllib2.Request(url)
+        fdin = urllib2.urlopen(req)
+    except:
+#        print >>sys.stderr, "Failed to download file from %s" % url
+        return False
+    fdout = open(filename, 'w')
+    fdout.write(fdin.read())
+    fdin.close()
+    fdout.close()
     return True
 
 def check_version(module, version):

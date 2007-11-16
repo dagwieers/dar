@@ -79,20 +79,21 @@ def download(url):
     filename = os.path.join(tmppath, os.path.basename(url))
     try:
         st = os.stat(filename)
-        if st and st.st_mtime + 1800 > time.time():
+        if st and st.st_mtime + 1800.0 > time.time():
 #            print >>sys.stderr, "File %s is recent, skip download." % os.path.basename(url)
             return True
     except:
-        try:
-            req = urllib2.Request(url)
-            fdin = urllib2.urlopen(req)
-        except:
-#            print >>sys.stderr, "Failed to download file from %s" % url
-            return False
-        fdout = open(filename, 'w')
-        fdout.write(fdin.read())
-        fdin.close()
-        fdout.close()
+        pass
+    try:
+        req = urllib2.Request(url)
+        fdin = urllib2.urlopen(req)
+    except:
+#        print >>sys.stderr, "Failed to download file from %s" % url
+        return False
+    fdout = open(filename, 'w')
+    fdout.write(fdin.read())
+    fdin.close()
+    fdout.close()
     return True
 
 ### FIXME: Create own version comparison instead of using RPM's

@@ -96,7 +96,8 @@ function rpmconf {
 		fi
 
     (
-	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su -lm $BUILD_USER -c "rpmdb -D \"dist $DISTNAME\" -D \"disttag $DISTNAME\" -D \"$DISTNICK 1\" -D \"$DISTNAME 1\" -E \"%{expand:%(head -n128 $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
+#	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su -lm $BUILD_USER -c "rpmdb -D \"dtag $DISTNAME\" -D \"disttag $DISTNAME\" -D \"$DISTNICK 1\" -D \"$DISTNAME 1\" -E \"%{expand:%(head -n128 $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
+	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su -lm $BUILD_USER -c "rpmdb -D \"dtag $DISTNAME\" -D \"disttag $DISTNAME\" -D \"$DISTNICK 1\" -D \"$DISTNAME 1\" -E \"%{expand:%(head -n128 $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
 		if ! grep -i "^ *$CONFIG *:" $SPECFILE | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
 			debug "Config $CONFIG not found in $SPECFILE"
 		fi
@@ -526,9 +527,9 @@ function build_repo {
 	done
 	echo "</repomd>" >>"$REPODATA/repomd.xml"
 
-	echo "Building repoview."
-	repoview --quiet --title="RPMforge: $DISTDESC" "$FTPDIR/$DISTPATH/$REPO"
-	repoview --quiet --url="http://apt.sw.be/$DISTPATH/" "$FTPDIR/$DISTPATH/$REPO"
+#	echo "Building repoview."
+#	repoview --quiet --title="RPMforge: $DISTDESC" "$FTPDIR/$DISTPATH/$REPO"
+#	repoview --quiet --url="http://apt.sw.be/$DISTPATH/" "$FTPDIR/$DISTPATH/$REPO"
 }
 
 function build_repo_srpms {

@@ -258,7 +258,7 @@ if not package_version and sdistname != cdistname:
     realversion = version
     ### FIXME: take care of file like Acme-6502-v0.0.6 or something.tgz
     ### Get the version from the cdistname
-    m = re.match('[^\d]+([\d\.]+).tar.gz', cdistname)
+    m = re.match('[^\d]+([\d\.\w]+).tar.gz', cdistname)
     if m:
         l = m.groups()
         version = l[0]
@@ -515,7 +515,7 @@ if noarch:
 ### FIXME: Add BuildRequires from Makefile.PL ?
 if meta.has_key('requires') and meta['requires'] and meta['requires'].has_key('perl'):
     ### FIXME: lstrip 'v' from version if it is a string
-    print >>out, "BuildRequires: perl >= %s " % epochify(meta['requires']['perl'])
+    print >>out, "BuildRequires: perl >= %s" % epochify(meta['requires']['perl'])
 else:
     print >>out, 'BuildRequires: perl'
 
@@ -531,6 +531,10 @@ if meta.has_key('build_requires'):
             print >>out, "BuildRequires: perl(%s) >= %s" % (key, meta['build_requires'][key])
         else:
             print >>out, "BuildRequires: perl(%s)" % key
+
+if meta.has_key('requires') and meta['requires'] and meta['requires'].has_key('perl'):
+    ### FIXME: lstrip 'v' from version if it is a string
+    print >>out, "Requires: perl >= %s" % epochify(meta['requires']['perl'])
 
 ### Requires are extracted by RPM itself
 #print "Requires: perl"

@@ -15,14 +15,17 @@ for distname in $DEFAULT_DISTS; do
 		ln -f $CHROOTDIR/${DEFAULT_DISTS// */}/root/.bash_history $CHROOTDIR/$distname/root/.bash_history
 	fi
 
-	umount $CHROOTDIR/$distname{/dev/pts,/proc,/tmp,$ROOT/build,$ROOT/} 2>/dev/null
+	umount $CHROOTDIR/$distname{/dev/pts,/proc,/sys,/tmp,$ROOT/build,$ROOT/} 2>/dev/null
 
 #	rm -rf $CHROOTDIR/$distname{$RPMTMPPATH}/*
-	mkdir -p $CHROOTDIR/$distname$ROOT/
-	mount -o bind $ROOT $CHROOTDIR/$distname$ROOT/
+	mkdir -p $CHROOTDIR/$distname/$ROOT/
+	mount -o bind $ROOT $CHROOTDIR/$distname/$ROOT/
 
 	mkdir -p $CHROOTDIR/$distname/proc/
 	mount -t proc proc $CHROOTDIR/$distname/proc/
+
+	mkdir -p $CHROOTDIR/$distname/sys/
+	mount -t sysfs sys $CHROOTDIR/$distname/sys/
 
 	mkdir -p $CHROOTDIR/$distname/dev/pts/
 	mount -t devpts devpts $CHROOTDIR/$distname/dev/pts/

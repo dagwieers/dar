@@ -96,6 +96,10 @@ for arg in $PKGS; do
             continue
         fi
 
+        if [ "$TAG" ]; then
+            TAGS="$TAG"
+        fi
+
         if [ "$NODIST" ]; then
             DISTTAG="0"
             DISTNAME="nodist"
@@ -163,11 +167,11 @@ for arg in $PKGS; do
 #                       echo $rpmfile
                         if [ -z "$FORCE_OVERWRITE" -a -f "$PACKAGEDIR/$app/$rpmfile" ]; then
                             warning "Package \"$PACKAGEDIR/$app/$rpmfile\" already exists."
-            
+
 #                           if [ -z "$SOURCE_DISTS" ]; then
 #                               SOURCE_DISTS="$DISTNICK"
 #                           fi
-            
+
                             continue 4
                         fi
                     done

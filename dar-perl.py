@@ -519,7 +519,7 @@ if meta.has_key('requires') and meta['requires'] and meta['requires'].has_key('p
 else:
     print >>out, 'BuildRequires: perl'
 
-if package_build:
+if package_build and not package_make:
     print >>out, 'BuildRequires: perl(Module::Build)'
 
 if meta.has_key('build_requires'):
@@ -560,35 +560,35 @@ print >>out
 print >>out, "%build"
 if noarch:
 
-    if package_build:
+    if package_make:
+#       print >>out, '%{__perl} Makefile.PL INSTALLDIRS="vendor" destdir="%{buildroot}"'
+        print >>out, '%{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"'
+        print >>out, '%{__make} %{?_smp_mflags}'
+    else:
         print >>out, '#%{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"'
         print >>out, '#%{__make} %{?_smp_mflags}'
         print >>out, '%{__perl} Build.PL'
         print >>out, './Build'
-#        print >>out, '%{__perl} Makefile.PL INSTALLDIRS="vendor" destdir="%{buildroot}"'
-    else:
-        print >>out, '%{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"'
-        print >>out, '%{__make} %{?_smp_mflags}'
 else:
-    if package_build:
+    if package_make:
+#       print >>out, 'CFLAGS="%{optflags}" %{__perl} Makefile.PL INSTALLDIRS="vendor" destdir="%{buildroot}"'
+        print >>out, 'CFLAGS="%{optflags}" %{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"'
+        print >>out, '%{__make} %{?_smp_mflags} OPTIMIZE="%{optflags}"'
+    else:
         print >>out, '#CFLAGS="%{optflags}" %{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"'
         print >>out, '#%{__make} %{?_smp_mflags} OPTIMIZE="%{optflags}"'
         print >>out, 'CFLAGS="%{optflags}" %{__perl} Build.PL'
         print >>out, './Build'
-#        print >>out, 'CFLAGS="%{optflags}" %{__perl} Makefile.PL INSTALLDIRS="vendor" destdir="%{buildroot}"'
-    else:
-        print >>out, 'CFLAGS="%{optflags}" %{__perl} Makefile.PL INSTALLDIRS="vendor" PREFIX="%{buildroot}%{_prefix}"'
-        print >>out, '%{__make} %{?_smp_mflags} OPTIMIZE="%{optflags}"'
 print >>out
 
 print >>out, '%install'
 print >>out, '%{__rm} -rf %{buildroot}'
-if package_build:
+if package_make:
+#   print >>out, '%{__make} install'
+    print >>out, '%{__make} pure_install'
+else:
     print >>out, '#%{__make} pure_install'
     print >>out, 'PERL_INSTALL_ROOT="%{buildroot}" ./Build install installdirs="vendor"'
-#    print >>out, '%{__make} install'
-else:
-    print >>out, '%{__make} pure_install'
 print >>out
 
 print >>out, '### Clean up buildroot'

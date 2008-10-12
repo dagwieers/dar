@@ -2,8 +2,8 @@
 source "/usr/share/dar/dar-functions"
 
 function help {
-	cat <<EOF
-usage: dar-shell [-q] [-d dist,dist2] cmd     
+    cat <<EOF
+usage: dar-shell [-q] [-v] [-d dist,dist2] cmd
 Acquire a shell in one or more DAR build environments
 
 dar-exec options:
@@ -11,6 +11,7 @@ dar-exec options:
   -d dist,dist2         select build envs
   -h                    this help message
   -q                    be very quiet
+  -v                    more verbose
 
 exported variables:
 
@@ -20,12 +21,12 @@ EOF
 exit 1
 }
 
-daropts "d:hq" $@
+daropts "d:hqv" $@
 CMD="$OPTS"
 
 if [ ! -d "$ROOT" ]; then
-	echo "ERROR: probably in chroot jail" >&2
-	exit 1
+    echo "ERROR: probably in chroot jail" >&2
+    exit 1
 fi
 
 set_dists
@@ -33,19 +34,23 @@ set_as_root
 AS_ROOT=1
 
 if [ -z "$QUIET" ]; then
-	echo -e "$_BL_$_WH= Entering shells.$_DE"
+    echo -e "$_BL_$_WH= Entering shells.$_DE"
 fi
 for distname in $DISTS; do
-	if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
-		source "$CONFIGDIR/dists/$distname/config"
-		export arch="$DISTARCH" dist="${DISTNAME// *}" nick="$DISTNICK" path="$DISTPATH" repo="$REPO" tag="${DISTTAG// *}"
-	fi
+    if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
+        source "$CONFIGDIR/dists/$distname/config"
+        export arch="$DISTARCH" dist="${DISTNAME// *}" nick="$DISTNICK" path="$DISTPATH" repo="$REPO" tag="${DISTTAG// *}"
+    fi
 
-	setarch $DISTARCH chroot $CHROOTDIR/$distname
+    if [ -z "$FORCE_VERBOSE" ]; then
+        setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$distname" /bin/bash --login
+    else
+        setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$distname" /bin/bash --login -x
+    fi
 done
 if [ -z "$QUIET" ]; then
-	echo -en "$_BL_$_WH= Returning to parent shell. Press ENTER.$_DE"
-	read a
+    echo -en "$_BL_$_WH= Returning to parent shell. Press ENTER.$_DE"
+    read a
 fi
 
 exit 0

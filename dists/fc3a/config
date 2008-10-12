@@ -21,5 +21,3 @@ DISTARCH="x86_64"
 REPO_APT="yes"
 REPO_YUM="yes"
 REPO_CREATEREPO="yes"
-
-export -n LD_ASSUME_KERNEL

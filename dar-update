@@ -12,40 +12,49 @@ set_dists
 
 ### Update build environment
 for distname in $DISTS; do
-	echo "Updating $distname."
-        if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
-                source "$CONFIGDIR/dists/$distname/config"
+    echo "Updating $distname."
+    if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
+        source "$CONFIGDIR/dists/$distname/config"
+    else
+        warning "Configfile $CONFIGDIR/dists/$distname/config missing. Aborting."
+        continue
+    fi
+
+    if [ "$CREATE_REPO" ]; then
+        echo "Building $distname repository in $DISTPATH."
+        build_tree_apt "$DISTNAME $DISTTAG" "$DISTPATH"
+        build_repo_apt "$DISTPATH"
+#       build_repo_yum "$DISTTAG" "$DISTPATH"
+    fi
+
+    if [ "$UPDATECMD" ]; then
+        if [ -z "$FORCE_VERBOSE" ]; then
+            echo "$UPDATECMD" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$distname" /bin/bash --login -s
         else
-                warning "Configfile $CONFIGDIR/dists/$distname/config missing. Aborting."
-                continue
+            echo "$UPDATECMD" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$distname" /bin/bash --login -x -s
         fi
+    fi
 
-	if [ "$CREATE_REPO" ]; then
-		echo "Building $distname repository in $DISTPATH."
-		build_tree_apt "$DISTNAME $DISTTAG" "$DISTPATH"
-		build_repo_apt "$DISTPATH"
-#		build_repo_yum "$DISTTAG" "$DISTPATH"
-	fi
+    if [ -z "$PKGS" -a "$UPGRADECMD" ]; then
+        if [ -z "$FORCE_VERBOSE" ]; then
+            echo "$UPGRADECMD" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$distname" /bin/bash --login -s
+        else
+            echo "$UPGRADECMD" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$distname" /bin/bash --login -x -s
+        fi
+    fi
 
-	if [ "$UPDATECMD" ]; then
-		chroot $CHROOTDIR/$distname $UPDATECMD
-	fi
-
-	if [ -z "$PKGS" -a "$UPGRADECMD" ]; then
-		chroot $CHROOTDIR/$distname $UPGRADECMD
-	fi
-
-	if [ "$INSTALLCMD" -a "$PKGS" ]; then
-		if echo "$INSTALLCMD" | grep -q '%p'; then
-			for pkg in $PKGS; do
-				instcmd="$(echo $INSTALLCMD | sed -e "s|%p|$pkg|g")"
-				echo "Installing $pkg in $distname."
-				chroot $CHROOTDIR/$distname $instcmd
-			done
-		else
-			echo $PKGS | xargs chroot $CHROOTDIR/$distname $INSTALLCMD
-		fi
-	fi
-	echo
+    if [ "$INSTALLCMD" -a "$PKGS" ]; then
+        for pkg in $PKGS; do
+            instcmd="$(echo $INSTALLCMD | sed -e "s|%p|$pkg|g")"
+            echo "Installing $pkg in $distname."
+            chroot $CHROOTDIR/$distname $instcmd
+            if [ -z "$FORCE_VERBOSE" ]; then
+                echo "$instcmd" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$distname" /bin/bash --login -s
+            else
+                echo "$instcmd" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$distname" /bin/bash --login -x -s
+            fi
+        done
+    fi
+    echo
 done
 echo "Finished."

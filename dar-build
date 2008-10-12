@@ -253,7 +253,7 @@ for arg in $PKGS; do
                 ln -sf $CHROOTDIR/$dist/root/.distcc/state /root/.distcc/
                 export DISTCC_LOG="$TEMPDIR/distcc-$LOGFILE"
                 rm -f "$DISTCC_LOG"
-                export MAKEFLAGS="-j$CPUNR CC=\"$DISTCC_CC\" CXX=\"$DISTCC_CXX\" GXX=\"$DISTCC_CXX\""
+                export MAKEFLAGS="-j$CPUNR CC='$DISTCC_CC' CXX='$DISTCC_CXX' GXX='$DISTCC_CXX'"
                 export DISTCC_HOSTS CC="$DISTCC_CC" CXX="$DISTCC_CXX" GXX="$DISTCC_CXX"
                 export PATH="/usr/lib/distcc/bin:$PATH"
             else
@@ -275,13 +275,6 @@ for arg in $PKGS; do
                 export CCACHE_RECACHE="1"
             fi
 
-            ### Check for Setarch
-            if [ -x "/usr/bin/setarch" -a "$DISTARCH" != "$(uname -m)" ]; then
-                SETARCH="/usr/bin/setarch $DISTARCH"
-            else
-                unset SETARCH
-            fi
-
             ### Disable ExtUtils::AutoInstall in perl packages
             export PERL_EXTUTILS_AUTOINSTALL="--skipdeps --skip"
 
@@ -290,9 +283,7 @@ for arg in $PKGS; do
 
             ### Prepare rpm options
             if [ "$FORCE_VERBOSE" ]; then
-                RPMBUILDOPTS="$RPMBUILDOPTS -vv --target $arch"
-            else
-                RPMBUILDOPTS="$RPMBUILDOPTS --target $arch"
+                RPMBUILDOPTS="$RPMBUILDOPTS -vv"
             fi
 
             if [ "$FORCE_VERBOSE" == "yes" ]; then
@@ -307,14 +298,15 @@ for arg in $PKGS; do
                 export LD_PRELOAD="/lib/libsoapbox.so"
             fi
 
-            BUILDCMD="/usr/bin/rpmbuild -bb --clean $RPMBUILDOPTS \
+            BUILDCMD="/usr/bin/rpmbuild -bb --clean $RPMBUILDOPTS --target $arch \
                     --define \"_smp_mflags $MAKEFLAGS\" \
                     --define \"_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm\" \
                     --define \"_initrddir %{_sysconfdir}/rc.d/init.d\" \
                     --define \"_rpmdir $PACKAGEDIR/$app\" \
                     --define \"_sourcedir $SPECDIR\" \
-                    --define \"_builddir $BUILDDIR\" \
+                    --define \"_builddir $ROOT/build\" \
                     --define \"_tmppath $TEMPDIR\" \
+                    --define \"_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root\" \
                     --define \"debug_package %nil\" \
                     --define \"dtag $DISTNAME\" \
                     --define \"disttag $DISTNAME\" \
@@ -334,37 +326,10 @@ for arg in $PKGS; do
                 echo -e "\n----- Build log -----"
 
                 ### Check for building as user
-                if [ $AS_ROOT -eq 1 ]; then
-                    $SETARCH chroot "$CHROOTDIR/$dist" /usr/bin/rpmbuild -bb --clean $RPMBUILDOPTS \
-                        --define "_smp_mflags $MAKEFLAGS" \
-                        --define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
-                        --define "_initrddir %{_sysconfdir}/rc.d/init.d" \
-                        --define "_rpmdir $PACKAGEDIR/$app" \
-                        --define "_sourcedir $SPECDIR" \
-                        --define "_builddir $ROOT/build" \
-                        --define "_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root" \
-                        --define "debug_package %nil" \
-                        --define "dtag $DISTNAME" \
-                        --define "disttag $DISTNAME" \
-                        --define "$DISTNAME 1" \
-                        --define "$DISTNICK 1" \
-                        "$NEWSPECFILE"
+                if [ $AS_ROOT -ne 1 ]; then
+                    echo "$BUILDCMD" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$dist" /bin/su -lm $BUILD_USER -c "/bin/bash --login -s"
                 else
-                    $SETARCH chroot "$CHROOTDIR/$dist" /bin/su -lm $BUILD_USER -c "/usr/bin/rpmbuild -bb --clean $RPMBUILDOPTS \
-                        --define '_smp_mflags $MAKEFLAGS' \
-                        --define '_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm' \
-                        --define '_initrddir %{_sysconfdir}/rc.d/init.d' \
-                        --define '_rpmdir $PACKAGEDIR/$app' \
-                        --define '_sourcedir $SPECDIR' \
-                        --define '_builddir $ROOT/build' \
-                        --define '_tmppath $TEMPDIR' \
-                        --define '_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root' \
-                        --define 'debug_package %nil' \
-                        --define 'dtag $DISTNAME' \
-                        --define 'disttag $DISTNAME' \
-                        --define '$DISTNAME 1' \
-                        --define '$DISTNICK 1' \
-                        $NEWSPECFILE"
+                    echo "$BUILDCMD" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$dist" /bin/bash --login -s
                 fi
 
             ) >>"$PACKAGEDIR/$app/_buildlogs/$LOGFILE_KO" 2>&1
@@ -460,15 +425,16 @@ for arg in $PKGS; do
             if [ "$FORCE_VERBOSE" == "yes" ]; then
                 echo "Building source package $app using \"$SPECFILE\" for $dist"
             fi
-            chroot "$CHROOTDIR/$dist" /usr/bin/rpmbuild -bs \
-                --define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
-                --define "_srcrpmdir $PACKAGEDIR/$app" \
-                --define "_sourcedir $SPECDIR" \
-                --define "$dist 1" \
-                --define "dist $DISTNAME" \
-                --define "disttag $DISTNAME" \
-                --define "$DISTNAME 1" \
-                "$NEWSPECFILE" &>/dev/null
+            BUILDCMD="/usr/bin/rpmbuild -bs \
+                --define \"_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm\" \
+                --define \"_srcrpmdir $PACKAGEDIR/$app\" \
+                --define \"_sourcedir $SPECDIR\" \
+                --define \"$dist 1\" \
+                --define \"dist $DISTNAME\" \
+                --define \"disttag $DISTNAME\" \
+                --define \"$DISTNAME 1\" \
+                \"$NEWSPECFILE\""
+            echo "$BUILDCMD" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$dist" /bin/su -lm $BUILD_USER -c "/bin/bash --login -s" &>/dev/null
             RC=$?
             if [ $RC -eq 0 ]; then
                 if [ "$FORCE_VERBOSE" == "yes" ]; then

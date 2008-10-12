@@ -3,38 +3,38 @@
 source "/usr/share/dar/dar-functions"
 
 if [ -z "$DEFAULT_DISTS" -o -z "$ROOT" ]; then
-	echo "ERROR: There's something wrong with your configuration !" >&2
-	exit 1
+    echo "ERROR: There's something wrong with your configuration !" >&2
+    exit 1
 fi
 
 umount /dar/build 2>/dev/null
-mount -o bind /dev/shm /dar/build/
+#mount -o bind /dev/shm /dar/build/
 
 for distname in $DEFAULT_DISTS; do
-	if [ "${DEFAULT_DISTS// */}" != $distname ]; then
-		ln -f $CHROOTDIR/${DEFAULT_DISTS// */}/root/.bash_history $CHROOTDIR/$distname/root/.bash_history
-	fi
+    if [ "${DEFAULT_DISTS// */}" != $distname ]; then
+        ln -f $CHROOTDIR/${DEFAULT_DISTS// */}/root/.bash_history $CHROOTDIR/$distname/root/.bash_history
+    fi
 
-	umount $CHROOTDIR/$distname{/dev/pts,/proc,/sys,/tmp,$ROOT/build,$ROOT/} 2>/dev/null
+    umount $CHROOTDIR/$distname{/dev/pts,/proc,/sys,/tmp,$ROOT/build,$ROOT/} 2>/dev/null
 
-#	rm -rf $CHROOTDIR/$distname{$RPMTMPPATH}/*
-	mkdir -p $CHROOTDIR/$distname/$ROOT/
-	mount -o bind $ROOT $CHROOTDIR/$distname/$ROOT/
+#   rm -rf $CHROOTDIR/$distname{$RPMTMPPATH}/*
+    mkdir -p $CHROOTDIR/$distname/$ROOT/
+    mount -o bind $ROOT $CHROOTDIR/$distname/$ROOT/
 
-	mkdir -p $CHROOTDIR/$distname/proc/
-	mount -t proc proc $CHROOTDIR/$distname/proc/
+    mkdir -p $CHROOTDIR/$distname/proc/
+    mount -t proc proc $CHROOTDIR/$distname/proc/
 
-	mkdir -p $CHROOTDIR/$distname/sys/
-	mount -t sysfs sys $CHROOTDIR/$distname/sys/
+    mkdir -p $CHROOTDIR/$distname/sys/
+    mount -t sysfs sys $CHROOTDIR/$distname/sys/
 
-	mkdir -p $CHROOTDIR/$distname/dev/pts/
-	mount -t devpts devpts $CHROOTDIR/$distname/dev/pts/
+    mkdir -p $CHROOTDIR/$distname/dev/pts/
+    mount -t devpts devpts $CHROOTDIR/$distname/dev/pts/
 
-###	Use this when you want to speed up building :)
-	mkdir -p $CHROOTDIR/$distname/$ROOT/build/
-	mount -o bind /dev/shm $CHROOTDIR/$distname$ROOT/build/
+### Use this when you want to speed up building :)
+#    mkdir -p $CHROOTDIR/$distname/$ROOT/build/
+#    mount -o bind /dev/shm $CHROOTDIR/$distname$ROOT/build/
 
-###	Use thise when using X processes inside chroots
-	mkdir -p $CHROOTDIR/$distname/tmp/
-	mount -o bind /tmp/ $CHROOTDIR/$distname/tmp/
+### Use thise when using X processes inside chroots
+#    mkdir -p $CHROOTDIR/$distname/tmp/
+#    mount -o bind /tmp/ $CHROOTDIR/$distname/tmp/
 done

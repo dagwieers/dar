@@ -79,7 +79,7 @@ def download(url):
     filename = os.path.join(tmppath, os.path.basename(url))
     try:
         st = os.stat(filename)
-        if st and st.st_mtime + 1800.0 > time.time():
+        if st and st.st_mtime + 3600.0 > time.time():
 #            print >>sys.stderr, "File %s is recent, skip download." % os.path.basename(url)
             return True
     except:

@@ -2,8 +2,8 @@
 source "/usr/share/dar/dar-functions"
 
 function help {
-	cat <<EOF
-usage: dar-exec [-q] [-d dist,dist2] cmd	
+    cat <<EOF
+usage: dar-exec [-q] [-d dist,dist2] cmd    
 Run a command in one or more DAR build environments
 
 dar-exec options:
@@ -32,8 +32,8 @@ shift $((OPTIND-1))
 CMD=$@
 
 if [ ! -d "$ROOT" ]; then
-	echo "ERROR: probably in chroot jail" >&2
-	exit 1
+    echo "ERROR: probably in chroot jail" >&2
+    exit 1
 fi
 
 set_dists
@@ -41,39 +41,30 @@ set_as_root
 AS_ROOT=1
 
 for distname in $DISTS; do
-	if [ -z "$QUIET" ]; then
-		echo -e "$_BL_$_WH= Executing \"$_YE$CMD$_WH\" for $_YE$distname$_WH.$_DE"
-	fi
+    if [ -z "$QUIET" ]; then
+        echo -e "$_BL_$_WH= Executing \"$_YE$CMD$_WH\" for $_YE$distname$_WH.$_DE"
+    fi
 
-	if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
-		source "$CONFIGDIR/dists/$distname/config"
-		export arch="$DISTARCH" dist="${DISTNAME// *}" nick="$DISTNICK" path="$DISTPATH" repo="$REPO" tag="${DISTTAG// *}"
-	fi
+    if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
+        source "$CONFIGDIR/dists/$distname/config"
+        export arch="$DISTARCH" dist="${DISTNAME// *}" nick="$DISTNICK" path="$DISTPATH" repo="$REPO" tag="${DISTTAG// *}"
+    fi
 
-	### Check for building as user
-	if [ $AS_ROOT -eq 1 ]; then
-#		DO_SU="/bin/su -l -c"
-		if [ "$FORCE_VERBOSE" ]; then
-			DO_SU="/bin/bash -x -s"
-		else
-			DO_SU="/bin/bash -s"
-		fi
-	else
-		if [ "$FORCE_VERBOSE" ]; then
-			DO_SU="/bin/su -lm $BUILD_USER -- /bin/bash -x -s"
-		else
-			DO_SU="/bin/su -lm $BUILD_USER -- /bin/bash -s"
-		fi
-	fi
+    ### Check for building as user
+    if [ $AS_ROOT -eq 1 -a -z "$FORCE_VERBOSE" ]; then
+        echo "$CMD" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$distname" /bin/bash --login -s
+    elif [ $AS_ROOT -eq 1 -a "$FORCE_VERBOSE" ]; then
+        echo "$CMD" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$distname" /bin/bash --login -x -s
+    elif [ $AS_ROOT -ne 1 -a -z "$FORCE_VERBOSE" ]; then
+        echo "$CMD" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$distname" /bin/su -lm $BUILD_USER -c "/bin/bash --login -s"
+    else
+        echo "$CMD" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$distname" /bin/su -lm $BUILD_USER -c "/bin/bash --login -x -s"
+    fi
+    RC=$?
 
-#	echo chroot "$CHROOTDIR/$distname" $DO_SU $CMD
-#	chroot "$CHROOTDIR/$distname" $DO_SU $CMD
-	echo "$CMD" | chroot "$CHROOTDIR/$distname" $DO_SU
-	RC=$?
-
-	if [ $RC -ne 0 ]; then
-		error "$_RE_${_WH}Failed execution (RC=$_YE$RC$_WH)$_DE"
-	fi
+    if [ $RC -ne 0 ]; then
+        error "$_RE_${_WH}Failed execution (RC=$_YE$RC$_WH)$_DE"
+    fi
 done
 
 exit 0

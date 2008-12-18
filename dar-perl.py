@@ -344,7 +344,7 @@ for tarinfo in distfd:
 
     ### Parse META.yml (http://module-build.sourceforge.net/META-spec-current.html)
     if filename == 'META.yml':
-        member = distfd.getmember(file)
+        member = distfd.getmember(tarinfo.name)
         try:
             meta = yaml.load(distfd.extractfile(member).read())
             if debug:

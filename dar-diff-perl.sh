@@ -1,11 +1,12 @@
 #!/bin/bash
+DIRNAME="$(dirname $0)"
 
 for pkg in $*; do
-    if [ ! -f /dar/rpms/$pkg/$pkg.spec ]; then
-        echo "SPEC file /dar/rpms/$pkg/$pkg.spec does not exist, creating." >&2
-        /dar/tools/dar/dar-perl.py -c $pkg
+    if [ ! -f $pkg/$pkg.spec ]; then
+        echo "SPEC file $pkg/$pkg.spec does not exist, creating." >&2
+        $DIRNAME/dar-perl.py -c $pkg
         read
     else
-        diff -u /dar/rpms/$pkg/$pkg.spec <(/dar/tools/dar/dar-perl.py $pkg) | cdiff | less -R -u
+        diff -u $pkg/$pkg.spec <($DIRNAME/dar-perl.py $pkg) | cdiff | less -R -u
     fi
 done

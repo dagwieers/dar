@@ -282,7 +282,8 @@ function download_sources {
 	local RC=1
 	local ERC=0
 	local i=1
-	for url in $(spectool -l "$SPECFILE" 2>/dev/null | cut -f2 -d' '); do
+    ### FIXME: Do not hardcode a distribution here
+	for url in $(spectool -l -d "dtag el5" "$SPECFILE" 2>/dev/null | cut -f2 -d' '); do
 		filename="$SPECDIR/$(basename $url)"
 		if [ ! -s "$filename" ]; then
 			warning "Source \"$(basename $filename)\" not found, downloading [$url]."

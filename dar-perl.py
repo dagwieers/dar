@@ -66,6 +66,7 @@ docdirs = ('contrib/', 'doc/', 'docs/', 'eg/', 'example/', 'examples/',
 authorities = {
     'dag': 'Dag Wieers <dag@wieers.com>',
     'dries': 'Dries Verachtert <dries@ulyssis.org>',
+    logname: 'Unknown',
 }
 
 licenses = {
@@ -303,43 +304,46 @@ docs = []
 docsdirs = []
 meta = {}
 basedir = False
-for file in distfd.getnames():
 
+for tarinfo in distfd:
     ### We assume the first entry is the base directory ?
     if not basedir:
-        if file.endswith('/'):
-            basedir = file
+        if tarinfo.name.endswith('/'):
+            basedir = tarinfo.name
         else:
             basedir = base + '/'
 
     ### Remove Name-Version/ from filename
-    shortfile = lcut(file, basedir)
-    if file == shortfile:
+    filename = lcut(tarinfo.name, basedir)
+    if filename == tarinfo.name:
         print >>sys.stderr, 'Error: Basedir cannot be determined for archive %s.' % archive
         sys.exit(1)
 
     ### Create %docs directorylist
-    if shortfile in docdirs:
-        docsdirs.append(shortfile)
+    if tarinfo.isdir() and filename in docdirs:
+        docsdirs.append(filename)
         continue
 
-    ### Drop directories and test files
-    if file.endswith('/') or file.endswith('.t'):
+    ### Drop directories, test files and empty files
+    if tarinfo.isdir() or filename.endswith('.t') or tarinfo.size == 0:
         continue
 
     ### Check if this is a noarch or arch package
-    if file.endswith('.c') or file.endswith('.h') or file.endswith('.cc') or file.endswith('.xs'):
+    if filename.endswith('.c') or filename.endswith('.h') or filename.endswith('.cc') or filename.endswith('.xs'):
         noarch = False
         continue
 
-    ### Create %docs filelist
+    ### Create %docs filelist based on docfiles
     for docre in docfiles:
-        if re.search(docre, shortfile, re.I):
-            docs.append(shortfile)
-            break
+        if docre.endswith('$') and re.search(docre, filename, re.I):
+                docs.append(filename)
+                break
+        elif not docre.endswith('$') and re.search(docre+'[^/]*$', filename, re.I):
+                docs.append(filename)
+                break
 
     ### Parse META.yml (http://module-build.sourceforge.net/META-spec-current.html)
-    if shortfile == 'META.yml':
+    if filename == 'META.yml':
         member = distfd.getmember(file)
         try:
             meta = yaml.load(distfd.extractfile(member).read())
@@ -352,9 +356,9 @@ for file in distfd.getnames():
         continue
 
     ### Check whether we need to use perl(Module::Build)
-    elif shortfile == 'Makefile.PL':
+    elif filename == 'Makefile.PL':
         package_make = True
-        member = distfd.getmember(file)
+        member = distfd.getmember(tarinfo.name)
         try:
             makefile = parse_makefile_pl(distfd.extractfile(member).read())
             if debug:
@@ -364,7 +368,7 @@ for file in distfd.getnames():
         except:
             pass
 
-    elif shortfile == 'Build.PL':
+    elif filename == 'Build.PL':
         package_build = True
 
 docs.sort()
@@ -401,6 +405,7 @@ if meta.has_key('author'):
             author = author.replace('@','$').replace('.',',').replace(' at ','$').replace(' dot ',',').replace(' [at] ','$').replace('_dot_',',')
             authors.append(author.encode('utf8', 'replace'))
 
+### FIXME: The license code assumes a lot
 if meta.has_key('license') and meta['license'] in licenses.keys():
     license = licenses[meta['license']]
 else:

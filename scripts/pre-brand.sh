@@ -16,14 +16,16 @@ author="$(grep '^# Authority: ' $specfile | sed -e 's|^# Authority: ||')"
 vendor="Dag Apt Repository, http://dag.wieers.com/apt/"
 
 case "$author" in
-	(dries)
-		packager="Dries Verachtert <dries\@ulyssis.org>" ;;
-	(bert)
-		packager="Bert de Bruijn <bert\@debruijn.be>" ;;
+    (dries)
+        packager="Dries Verachtert <dries\@ulyssis.org>" ;;
+    (bert)
+        packager="Bert de Bruijn <bert\@debruijn.be>" ;;
     (hadams)
         packager="Heiko Adams <info\@fedora-blog.de>" ;;
-	(dag|thias|matthias|*)
-		packager="Dag Wieers <dag\@wieers.com>" ;;
+    (cmr)
+        packager="Christoph Maser <cmr\@financial.com>" ;;
+    (dag|thias|matthias|*)
+        packager="Dag Wieers <dag\@wieers.com>" ;;
 esac
 
 ### Removing existing branding and add own branding

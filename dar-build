@@ -146,11 +146,11 @@ for arg in $PKGS; do
             VERSION="$(rpmconf Version)"
             RELEASE="$(rpmconf Release)"
 
-            NEWSPECFILE="$TEMPDIR/$app-$VERSION-$RELEASE.$TAG.spec"
-            RPMFILE="$app-$VERSION-$RELEASE.$DISTNAME.$TAG.$arch.rpm"
-            LOGFILE="$app-$VERSION-$RELEASE.$DISTNAME.$TAG.$arch"
-            LOGFILE_OK="$app-$VERSION-$RELEASE.$DISTNAME.$TAG.$arch.ok.log"
-            LOGFILE_KO="$app-$VERSION-$RELEASE.$DISTNAME.$TAG.$arch.ko.log"
+            NEWSPECFILE="$TEMPDIR/$app-$VERSION-$RELEASE.spec"
+            RPMFILE="$app-$VERSION-$RELEASE.$arch.rpm"
+            LOGFILE="$app-$VERSION-$RELEASE.$arch"
+            LOGFILE_OK="$app-$VERSION-$RELEASE.$arch.ok.log"
+            LOGFILE_KO="$app-$VERSION-$RELEASE.$arch.ko.log"
             export MAKEFLAGS="%nil"
 
             if [ "$arch" == "nosrc" ]; then
@@ -192,7 +192,7 @@ for arg in $PKGS; do
             (   echo "----- Build information -----"
                 echo "Package name: $app"
                 echo "Package version: $VERSION"
-                echo "Package release: $RELEASE.$DISTNAME.$TAG"
+                echo "Package release: $RELEASE"
                 echo "Packager: $(logname)"
                 echo "Distribution: $DISTNAME/$DISTARCH"
                 echo "Package arch: $arch"
@@ -309,7 +309,7 @@ for arg in $PKGS; do
                     --define \"_buildroot $TEMPDIR/$app-$VERSION-$RELEASE-root\" \
                     --define \"debug_package %nil\" \
                     --define \"dtag $DISTNAME\" \
-                    --define \"disttag $DISTNAME\" \
+                    --define \"dist .$DISTNAME.$TAG\" \
                     --define \"$DISTNAME 1\" \
                     --define \"$DISTNICK 1\" \"$NEWSPECFILE\""
 
@@ -321,7 +321,7 @@ for arg in $PKGS; do
                 cat "$NEWSPECFILE"
 
                 echo -e "\n----- Expanded spec file -----"
-                rpmdb -D "dtag $DISTNAME" -D "disttag $DISTNAME" -D "$DISTNICK 1" -D "$DISTNAME 1" -D "_smp_mflags $MAKEFLAGS" -E "%{expand:%(cat $SPECFILE)}"
+                rpmdb -D "dtag $DISTNAME" -D "dist .$DISTNAME.$TAG" -D "$DISTNICK 1" -D "$DISTNAME 1" -D "_smp_mflags $MAKEFLAGS" -E "%{expand:%(cat $SPECFILE)}"
 
                 echo -e "\n----- Build log -----"
 
@@ -429,20 +429,17 @@ for arg in $PKGS; do
                 --define \"_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm\" \
                 --define \"_srcrpmdir $PACKAGEDIR/$app\" \
                 --define \"_sourcedir $SPECDIR\" \
-                --define \"$dist 1\" \
-                --define \"dist $DISTNAME\" \
-                --define \"disttag $DISTNAME\" \
-                --define \"$DISTNAME 1\" \
+                --define \"dist \" \
                 \"$NEWSPECFILE\""
             echo "$BUILDCMD" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$dist" /bin/su -lm $BUILD_USER -c "/bin/bash --login -s" &>/dev/null
             RC=$?
             if [ $RC -eq 0 ]; then
                 if [ "$FORCE_VERBOSE" == "yes" ]; then
-                    echo -e "${_GR}Success${_DE} $app [$dist/src], file in [$PACKAGEDIR/$app/]"
+                    echo -e "${_BELL}${_GR}Success${_DE} $app [$dist/src], file in [$PACKAGEDIR/$app/]"
                 fi
                 echo "$app [$dist/src] ${SPECFILE/*\/}" >>/dar/log/dar-build-success.log
             else
-                error "${_RE}Failed${_DE} $app [$dist/src], see log [$SPECDIR/_buildlogs/$LOGFILE]"
+                error "${_BELL}${_RE}Failed${_DE} $app [$dist/src], see log [$SPECDIR/_buildlogs/$LOGFILE]"
                 echo "$app [$dist/src] ${SPECFILE/*\/}" >>/dar/log/dar-build-failed.log
             fi
 

@@ -3,6 +3,8 @@
 ### This script add a disttag to the SPEC file so packages can be
 ### identified easier, are unique and don't have the macro clutter.
 
+return 0
+
 script="pre-disttag"
 
 if [ -z "$buildarch" -o -z "$repotag" -o -z "$specfile" -o -z "$disttag" ]; then

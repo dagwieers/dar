@@ -5,7 +5,7 @@ DISTCC_CC="echo 'NODIST: ' "
 DISTCC_CXX="echo 'NODIST: ' "
 
 #UPDATECMD="apt-get -qq update"
-#UPGRADECMD="apt-get -qq -f -y upgrade"
+#UPGRADECMD="apt-get -qq -f -y dist-upgrade"
 #INSTALLCMD="apt-get -qq -y -m install %p"
 #UPDATECMD="up2date -u"
 #INSTALLCMD="up2date -if"

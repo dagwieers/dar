@@ -25,6 +25,8 @@ _RE_="\033[41m"		# Red BG
 _BL_="\033[44m"		# Blue BG
 _WH_="\033[47m"		# White BG
 
+_BELL=""
+
 ### Cleans environment
 function clean_env {
 	:
@@ -97,7 +99,7 @@ function rpmconf {
 
     (
 #	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su -lm $BUILD_USER -c "rpmdb -D \"dtag $DISTNAME\" -D \"disttag $DISTNAME\" -D \"$DISTNICK 1\" -D \"$DISTNAME 1\" -E \"%{expand:%(head -n128 $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
-	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su -lm $BUILD_USER -c "rpmdb -D \"dtag $DISTNAME\" -D \"disttag $DISTNAME\" -D \"$DISTNICK 1\" -D \"$DISTNAME 1\" -E \"%{expand:%(head -n128 $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
+    if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! rpmdb -D "dtag $DISTNAME" -D "dist .$DISTNAME.$TAG" -D "$DISTNICK 1" -D "$DISTNAME 1" -E "%{expand:%(head -n192 $SPECFILE)}" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
 		if ! grep -i "^ *$CONFIG *:" $SPECFILE | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
 			debug "Config $CONFIG not found in $SPECFILE"
 		fi

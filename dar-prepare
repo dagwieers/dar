@@ -19,7 +19,7 @@ for distname in $DEFAULT_DISTS; do
 
 #   rm -rf $CHROOTDIR/$distname{$RPMTMPPATH}/*
     mkdir -p $CHROOTDIR/$distname/$ROOT/
-    mount -o bind $ROOT $CHROOTDIR/$distname/$ROOT/
+    mount -o bind,noatime $ROOT $CHROOTDIR/$distname/$ROOT/
 
     mkdir -p $CHROOTDIR/$distname/proc/
     mount -t proc proc $CHROOTDIR/$distname/proc/

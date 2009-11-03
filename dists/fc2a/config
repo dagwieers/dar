@@ -8,7 +8,7 @@ DISTCC_CXX="x86_64-redhat-linux-g++-3.3.3"
 #UPDATECMD="yum -y update"
 #INSTALLCMD="yum -y install %p"
 UPDATECMD="apt-get -qq update"
-UPGRADECMD="apt-get -qq -f -y upgrade"
+UPGRADECMD="apt-get -qq -f -y dist-upgrade"
 INSTALLCMD="apt-get -qq -y -m install %p"
 CLEANCMD="apt-get clean"
 

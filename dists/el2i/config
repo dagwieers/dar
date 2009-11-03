@@ -5,7 +5,7 @@ DISTCC_CC="i386-redhat-linux-gcc-2.96"
 DISTCC_CXX="i386-redhat-linux-g++-2.96"
 
 UPDATECMD="apt-get -qq update"
-UPGRADECMD="apt-get -qq -f -y upgrade"
+UPGRADECMD="apt-get -qq -f -y dist-upgrade"
 INSTALLCMD="apt-get -qq -y -m install %p"
 CLEANCMD="apt-get clean"
 

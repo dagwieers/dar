@@ -7,6 +7,7 @@
 ###     perl-Tree-Simple            tests META.yml
 ###     perl-Tree-Simple-Visitor    tests sub-modules
 ###     perl-Kwiki                  tests perl Buildrequires epoch
+###     perl-ExtUtils-FakeConfig    tests zip files (unsupported yet)
 
 ### More documentation about:
 ###     META.yml    http://module-build.sourceforge.net/META-spec-current.html
@@ -88,8 +89,8 @@ def download(url):
     try:
         req = urllib2.Request(url)
         fdin = urllib2.urlopen(req)
-    except:
-#        print >>sys.stderr, "Failed to download file from %s" % url
+    except Exception, e:
+        print >>sys.stderr, "Failed to download file from %s, %s" % (url, e)
         return False
     fdout = open(filename, 'w')
     fdout.write(fdin.read())
@@ -229,7 +230,6 @@ if package_version:
 location = path
 
 #print >>sys.stderr, 'We found package %s with version %s with modules:' % (package, version)
-#print >>sys.stderr, pkgmodules
 
 ppath = path.split('/')
 mnemo = ppath[2]
@@ -275,14 +275,16 @@ elif realversion == version:
 
 ### Try to download distribution
 archive = os.path.join(tmppath, cdistname)
-if os.path.isfile(archive):
-    os.remove(archive)
+#if os.path.isfile(archive):
+#    os.remove(archive)
 source = "http://www.cpan.org/modules/by-module/%s/%s" % (modparts[0], cdistname)
 #if not os.path.isfile(archive):
 if not download(source):
     source = "http://www.cpan.org/authors/id/%s" % location
     if not download(source):
-        print >>sys.stderr, "Error: Failed to download %s" % (source)
+        source = "http://search.cpan.org/CPAN/authors/id/%s" % location
+        if not download(source):
+            print >>sys.stderr, "Error: Failed to download %s" % (source)
 
 ### Add %{version} and %{real_version} to source
 source = source.replace(version, '%{version}')
@@ -380,8 +382,8 @@ if realversion:
     basedir = basedir.replace(realversion, '%{real_version}')
 basedir = rcut(basedir, '/')
 
-if os.path.isfile(archive):
-    os.remove(archive)
+#if os.path.isfile(archive):
+#    os.remove(archive)
 
 ### Compare deducted information with META.yml
 if meta.has_key('name') and meta['name'] != package:

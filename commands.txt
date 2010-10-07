@@ -16,6 +16,10 @@ old=fc3; chr=fc4i; for pkg in $(echo /dar/packages/*/*-devel-*.$old.rf.i386.rpm)
 ### Update perl packages in RPMforge
 for pkg in $(/dar/tools/dar/dar-list-perl.py --new | cut -d' ' -f1); do /dar/tools/dar/dar-diff-perl.sh $pkg; done
 
+### Resign packages
+touch --date="2 weeks ago" /dar/pub/rpmforge/persona/dag/state/rpmsign
+dar-surya
+
 
 ### INSTALLING
 ### """"""""""

@@ -21,6 +21,7 @@ for arg in $PKGS; do
     SPECDIR="$(dirname $arg)"
     app="$(basename $arg .spec)"
     SPECFILE="$PWD/$app.spec"
+    MAKEFLAGS="%nil"
 
     if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECDIR/$app.spec"; fi
     if [ ! -f "$SPECFILE" ]; then SPECFILE="$SPECSDIR/$app.spec"; fi
@@ -48,22 +49,11 @@ for arg in $PKGS; do
 #       svn -q up "$SPECDIR/"
 #   fi
 
-    ### Export to rpmconf
-    export RVERSION="$(rpmmacro real_version)"
-    export RRELEASE="$(rpmmacro real_release)"
-
     app="$(rpmconf Name)"
-    VERSION="$(rpmconf Version)"
-    RELEASE="$(rpmconf Release)"
 
     if [ -z "$app" ]; then
         error "Problem with specfile \"$SPECFILE\". (Name is empty)"
         continue
-    fi
-
-    if [ -z "$VERSION" ]; then
-        VERSION="vs"
-#       die "Problem with specfile \"$SPECFILE\". (Version is empty)"
     fi
 
     mkdir -p "$PACKAGEDIR/$app/_buildlogs/" "$SPECDIR/"
@@ -81,10 +71,6 @@ for arg in $PKGS; do
     set_as_root
     set_ccache
     set_distcc
-
-    if ! download_sources; then
-        continue
-    fi
 
 #   echo "Building $app package for dists: '$DISTS' and archs: '$ARCHS', tagged: '$TAG'"
     for dist in $DISTS; do
@@ -105,7 +91,6 @@ for arg in $PKGS; do
             DISTNAME="nodist"
 #           ARCHS="noarch"
         fi
-
 
         if [ ! -d "$CHROOTDIR/$DISTNICK" ]; then
             warning "Distribution $DISTNICK has no build environment ($CHROOTDIR/$DISTNICK). Aborting."
@@ -161,8 +146,8 @@ for arg in $PKGS; do
             ### Check if already build (2 version schemes, multiple disttags)
             for disttag in $DISTNAME $DISTTAG; do
                 for tag in $TAGS; do
-                    NEWRPMFILE="$app-$VERSION-$RELEASE.$disttag.$tag.$arch.rpm"
-                    OLDRPMFILE="$app-$VERSION-$RELEASE.$tag.$disttag.$arch.rpm"
+                    NEWRPMFILE="$app-$VERSION-$RELEASE.$arch.rpm"
+                    OLDRPMFILE="$app-$VERSION-$RELEASE.$arch.rpm"
                     for rpmfile in $NEWRPMFILE $OLDRPMFILE; do
 #                       echo $rpmfile
                         if [ -z "$FORCE_OVERWRITE" -a -f "$PACKAGEDIR/$app/$rpmfile" ]; then
@@ -177,6 +162,10 @@ for arg in $PKGS; do
                     done
                 done
             done
+
+            if ! download_sources; then
+                continue
+            fi
 
             cp -af "$SPECFILE" "$NEWSPECFILE"
 
@@ -276,6 +265,7 @@ for arg in $PKGS; do
             fi
 
             ### Disable ExtUtils::AutoInstall in perl packages
+            export PERL_AUTOINSTALL="--skipdeps --skip"
             export PERL_EXTUTILS_AUTOINSTALL="--skipdeps --skip"
 
             ### Remove buildroot
@@ -321,7 +311,7 @@ for arg in $PKGS; do
                 cat "$NEWSPECFILE"
 
                 echo -e "\n----- Expanded spec file -----"
-                rpmdb -D "dtag $DISTNAME" -D "dist .$DISTNAME.$TAG" -D "$DISTNICK 1" -D "$DISTNAME 1" -D "_smp_mflags $MAKEFLAGS" -E "%{expand:%(cat $SPECFILE)}"
+                expand_specfile $SPECFILE
 
                 echo -e "\n----- Build log -----"
 
@@ -398,7 +388,7 @@ for arg in $PKGS; do
         done
     done
 
-    RPMFILE="$app-$VERSION-$RELEASE.$TAG.src.rpm"
+    RPMFILE="$app-$VERSION-$RELEASE.src.rpm"
     ### Only build when there was a succesful binary build
 #   if [ -z "$NOSOURCE" -a "$DARBUILDRC" -eq 0 -o ! -f "$PACKAGEDIR/$app/$RPMFILE" ]; then
     if [ -z "$NOSOURCE" -a "$DARBUILDRC" -eq 0 ]; then
@@ -413,7 +403,7 @@ for arg in $PKGS; do
                 continue
             fi
 
-            RPMFILE="$app-$VERSION-$RELEASE.$TAG.src.rpm"
+            RPMFILE="$app-$VERSION-$RELEASE.src.rpm"
 
             NEWSPECFILE="$TEMPDIR/$app.spec"
             cp -af "$SPECFILE" "$NEWSPECFILE"
@@ -429,7 +419,7 @@ for arg in $PKGS; do
                 --define \"_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm\" \
                 --define \"_srcrpmdir $PACKAGEDIR/$app\" \
                 --define \"_sourcedir $SPECDIR\" \
-                --define \"dist \" \
+                --define \"dist .$TAG\" \
                 \"$NEWSPECFILE\""
             echo "$BUILDCMD" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$dist" /bin/su -lm $BUILD_USER -c "/bin/bash --login -s" &>/dev/null
             RC=$?

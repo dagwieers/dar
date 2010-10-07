@@ -13,7 +13,7 @@ fi
 
 export free="$(set -- $(df $chrootdir/$builddir | grep -v 'Filesystem'); echo $4)"
 
-while [ -z "$free" -o $free -lt 20480 ]; do
+while [ -z "$free" -o "$free" -a $free -lt 20480 ]; do
 	echo "Disk is almost full ($free kB), please free up space in $builddir and press ENTER." >&2
 	read a
 	export free="$(set -- $(df $chrootdir/$builddir | grep -v 'Filesystem'); echo $4)"

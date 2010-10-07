@@ -81,6 +81,15 @@ function die {
 	fi
 }
 
+function expand_specfile {
+	local SPECFILE="$1"
+	if [ "$DISTNAME" -a "$TAG" -a "$DISTNICK" -a "$MAKEFLAGS" ]; then
+		rpmdb -D "dtag $DISTNAME" -D "dist .$DISTNAME.$TAG" -D "$DISTNICK 1" -D "$DISTNAME 1" -D "_smp_mflags $MAKEFLAGS" -E "%{expand:%(cat $SPECFILE)}"
+	else
+		cat $SPECFILE
+	fi
+}
+
 function rpmconf {
 	local CONFIG="$1"
 
@@ -92,33 +101,18 @@ function rpmconf {
 		return 1
 	fi
 
-	if [ "$3" != "nocheck" ]; then
-		if [ "$DISTNICK" ]; then
-			local RPMVER="$(chroot $CHROOTDIR/$DISTNICK rpm --version | cut -d' ' -f3)"
-		fi
+#	if [ "$3" != "nocheck" ]; then
+#		if [ "$DISTNICK" ]; then
+#			local RPMVER="$(chroot $CHROOTDIR/$DISTNICK rpm --version | cut -d' ' -f3)"
+#		fi
 
     (
 #	if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! chroot "$CHROOTDIR/$DISTNICK" /bin/su -lm $BUILD_USER -c "rpmdb -D \"dtag $DISTNAME\" -D \"disttag $DISTNAME\" -D \"$DISTNICK 1\" -D \"$DISTNAME 1\" -E \"%{expand:%(head -n128 $SPECFILE)}\"" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
-    if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! rpmdb -D "dtag $DISTNAME" -D "dist .$DISTNAME.$TAG" -D "$DISTNICK 1" -D "$DISTNAME 1" -E "%{expand:%(head -n192 $SPECFILE)}" | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
-		if ! grep -i "^ *$CONFIG *:" $SPECFILE | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
-			debug "Config $CONFIG not found in $SPECFILE"
-		fi
+#    if [ -z "$DISTNICK" ] || [ "$RPMVER" \< "4.1" ] || ! expand_specfile $SPECFILE | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
+	if ! expand_specfile $SPECFILE | grep -i "^ *$CONFIG *:" | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
+		debug "Config $CONFIG not found in $SPECFILE"
 	fi
-	) | perl -p -e "
-                        s|\%{real_version}|$RVERSION|;
-                        s|\%{real_release}|$RRELEASE|;
-                        s|\%{kversion}|kv|;
-                        s|\%{krelease}|kr|;
-                        s|\%{.*}||g;
-			s|\s+| |g;
-			s|^\s+||;
-			s|\s+$||;
-                "
-	else
-		if ! grep -i "^ *$CONFIG *:" $SPECFILE | sed -e "s/^ *$CONFIG *: *//i" | head -1; then
-			debug "Config $CONFIG not found in $SPECFILE"
-		fi
-	fi
+	) | perl -p -e "s|\s+| |g; s|^\s+||; s|\s+$||;"
 }
 
 function rpmmacro {
@@ -192,9 +186,15 @@ function set_archs {
 	else
 		ARCHS="$(metaconf Archs)"
 	fi
-	if [ -z "$ARCHS" ]; then ARCHS="$(rpmconf BuildArch)"; fi
-	if [ -z "$ARCHS" ]; then ARCHS="$DISTARCH"; fi
-	if [ -z "$ARCHS" ]; then ARCHS="$DEFAULT_ARCHS"; fi
+	if [ -z "$ARCHS" ]; then
+		ARCHS="$(rpmconf BuildArch)"
+	fi
+	if [ -z "$ARCHS" ]; then
+		ARCHS="$DISTARCH"
+	fi
+	if [ -z "$ARCHS" ]; then
+		ARCHS="$DEFAULT_ARCHS"
+	fi
 }
 
 function set_dists {
@@ -211,7 +211,9 @@ function set_dists {
 		NODIST="nodist"
 		DISTS="$(echo $DISTS | cut -f1)"
 	fi
-	if [ -z "$DISTS" ]; then DISTS="$DEFAULT_DISTS"; fi
+	if [ -z "$DISTS" ]; then
+		DISTS="$DEFAULT_DISTS"
+	fi
 }
 
 function set_exclude_dist {
@@ -240,8 +242,12 @@ function set_tag {
 	else
 		TAG="$(metaconf Tag)"
 	fi
-	if [ -z "$DEFAULT_TAG" ]; then DEFAULT_TAG="${DEFAULT_TAGS/ */}"; fi
-	if [ -z "$TAG" ]; then TAG="$DEFAULT_TAG"; fi
+	if [ -z "$DEFAULT_TAG" ]; then
+		DEFAULT_TAG="${DEFAULT_TAGS/ */}"
+	fi
+	if [ -z "$TAG" ]; then
+		TAG="$DEFAULT_TAG"
+	fi
 }
 
 function set_soapbox {
@@ -285,7 +291,7 @@ function download_sources {
 	local ERC=0
 	local i=1
     ### FIXME: Do not hardcode a distribution here
-	for url in $(spectool -l -d "dtag el5" "$SPECFILE" 2>/dev/null | cut -f2 -d' '); do
+	for url in $(spectool -l <(expand_specfile $SPECFILE) 2>/dev/null | cut -f2 -d' '); do
 		filename="$SPECDIR/$(basename $url)"
 		if [ ! -s "$filename" ]; then
 			warning "Source \"$(basename $filename)\" not found, downloading [$url]."
@@ -293,7 +299,7 @@ function download_sources {
 			RC=1
 			while [ $RC -ne 0 -a $i -lt 4 ]; do
 #				wget -v -t5 -T2 -O "$filename" "$url"
-				wget -q -t30 -T2 --user-agent="Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)" -O "$filename" "$url"
+				wget -q -t30 -T10 -O "$filename" "$url"
 #				wget -q -T1 -O "$filename" "$url"
 #				lftpget "$url" -c -o "$filename"
 #				lftpget "$url" -c -O "$(dirname $filename)" -o "$(basename $filename)"
@@ -302,6 +308,9 @@ function download_sources {
 			done
 			if [ $RC -ne 0 ]; then
 				error "Problems downloading source [$url]."
+				if [ -s "$filename" ]; then
+					rm "$filename"
+				fi
 				ERC=1
 			fi
 		fi

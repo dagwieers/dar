@@ -17,15 +17,19 @@ vendor="Dag Apt Repository, http://dag.wieers.com/apt/"
 
 case "$author" in
     (dries)
-        packager="Dries Verachtert <dries\@ulyssis.org>" ;;
+        packager="Dries Verachtert <dries\@ulyssis.org>";;
     (bert)
-        packager="Bert de Bruijn <bert\@debruijn.be>" ;;
+        packager="Bert de Bruijn <bert\@debruijn.be>";;
     (hadams)
-        packager="Heiko Adams <info\@fedora-blog.de>" ;;
+        packager="Heiko Adams <info\@fedora-blog.de>";;
     (cmr)
-        packager="Christoph Maser <cmr\@financial.com>" ;;
+        packager="Christoph Maser <cmr\@financial.com>";;
+    (shuff)
+        packager="Steve Huff <shuff\@vecna.org>";;
+    (yury)
+        packager="Yury V. Zaytsev <yury\@shurup.com>";;
     (dag|thias|matthias|*)
-        packager="Dag Wieers <dag\@wieers.com>" ;;
+        packager="Dag Wieers <dag\@wieers.com>";;
 esac
 
 ### Removing existing branding and add own branding

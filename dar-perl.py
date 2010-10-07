@@ -180,12 +180,14 @@ if package.startswith('perl-'):
 module = package.replace('-', '::')
 
 ### Download latest package list from CPAN
-if not download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/modules/02packages.details.txt.gz'):
+#if not download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/modules/02packages.details.txt.gz'):
+if not download('http://www.cpan.org/modules/02packages.details.txt.gz'):
     print >>sys.stderr, "Error: Failed to download 02packages.details.txt.gz"
     sys.exit(1)
 
 ### Download latest authors list from CPAN
-if not download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/authors/00whois.xml'):
+#if not download('ftp://ftp.kulnet.kuleuven.ac.be/pub/mirror/CPAN/authors/00whois.xml'):
+if not download('http://www.cpan.org/authors/00whois.xml'):
     print >>sys.stderr, "Error: Failed to download 00whois.xml"
     sys.exit(1)
 
@@ -506,7 +508,7 @@ print >>out
 print >>out, "Summary: %s" % summary
 print >>out, "Name: perl-%s" % package
 print >>out, 'Version:', version
-print >>out, 'Release: 1'
+print >>out, 'Release: 1%{?dist}'
 print >>out, 'License: %s' % license
 print >>out, 'Group: Applications/CPAN'
 print >>out, "URL: http://search.cpan.org/dist/%s/" % package

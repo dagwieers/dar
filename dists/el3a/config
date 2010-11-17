@@ -24,3 +24,5 @@ DISTARCH="x86_64"
 REPO_APT="yes"
 REPO_YUM="yes"
 REPO_CREATEREPO="yes"
+
+MREPONAME="rhel3as-x86_64"

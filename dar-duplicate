@@ -1,0 +1,46 @@
+#!/bin/bash
+
+source "/usr/share/dar/dar-functions"
+
+for pkg in /dar/rpms/*; do
+    title=
+    base="$(basename $pkg)"
+    cat <<EOF | while read dist name path; do
+el6 EL6 rhel6s-i386
+el5 EL5 rhel5s-i386
+el4 EL4 rhel4as-i386
+el3 EL3 rhel3as-i386
+el2 EL2 rhel2.1as-i386
+EOF
+        unset ${!dist}
+        for file in /dar/mrepo/$path/{updates,optional}/$base-*.rpm; do
+            if [ -f $file ]; then
+                file=$(basename $file)
+                version="${file#*-}"
+                version="${file%.*.*}"
+                if [ -z "$title" ]; then
+                    echo -e "$_BL_$_WH= Found \"$_YE$base/$base.spec$_WH\"$_DE"
+                    title="yes"
+                fi
+                echo "### $name ships with $version"
+                echo "%{?$dist:# Tag: rfx}"
+                for file in /dar/packages/$base/*.$dist.rf.*.rpm; do
+                    if [ -f $file ]; then
+                        mkdir -p /dar/old/$base/
+                        mv -v $file /dar/old/$base/
+                    fi
+                done
+                for file in /dar/packages/$base/_buildlogs/*.$dist.rf.*.log.gz; do
+                    if [ -f $file ]; then
+                        mkdir -p /dar/old/$base/_buildlogs/
+                        mv -v $file /dar/old/$base/_buildlogs/
+                    fi
+                done
+                break
+            fi
+        done
+    done
+#    if [ "$title" ]; then
+#        echo
+#    fi
+done

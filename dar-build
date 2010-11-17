@@ -62,7 +62,6 @@ for arg in $PKGS; do
     chown -R $BUILD_USER.$BUILD_GROUP "$SPECDIR/"
     chmod -R a+r "$SPECDIR/"
 
-    set_tag
     set_dists
     set_exclude_dist
     set_exclusive_dist
@@ -82,6 +81,7 @@ for arg in $PKGS; do
             continue
         fi
 
+        set_tag
         if [ "$TAG" ]; then
             TAGS="$TAG"
         fi
@@ -146,20 +146,11 @@ for arg in $PKGS; do
             ### Check if already build (2 version schemes, multiple disttags)
             for disttag in $DISTNAME $DISTTAG; do
                 for tag in $TAGS; do
-                    NEWRPMFILE="$app-$VERSION-$RELEASE.$arch.rpm"
-                    OLDRPMFILE="$app-$VERSION-$RELEASE.$arch.rpm"
-                    for rpmfile in $NEWRPMFILE $OLDRPMFILE; do
-#                       echo $rpmfile
-                        if [ -z "$FORCE_OVERWRITE" -a -f "$PACKAGEDIR/$app/$rpmfile" ]; then
-                            warning "Package \"$PACKAGEDIR/$app/$rpmfile\" already exists."
-
-#                           if [ -z "$SOURCE_DISTS" ]; then
-#                               SOURCE_DISTS="$DISTNICK"
-#                           fi
-
-                            continue 4
-                        fi
-                    done
+                    rpmfile="$app-$VERSION-$RELEASE.$arch.rpm"
+                    if [ -z "$FORCE_OVERWRITE" -a -f "$PACKAGEDIR/$app/$rpmfile" ]; then
+                        warning "Package \"$PACKAGEDIR/$app/$rpmfile\" already exists."
+                        continue 3
+                    fi
                 done
             done
 

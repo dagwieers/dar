@@ -1,0 +1,52 @@
+#!/bin/bash
+
+source "/usr/share/dar/dar-functions"
+
+function help {
+    cat <<EOF
+usage: dar-metadata [-q] [-v] [-d dist,dist2]
+Update local repository metadata
+
+dar-exec options:
+
+  -d dist,dist2         select build envs
+  -f                    force
+  -h                    this help message
+  -q                    be very quiet
+  -v                    more verbose
+
+EOF
+exit 1
+}
+
+daropts "d:fhqv" $@
+CMD="$OPTS"
+
+if [ ! -d "$ROOT" ]; then
+    echo "ERROR: probably in chroot jail" >&2
+    exit 1
+fi
+
+set_dists
+for distname in $DISTS; do
+    if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
+        source "$CONFIGDIR/dists/$distname/config"
+
+        if [ -z "$QUIET" ]; then
+            echo -e "$_BL_$_WH= Finding $_YE$DISTNAME$_WE/$_YE$DISTARCH$_WH packages...$_DE"
+        fi
+
+        find /dar/packages/ \( -name "*.$DISTNAME.rf.$DISTARCH.rpm" -o -name "*.$DISTNAME.rf.noarch.rpm" \) -exec ln -f {} $MREPODIR/$MREPONAME/rpmforge/RPMS/ \;
+        find /dar/packages/ \( -name "*.$DISTNAME.rfx.$DISTARCH.rpm" -o -name "*.$DISTNAME.rfx.noarch.rpm" \) -exec ln -f {} $MREPODIR/$MREPONAME/rpmforge-extras/RPMS/ \;
+        find /dar/packages/ \( -name "*.$DISTNAME.rft.$DISTARCH.rpm" -o -name "*.$DISTNAME.rft.noarch.rpm" \) -exec ln -f {} $MREPODIR/$MREPONAME/rpmforge-testing/RPMS/ \;
+        if [ "$QUIET" -a "$FORCE" ]; then
+            mrepo -g -f -q $MREPONAME
+        elif [ "$QUIET" -a -z "$FORCE" ]; then
+            mrepo -g -q $MREPONAME
+        elif [ -z "$QUIET" -a "$FORCE" ]; then
+            mrepo -g -f -vv $MREPONAME
+        else
+            mrepo -g -vv $MREPONAME
+        fi
+    fi
+done

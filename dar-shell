@@ -33,10 +33,11 @@ set_dists
 set_as_root
 AS_ROOT=1
 
-if [ -z "$QUIET" ]; then
-    echo -e "$_BL_$_WH= Entering shells.$_DE"
-fi
 for distname in $DISTS; do
+    if [ -z "$QUIET" ]; then
+        echo -e "$_BL_$_WH= Entering $_YE$distname$_WH shell.$_DE"
+    fi
+
     if [ -r "$CONFIGDIR/dists/$distname/config" ]; then
         source "$CONFIGDIR/dists/$distname/config"
         export arch="$DISTARCH" dist="${DISTNAME// *}" nick="$DISTNICK" path="$DISTPATH" repo="$REPO" tag="${DISTTAG// *}"
@@ -49,7 +50,7 @@ for distname in $DISTS; do
     fi
 done
 if [ -z "$QUIET" ]; then
-    echo -en "$_BL_$_WH= Returning to parent shell. Press ENTER.$_DE"
+    echo -en "$_BL_$_WH= Returning to ${_YE}parent$_WH shell. Press ENTER.$_DE"
     read a
 fi
 

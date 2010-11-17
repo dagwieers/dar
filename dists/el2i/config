@@ -25,4 +25,6 @@ REPO_APT="yes"
 REPO_YUM="yes"
 REPO_CREATEREPO="yes"
 
+MREPONAME="rhel2.1as-i386"
+
 ASSUME_KERNEL="2.4.1"

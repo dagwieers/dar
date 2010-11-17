@@ -24,3 +24,5 @@ DISTARCH="i386"
 REPO_APT="yes"
 REPO_YUM="yes"
 REPO_CREATEREPO="yes"
+
+MREPONAME="rhel3as-i386"

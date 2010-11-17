@@ -4,7 +4,7 @@
 
 source "/usr/share/dar/dar-functions"
 
-daropts ":a:d:rs:" $@
+daropts ":a:d:qrs:" $@
 PKGS="$OPTS"
 
 #DISTS="$DEFAULT_DISTS"
@@ -21,10 +21,13 @@ for distname in $DISTS; do
     fi
 
     if [ "$CREATE_REPO" ]; then
-        echo "Building $distname repository in $DISTPATH."
-        build_tree_apt "$DISTNAME $DISTTAG" "$DISTPATH"
-        build_repo_apt "$DISTPATH"
-#       build_repo_yum "$DISTTAG" "$DISTPATH"
+        if [ -z "$QUIET" ]; then
+            echo "Building $distname repository in $DISTPATH."
+        fi
+        dar-metadata -q -d $distname
+#        build_tree_apt "$DISTNAME $DISTTAG" "$DISTPATH"
+#        build_repo_apt "$DISTPATH"
+#        build_repo_yum "$DISTTAG" "$DISTPATH"
     fi
 
     if [ "$UPDATECMD" ]; then
@@ -46,7 +49,9 @@ for distname in $DISTS; do
     if [ "$INSTALLCMD" -a "$PKGS" ]; then
         for pkg in $PKGS; do
             instcmd="$(echo $INSTALLCMD | sed -e "s|%p|$pkg|g")"
-            echo "Installing $pkg in $distname."
+            if [ -z "$QUIET" ]; then
+                echo "Installing $pkg in $distname."
+            fi
             chroot $CHROOTDIR/$distname $instcmd
             if [ -z "$FORCE_VERBOSE" ]; then
                 echo "$instcmd" | setarch $DISTARCH /usr/sbin/chroot "$CHROOTDIR/$distname" /bin/bash --login -s
